@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { requireWorkspace } from "@/lib/auth/dal"
 import { buildContextPack } from "@/lib/domain/context"
+import { TaskDetailActions, ChecklistToggle } from "@/components/dashboard/task-detail-actions"
 
 export default async function TaskDetailPage({
   params,
@@ -94,17 +95,17 @@ export default async function TaskDetailPage({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Badge
-            variant={isDone ? "outline" : isOverdue ? "destructive" : "secondary"}
-            className="text-xs"
-          >
-            {task.status.toLowerCase().replace("_", " ")}
-          </Badge>
-          <Badge variant="outline" className="text-xs">
-            {task.priority}
-          </Badge>
-        </div>
+        <TaskDetailActions
+          workspace={workspace}
+          task={{
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            priority: task.priority,
+            dueAt: task.dueAt ? new Date(task.dueAt).toISOString() : null,
+          }}
+        />
       </div>
 
       {/* KPI Tiles */}
@@ -174,17 +175,7 @@ export default async function TaskDetailPage({
               <CardContent className="pt-0">
                 <div className="divide-y text-xs">
                   {checklist.map((item) => (
-                    <div key={item.id} className="py-2 flex items-center gap-2.5">
-                      <input
-                        type="checkbox"
-                        checked={item.done}
-                        readOnly
-                        className="rounded border-muted-foreground/30 size-4 text-primary focus:ring-0"
-                      />
-                      <span className={item.done ? "line-through text-muted-foreground" : "text-foreground"}>
-                        {item.label}
-                      </span>
-                    </div>
+                    <ChecklistToggle key={item.id} workspace={workspace} item={item} />
                   ))}
                 </div>
               </CardContent>
