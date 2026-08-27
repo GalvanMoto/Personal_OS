@@ -26,9 +26,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -44,10 +42,48 @@ import { cn } from "@/lib/utils"
 
 type ConfirmAnswer = "yes" | "no" | "dismissed"
 
-/**
- * The assistant surface with local storage persistence and session resumption.
- */
 export function AssistantPanel({
+  workspace,
+  onFocusTask,
+}: {
+  workspace: string
+  onFocusTask?: (taskId: string) => void
+}) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <Card className="flex h-full min-h-0 flex-col">
+        <CardHeader className="py-3 px-4 flex flex-row items-center justify-between border-b">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <span>AI Chief-of-Staff</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+          <div className="py-6 flex flex-col items-center justify-center text-center space-y-4">
+            <div className="space-y-1">
+              <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2">
+                <Sparkles className="size-5" />
+              </div>
+              <h2 className="text-sm font-semibold text-foreground">AI Chief-of-Staff Cockpit</h2>
+              <p className="text-xs text-muted-foreground max-w-sm">
+                Interactive multi-agent orchestrator with live markdown, tables, charts, metrics, info cards, tick boxes, and questionnaires.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return <AssistantChatInner workspace={workspace} onFocusTask={onFocusTask} />
+}
+
+function AssistantChatInner({
   workspace,
   onFocusTask,
 }: {
@@ -56,17 +92,12 @@ export function AssistantPanel({
 }) {
   const [draft, setDraft] = useState("")
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null)
-  const [mounted, setMounted] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const storageKey = `personal_os_chat_${workspace}`
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  // 1. Initial messages from persistent local storage
-  const [initialMessages] = useState<any[]>(() => {
+  // Load initial messages from local storage
+  const initialMessages = useMemo(() => {
     if (typeof window === "undefined") return []
     try {
       const saved = localStorage.getItem(storageKey)
@@ -74,18 +105,13 @@ export function AssistantPanel({
     } catch {
       return []
     }
-  })
+  }, [storageKey])
 
-  // The client tool returns a promise the agent loop awaits, and the resolver
-  // is carried in state alongside the question. That is what makes asking the
-  // user a real interrupt rather than a message the model talks past.
   const [pending, setPending] = useState<{
     question: string
     answer: (answer: ConfirmAnswer) => void
   } | null>(null)
 
-  // Reported to the parent from an effect rather than from inside the tool, so
-  // a caller passing an inline function cannot tear down the chat connection.
   useEffect(() => {
     if (focusedTaskId) onFocusTask?.(focusedTaskId)
   }, [focusedTaskId, onFocusTask])
@@ -115,9 +141,6 @@ export function AssistantPanel({
       tools: clientTools(
         focusTask,
         confirmWithUser,
-        // Registered with no implementation on purpose. These execute on the
-        // server; the client only needs to know they are approval-gated so the
-        // interrupt arrives here typed and renderable.
         updateTaskDef.client(),
         deleteTaskDef.client(),
         sendEmailDef.client()
@@ -125,10 +148,9 @@ export function AssistantPanel({
     })
   }, [workspace, initialMessages])
 
-  const { messages, sendMessage, interrupts, isLoading, error, stop, resuming } =
-    useChat(chatOptions)
+  const { messages, sendMessage, isLoading, error, stop } = useChat(chatOptions)
 
-  // Save messages to local storage whenever conversation progresses
+  // Save messages to local storage
   useEffect(() => {
     if (typeof window === "undefined") return
     if (messages && messages.length > 0) {
@@ -140,9 +162,19 @@ export function AssistantPanel({
     }
   }, [messages, storageKey])
 
+  // Scroll to bottom when messages update
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages, isLoading])
+
   function submit(customContent?: string) {
     const content = (customContent || draft).trim()
-    if (!content || isLoading) return
+    if (!content) return
+    if (isLoading) {
+      try { stop() } catch {}
+    }
     setDraft("")
     void sendMessage(content)
   }
@@ -218,7 +250,7 @@ export function AssistantPanel({
       <CardContent className="flex min-h-0 flex-1 flex-col gap-3 p-4">
         <ScrollArea ref={scrollRef} className="min-h-0 flex-1 pr-3">
           <div className="flex flex-col gap-3">
-            {!mounted || messages.length === 0 ? (
+            {messages.length === 0 ? (
               <div className="py-6 flex flex-col items-center justify-center text-center space-y-4">
                 <div className="space-y-1">
                   <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2">
@@ -285,7 +317,7 @@ export function AssistantPanel({
                     )
                   }
 
-                  // Tool execution indicator (Animated IDE-Style)
+                  // Tool execution indicator
                   if (part.type === "tool-call") {
                     const toolPart = part as { name: string; state?: string; args?: unknown; result?: unknown }
                     return (
@@ -306,51 +338,13 @@ export function AssistantPanel({
           </div>
         </ScrollArea>
 
-        {/* Approval interrupts */}
-        {interrupts.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            <Separator />
-            {interrupts.map((interrupt) => {
-              if (interrupt.kind !== "tool-approval") return null
-
-              return (
-                <div
-                  key={interrupt.id}
-                  className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs"
-                >
-                  <p className="font-medium text-amber-500">
-                    Approval required: {interrupt.toolName}
-                  </p>
-                  <pre className="mt-1 max-h-32 overflow-x-auto rounded bg-background/60 p-1.5 font-mono text-[0.625rem]">
-                    {JSON.stringify(interrupt.originalArgs, null, 2)}
-                  </pre>
-                  <div className="mt-2 flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => interrupt.resolveInterrupt(true)}
-                      className="h-7 text-xs"
-                    >
-                      <CheckIcon className="size-3" /> Approve
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => interrupt.resolveInterrupt(false)}
-                      className="h-7 text-xs"
-                    >
-                      <XIcon className="size-3" /> Reject
-                    </Button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        ) : null}
-
-        {/* Question interrupts */}
+        {/* Human-in-the-loop confirmation banner */}
         {pending ? (
-          <div className="flex flex-col gap-2 rounded-lg border border-primary/40 bg-primary/5 p-3 text-xs">
-            <p className="font-medium">{pending.question}</p>
+          <div className="rounded-lg border border-primary/40 bg-primary/5 p-3 text-xs space-y-2">
+            <div className="font-medium text-foreground flex items-center gap-1.5">
+              <Sparkles className="size-3.5 text-primary" />
+              <span>{pending.question}</span>
+            </div>
             <div className="flex gap-2">
               <Button
                 size="sm"
