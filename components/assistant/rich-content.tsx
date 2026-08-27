@@ -19,6 +19,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
+import { BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type Block =
@@ -34,9 +35,10 @@ function parseBlocks(content: string): Block[] {
   const blocks: Block[] = []
   
   // Handles:
-  // 1. Standard / flexible code fences: ```(metrics|chart|info|questionnaire)\n?([\s\S]*?)```
-  // 2. Un-fenced raw prefixes: metrics [ { ... } ] or chart { ... }
-  const re = /(?:```(?:json:)?(metrics|chart|info|questionnaire|\w+)\s*([\s\S]*?)(?:```|$))|(?:(?:^|\n)(metrics|chart|info|questionnaire)\s*(\[\s*\{[\s\S]*?\}\s*\]|\{\s*[\s\S]*?\})(?=\n\n|\n[A-Z*#-]|\s*$))/gi
+  // 1. Standard / flexible code fences: ```(metrics|chart|info|questionnaire|json|\w*)\n?([\s\S]*?)```
+  // 2. Un-fenced raw prefixes: (metrics|chart|info|questionnaire)\s*([\[{][\s\S]*?[\]}])
+  // 3. Raw standalone JSON chart objects: {"type":"bar"|"line"|"area"|"pie", ...}
+  const re = /(?:```(?:json:)?(metrics|chart|info|questionnaire|\w*)\s*([\s\S]*?)(?:```|$))|(?:(?:^|\n)(metrics|chart|info|questionnaire)\s*(\[\s*\{[\s\S]*?\}\s*\]|\{\s*[\s\S]*?\})(?=\n\n|\n[A-Z*#-]|\s*$))|(?:(?:^|\n)\s*(\{\s*"type"\s*:\s*"(?:bar|line|area|pie)"[\s\S]*?\}\s*)(?=\n\n|\n[A-Z*#-]|\s*$))/gi
   let last = 0
   let match: RegExpExecArray | null
 
@@ -48,7 +50,7 @@ function parseBlocks(content: string): Block[] {
       }
     }
 
-    if (match[1]) {
+    if (match[1] !== undefined) {
       // Fenced block
       const lang = match[1].toLowerCase()
       const body = (match[2] || "").trim()
@@ -58,7 +60,18 @@ function parseBlocks(content: string): Block[] {
           json: body,
         })
       } else {
-        blocks.push({ kind: "md", text: match[0] })
+        const parsed = safeParse<any>(body)
+        if (parsed && typeof parsed === "object") {
+          if (Array.isArray(parsed) && parsed.length > 0 && "label" in parsed[0] && "value" in parsed[0]) {
+            blocks.push({ kind: "metrics", json: body })
+          } else if ("type" in parsed && ["bar", "line", "area", "pie"].includes(parsed.type)) {
+            blocks.push({ kind: "chart", json: body })
+          } else {
+            blocks.push({ kind: "md", text: match[0] })
+          }
+        } else {
+          blocks.push({ kind: "md", text: match[0] })
+        }
       }
     } else if (match[3]) {
       // Un-fenced keyword block
@@ -72,6 +85,13 @@ function parseBlocks(content: string): Block[] {
       } else {
         blocks.push({ kind: "md", text: match[0] })
       }
+    } else if (match[5]) {
+      // Raw standalone JSON chart object
+      const body = match[5].trim()
+      blocks.push({
+        kind: "chart",
+        json: body,
+      })
     }
 
     last = re.lastIndex
@@ -260,8 +280,17 @@ const PALETTE = ["#10b981", "#6366f1", "#f59e0b", "#06b6d4", "#ef4444", "#a855f7
 
 function ChartBlock({ json }: { json: string }) {
   const spec = safeParse<ChartSpec>(json)
-  if (!spec || !Array.isArray(spec.data) || spec.data.length === 0) {
+  if (!spec) {
     return <pre className="my-1.5 rounded bg-muted/60 p-1.5 text-[0.65rem]">{json}</pre>
+  }
+
+  if (!Array.isArray(spec.data) || spec.data.length === 0) {
+    return (
+      <div className="my-1.5 flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border/70 bg-card/40 p-4 text-center text-xs text-muted-foreground">
+        <BarChart3 className="size-4 text-muted-foreground/60" />
+        <span className="text-[0.6875rem]">No transactions recorded for this category yet</span>
+      </div>
+    )
   }
 
   // 1. Determine xKey automatically
