@@ -155,6 +155,7 @@ type GmailMessage = {
   snippet?: string
   payload?: GmailPayload
   internalDate?: string
+  labelIds?: string[]
 }
 
 function headerValue(headers: GmailHeader[] | undefined, name: string): string | undefined {
@@ -219,16 +220,25 @@ export function normalizeGmailMessage(msg: GmailMessage): NormalizedEmail {
       ? new Date(dateHeader)
       : new Date()
 
+  const listUnsubscribe = headerValue(headers, "List-Unsubscribe")
+  const inReplyTo = headerValue(headers, "In-Reply-To")
+  const references = headerValue(headers, "References")
+  const subject = headerValue(headers, "Subject")
+  const isReply = Boolean(inReplyTo || references || /^re:\s*/i.test(subject || ""))
+
   return {
     externalId: msg.id,
     threadId: msg.threadId,
-    subject: headerValue(headers, "Subject"),
+    subject,
     fromName: from?.name,
     fromEmail: from?.email,
     toEmails: to,
     snippet: msg.snippet,
     body: extractBody(msg.payload),
     receivedAt,
+    listUnsubscribe,
+    labels: msg.labelIds,
+    isReply,
   }
 }
 
@@ -272,14 +282,11 @@ function cheapClassifyMeta(
   const hasUnsub = headers.some((h) => h.name.toLowerCase() === "list-unsubscribe")
   const labels = (headerValue(headers, "X-GM-LABELS") ?? "").toLowerCase()
 
-  if (labels.includes("category_promotions") || labels.includes("category_social") || labels.includes("category_forums")) {
+  if (labels.includes("category_social") || labels.includes("category_forums")) {
     return { verdict: "NOISE", reason: "gmail_label" }
   }
-  if (hasUnsub) return { verdict: "NOISE", reason: "list-unsubscribe" }
-  if (/^(noreply|no-reply|donotreply|newsletter|marketing|promo|promotions|deals|offers|news|notifications|info|mailer-daemon|digest|updates|community)@/.test(from)) {
-    return { verdict: "NOISE", reason: "bot_sender" }
-  }
-  if (/(unsubscribe|opt-out|manage subscriptions|view in browser|% off|limited time offer|flash sale|discount code|deals of the week)/.test(text)) {
+  // Spam & cold marketing blasts with heavy promotional keywords
+  if (/(% off|limited time offer|flash sale|discount code|deals of the week|promo code|mega sale|buy now)/.test(text)) {
     return { verdict: "NOISE", reason: "promo_keywords" }
   }
   return { verdict: "CANDIDATE", reason: "needs_full" }

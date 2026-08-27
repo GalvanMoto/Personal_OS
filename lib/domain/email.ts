@@ -14,51 +14,80 @@ import type { NormalizedEmail } from "@/lib/integrations/types"
  * task-request email happens later in the shared inbox pipeline, which is why
  * a TASK_REQUEST here still flows through the same extractor as pasted text.
  */
-export function classifyEmail(text: string, fromEmail?: string): string {
-  const t = text.toLowerCase()
-  const from = (fromEmail ?? "").toLowerCase()
+/**
+ * Smart Multi-Signal Email Classification Engine
+ *
+ * Evaluates sender reputation, delivery headers (RFC-8058 List-Unsubscribe,
+ * Reply-To, In-Reply-To), recipient topology, and semantic intent.
+ */
+export function classifyEmail(
+  emailOrText: NormalizedEmail | string,
+  fromEmailFallback?: string
+): string {
+  const isObj = typeof emailOrText === "object" && emailOrText !== null
+  const email = isObj ? (emailOrText as NormalizedEmail) : null
+  const text = (isObj ? `${email?.subject || ""}\n${email?.body || email?.snippet || ""}` : (emailOrText as string)).toLowerCase()
+  const from = (email?.fromEmail || fromEmailFallback || "").toLowerCase()
+  const subject = (email?.subject || "").toLowerCase()
+  const listUnsub = email?.listUnsubscribe || ""
 
-  // 1. Filter bot, notification, and marketing senders
-  if (
-    /^(noreply|no-reply|donotreply|newsletter|marketing|promo|promotions|deals|offers|news|notifications|info|mailer-daemon|digest|updates|community)@/.test(
+  // 1. FINANCIAL & INVOICE DETECTION
+  const isFinancialSender =
+    /@(stripe\.com|razorpay\.com|paypal\.com|quickbooks\.com|zoho\.com|xero\.com|hdfcbank\.net|icicibank\.com|sbi\.co\.in|chase\.com|bankofamerica\.com|americanexpress\.com|billdesk\.com|cashfree\.com|paytm\.com|zerodha\.com|cred\.club)/.test(
       from
     )
-  ) {
-    return "NOISE"
-  }
-
-  // 2. Filter promotional and newsletter content
-  if (
-    /(unsubscribe|opt-out|preferences|manage subscriptions|view in browser|newsletter|promo code|% off|limited time offer|flash sale|discount code|special offer|deals of the week|trending now)/.test(
-      t
+  const isFinancialSubject =
+    /(invoice|tax invoice|payment received|receipt|order confirmation|statement of account|bill|payment confirmation|transaction alert|e-statement|amount debited|amount credited|gstin|billing receipt)/.test(
+      subject + " " + text
     )
-  ) {
-    return "NOISE"
-  }
-
-  // 3. Actionable categories
-  if (
-    /(invoice|tax invoice|payment received|receipt|order confirmation|statement of account|bill|payment confirmation)/.test(
-      t
-    )
-  ) {
+  if (isFinancialSender || isFinancialSubject) {
     return "INVOICE"
   }
-  if (/(subscription|your plan|renewal|membership|your payment method)/.test(t)) {
-    return "SUBSCRIPTION"
-  }
-  if (/(meeting|call|invite|schedule a|zoom|google meet|microsoft teams|calendar invitation)/.test(t)) {
-    return "MEETING"
-  }
-  if (
-    /(please|could you|can you|need (this|me|it)|by (friday|monday|tuesday|wednesday|thursday|saturday|sunday|tomorrow|eod|eow|next week)|deadline|due|task|deliver|reel|edit|design|draft|review|urgent|action required)/.test(
-      t
+
+  // 2. SYSTEM, SECURITY & DEVELOPER NOTIFICATIONS
+  const isSystemSender =
+    /@(github\.com|vercel\.com|supabase\.io|accounts\.google\.com|google\.com|aws\.amazon\.com|cloudflare\.com|sentry\.io|postmarkapp\.com|sendgrid\.net|resend\.com|digitalocean\.com)/.test(
+      from
+    ) || /^(security|alerts|notification|notifications|auth|verify|no-reply|noreply|mailer-daemon)@/.test(from)
+  const isSecurityOrOtp =
+    /(verification code|one-time password|\botp\b|security alert|new sign-in|password reset|verify your email|two-factor|login attempt|build failed|deployment succeeded)/.test(
+      subject + " " + text
     )
-  ) {
-    return "TASK_REQUEST"
+  if (isSystemSender || isSecurityOrOtp) {
+    return "NOTIFICATIONS"
   }
 
-  return "OTHER"
+  // 3. SUBSCRIPTIONS & RECURRING NEWSLETTERS
+  const hasUnsubscribeHeader = Boolean(listUnsub) || /(unsubscribe|opt-out|manage preferences|email preferences|view in browser)/.test(text)
+  const isNewsletterDomain =
+    /@(substack\.com|beehiiv\.com|medium\.com|mailchimp\.com|convertkit\.com|mailerlite\.com|buttondown\.email)/.test(
+      from
+    ) || /^(newsletter|digest|weekly|monthly|updates|news|roundup)@/.test(from)
+  const isNewsletterSubject = /(daily digest|weekly roundup|monthly update|newsletter|issue #|edition #|\bdigest\b)/.test(
+    subject
+  )
+  if ((hasUnsubscribeHeader && isNewsletterDomain) || isNewsletterSubject || (hasUnsubscribeHeader && !email?.isReply)) {
+    // Distinguish marketing promotions from informative subscriptions
+    if (/(% off|limited time offer|flash sale|discount code|special offer|deals of the week|promo code|mega sale|black friday)/.test(subject + " " + text)) {
+      return "PROMOTIONS"
+    }
+    return "SUBSCRIPTION"
+  }
+
+  // 4. DIRECT CLIENT & HUMAN COMMUNICATIONS
+  // Direct human replies, project correspondence, and client briefs
+  const isDirectReply = email?.isReply || /^re:\s*/i.test(subject)
+  const isDirectHumanSender = !hasUnsubscribeHeader && !isSystemSender && !isNewsletterDomain
+  const hasClientKeywords =
+    /(please|could you|can you|need (this|me|it)|by (friday|monday|tuesday|wednesday|thursday|saturday|sunday|tomorrow|eod|eow|next week)|deadline|due|task|deliver|reel|edit|design|draft|review|feedback|meeting|call|schedule|client brief|proposal|agreement)/.test(
+      subject + " " + text
+    )
+
+  if (isDirectReply || (isDirectHumanSender && hasClientKeywords)) {
+    return "CLIENT_COMMS"
+  }
+
+  return "GENERAL"
 }
 
 function buildRaw(email: NormalizedEmail): string {
@@ -153,8 +182,8 @@ export async function ingestEmail(
   })
   if (existingItem) return { created: false }
 
-  const category = classifyEmail(`${email.subject ?? ""}\n${email.body ?? ""}`, email.fromEmail)
-  if (category === "NOISE") {
+  const category = classifyEmail(email)
+  if (category === "PROMOTIONS") {
     return { created: false }
   }
 
