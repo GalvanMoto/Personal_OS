@@ -20,6 +20,7 @@ import {
 } from "@/lib/domain/tasks"
 import { logActivity } from "@/lib/events/activity"
 import { checkAgentPolicy } from "@/lib/agents/registry"
+import { generateImportPlan, executeImportPlan } from "@/lib/domain/import-intelligence"
 
 /**
  * The tool layer (PRD §27).
@@ -409,6 +410,41 @@ const tools: Tool<z.ZodType>[] = [
     handler: async (args, { db, ctx }) => {
       const result = await deleteTask(db, ctx, args.taskId)
       return { deleted: result.deleted }
+    },
+  }),
+
+  defineTool({
+    name: "organize_sources",
+    description:
+      "Ingest, understand, reconcile, and organize client briefs, Google Sheets, and Google Docs into structured Brands, Recurring Commitments, Weekly Tasks, and Requirements.",
+    risk: "CONFIRM",
+    input: z.object({
+      message: z.string().optional(),
+      sourceUrls: z.array(z.string()).optional(),
+      clientHint: z.string().optional(),
+      autoApply: z.boolean().default(true),
+    }),
+    handler: async (args, { db, ctx }) => {
+      const plan = await generateImportPlan(db, {
+        message: args.message,
+        sourceUrls: args.sourceUrls,
+        clientHint: args.clientHint,
+      })
+
+      if (args.autoApply) {
+        const execution = await executeImportPlan(db, ctx, plan)
+        return {
+          status: "APPLIED",
+          plan,
+          execution,
+          report: execution.summaryReport,
+        }
+      }
+
+      return {
+        status: "PREVIEW",
+        plan,
+      }
     },
   }),
 ]

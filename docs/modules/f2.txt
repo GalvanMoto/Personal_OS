@@ -1,0 +1,1123 @@
+Exactly. **This should be one of the main reasons your Assistant exists.** You should not have to manually convert a client-provided spreadsheet + document + message into Projects → Tasks → Deadlines → Assets.
+
+You give the Assistant the raw sources, and it performs the organization.
+
+## The workflow you want
+
+Suppose Karna Kreative sends you:
+
+```text
+Message
+"These are this week's tasks."
+
+Google Sheet
+https://docs.google.com/...
+
+Google Doc
+https://docs.google.com/...
+```
+
+You tell Personal OS:
+
+> "Organize this for me."
+
+That's it.
+
+The Assistant should execute:
+
+```text
+Your message
+      +
+Google Sheet
+      +
+Google Doc
+      ↓
+   Assistant
+      ↓
+Source discovery
+      ↓
+Read sources
+      ↓
+Understand structure
+      ↓
+Identify client
+      ↓
+Identify brands/accounts
+      ↓
+Identify projects
+      ↓
+Identify recurring work
+      ↓
+Extract tasks
+      ↓
+Extract deadlines
+      ↓
+Extract requirements
+      ↓
+Identify assets
+      ↓
+Match existing records
+      ↓
+Detect duplicates
+      ↓
+Create/update records
+      ↓
+Create relationships
+      ↓
+Schedule reminders
+      ↓
+Prepare summary
+```
+
+---
+
+# 1. You give it links, not data entry
+
+Your input can literally be:
+
+> Karna sent this. Organize it.
+
+```text
+https://docs.google.com/spreadsheets/...
+https://docs.google.com/document/...
+```
+
+The Assistant identifies:
+
+```text
+Source 1 → Google Sheet
+Source 2 → Google Doc
+```
+
+and determines what they contain.
+
+You don't need to tell it:
+
+> This is a task sheet.
+
+It should inspect it.
+
+---
+
+# 2. Google Sheet example
+
+Imagine the sheet contains:
+
+| Brand        | Content | Quantity | Due      | Notes         |
+| ------------ | ------- | -------: | -------- | ------------- |
+| WOW Indian   | Reels   |        3 | Friday   | Event content |
+| WOW Indian   | Posts   |        2 | Friday   | Promo         |
+| Restaurant B | Reels   |        2 | Saturday | New menu      |
+| Restaurant C | Shorts  |        3 | Sunday   | Food          |
+
+The Assistant should interpret this as:
+
+```text
+Client:
+Karna Kreative
+
+Brands:
+WOW Indian
+Restaurant B
+Restaurant C
+```
+
+Then:
+
+```text
+WOW Indian
+├── Weekly Reels × 3
+└── Weekly Posts × 2
+
+Restaurant B
+└── Weekly Reels × 2
+
+Restaurant C
+└── Weekly Shorts × 3
+```
+
+---
+
+# 3. It should NOT blindly create everything
+
+This is where your Agent Control Plane becomes important.
+
+The Assistant first produces an internal **Import Plan**.
+
+Conceptually:
+
+```text
+IMPORT PLAN
+
+Client
+✓ Karna Kreative — existing
+
+Brands
+✓ WOW Indian — existing
+✓ Restaurant B — existing
++ Restaurant C — new
+
+Recurring commitments
++ WOW Indian — 3 Reels/week
++ WOW Indian — 2 Posts/week
++ Restaurant B — 2 Reels/week
++ Restaurant C — 3 Shorts/week
+
+Tasks
++ 10 weekly deliverables
+
+Documents
+✓ 1 Google Sheet
+✓ 1 Google Doc
+
+Potential duplicates
+2
+```
+
+Then it can auto-apply low-risk changes and ask you only about uncertain/high-impact things.
+
+---
+
+# 4. Existing data must be matched first
+
+This is crucial.
+
+Suppose Personal OS already has:
+
+```text
+Karna Kreative
+WOW Indian
+WOW Indian — Social Media
+```
+
+The Assistant should **reuse them**.
+
+It should NOT create:
+
+```text
+Karna Kreative 2
+WOW Indian 2
+Social Media Project 2
+```
+
+The matching engine checks:
+
+```text
+Exact name
+Normalized name
+Domain
+Website
+Known contacts
+Historical relationships
+Existing project
+Source references
+```
+
+---
+
+# 5. It should understand a Sheet as a source, not just import rows
+
+A spreadsheet may contain:
+
+```text
+Client information
+Recurring work
+This week's tasks
+Deadlines
+Content calendar
+Asset links
+Status
+Notes
+```
+
+The Assistant determines which parts belong to which Personal OS entity.
+
+For example:
+
+```text
+Sheet
+│
+├── Header information
+│      → Client / Brand
+│
+├── Recurring rows
+│      → Recurring Commitments
+│
+├── Current-week rows
+│      → Tasks
+│
+├── Deadlines
+│      → Task due dates
+│
+└── Asset URLs
+       → Links / Files / Context
+```
+
+---
+
+# 6. Google Doc example
+
+Suppose the document says:
+
+> WOW Indian needs 3 reels this week. Reel 1 should focus on the new menu. Reel 2 should highlight the event. Reel 3 should be customer reactions. Use the new logo and food photography. Final delivery Friday.
+
+The Assistant extracts:
+
+```text
+Brand:
+WOW Indian
+
+Deliverables:
+3 Reels
+
+Requirements:
+Reel 1 → New menu
+Reel 2 → Event
+Reel 3 → Customer reactions
+
+Required assets:
+New logo
+Food photography
+
+Deadline:
+Friday
+```
+
+Then connects that to the correct recurring commitment/project.
+
+---
+
+# 7. Sheet + Doc should be merged
+
+This is where it gets powerful.
+
+The Sheet says:
+
+```text
+3 Reels
+Friday
+```
+
+The Doc says:
+
+```text
+What those 3 reels actually need
+```
+
+The Assistant combines both.
+
+Result:
+
+```text
+WOW Indian — Weekly Reel 1
+Purpose:
+New menu
+
+WOW Indian — Weekly Reel 2
+Purpose:
+Event
+
+WOW Indian — Weekly Reel 3
+Purpose:
+Customer reactions
+
+Deadline:
+Friday
+
+Required assets:
+Logo
+Food photography
+```
+
+You don't manually reconcile two sources.
+
+---
+
+# 8. Conflicting sources
+
+This must be handled intelligently.
+
+Suppose:
+
+Sheet:
+
+```text
+Due Friday
+```
+
+Document:
+
+```text
+Due Saturday
+```
+
+Don't silently choose one.
+
+The Assistant should recognize:
+
+```text
+CONFLICT DETECTED
+
+Sheet:
+Friday
+
+Document:
+Saturday
+
+Source freshness:
+Document updated later
+
+Recommended:
+Use Saturday
+
+[Accept]
+[Choose Friday]
+```
+
+This is exactly the type of thing the Assistant should protect you from.
+
+---
+
+# 9. Source precedence rules
+
+You can define rules such as:
+
+```text
+More recent source
+>
+Explicit client instruction
+>
+Current project record
+>
+Older document
+>
+AI inference
+```
+
+But don't hard-code one universal rule for every entity.
+
+For example:
+
+### Deadline
+
+Newest explicit client instruction might win.
+
+### Financial amount
+
+Original statement / invoice should outrank an email summary.
+
+### Brand name
+
+Existing verified client record should outrank an ambiguous document mention.
+
+---
+
+# 10. Every generated task keeps the original sources
+
+Suppose it creates:
+
+**WOW Indian — Event Reel**
+
+The task retains:
+
+```text
+Source:
+Google Sheet
+
+Supporting Source:
+Google Doc
+
+Original Client Message:
+Email / Inbox item
+```
+
+So later:
+
+> Why was this task created?
+
+The Assistant can tell you exactly.
+
+---
+
+# 11. It can automatically find assets
+
+Suppose the document says:
+
+> Use the new logo and food photography.
+
+The Assistant searches:
+
+```text
+Client assets
+Project assets
+Google Drive
+Email attachments
+Existing Files
+```
+
+Then:
+
+```text
+New Logo
+✓ Found
+
+Food Photography
+✓ Found
+
+Brand Guidelines
+✓ Found
+
+Reference Video
+✗ Not found
+```
+
+Now your task context is automatically prepared.
+
+---
+
+# 12. It should create a Context Pack
+
+For each generated task:
+
+```text
+Task
+WOW Indian — Event Reel
+
+Requirements
+...
+
+Client
+Karna Kreative
+
+Brand
+WOW Indian
+
+Deadline
+Friday
+
+Source Documents
+Google Sheet
+Google Doc
+
+Files
+Logo
+Food Photos
+
+Related Emails
+...
+
+Notes
+...
+
+Missing
+Reference video
+```
+
+So when you actually start working:
+
+> **Everything I know about this task is already assembled.**
+
+---
+
+# 13. Recurring work should be recognized
+
+This is especially important for your Karna workflow.
+
+Suppose every week's sheet says:
+
+```text
+WOW Indian — 3 Reels
+```
+
+The Assistant should notice:
+
+```text
+This appears to be recurring work.
+```
+
+It can compare previous weeks:
+
+```text
+Week 31
+3 reels
+
+Week 32
+3 reels
+
+Week 33
+3 reels
+
+Week 34
+3 reels
+```
+
+Then suggest/create:
+
+```text
+Recurring Commitment:
+WOW Indian — 3 Reels / Week
+```
+
+After that, future tasks can be generated automatically without waiting for the sheet every week.
+
+---
+
+# 14. The Assistant should learn the client's operating pattern
+
+After repeated imports:
+
+```text
+Karna Kreative
+
+WOW Indian
+3 reels/week
+2 posts/week
+
+Restaurant B
+2 reels/week
+
+Restaurant C
+3 shorts/week
+```
+
+The system now has a persistent **service commitment model**.
+
+Next week's sheet becomes a **change detector** instead of the only source of truth.
+
+For example:
+
+> This week WOW Indian has 4 reels instead of the normal 3.
+
+The Assistant can say:
+
+> "Karna Kreative's usual WOW Indian workload is 3 reels/week. This week's sheet contains 4. I added the extra deliverable."
+
+That's excellent automation.
+
+---
+
+# 15. It should detect changes from previous sheets
+
+Suppose last week's sheet:
+
+```text
+WOW Indian
+3 Reels
+2 Posts
+```
+
+This week's:
+
+```text
+WOW Indian
+4 Reels
+2 Posts
+```
+
+Assistant detects:
+
+```text
++1 Reel this week
+```
+
+Then only create the additional occurrence/task.
+
+Do **not recreate all recurring records from scratch.**
+
+---
+
+# 16. It should detect removed work too
+
+Previous:
+
+```text
+Restaurant B
+2 Reels
+```
+
+Current:
+
+```text
+Restaurant B
+1 Reel
+```
+
+Assistant:
+
+> This week's requirement changed from 2 reels to 1.
+
+Then it updates the **current occurrence**, not necessarily the permanent recurring commitment.
+
+That distinction is very important:
+
+```text
+Permanent Commitment:
+2 reels/week
+
+Current Week Exception:
+1 reel
+```
+
+You don't want one unusual week to permanently alter the contract/commitment.
+
+---
+
+# 17. It should detect status from the source
+
+If the sheet says:
+
+```text
+Done
+```
+
+the Assistant can map:
+
+```text
+Task → Completed
+```
+
+If it says:
+
+```text
+In Progress
+```
+
+then:
+
+```text
+Task → In Progress
+```
+
+If it says:
+
+```text
+Waiting for assets
+```
+
+then:
+
+```text
+Task → Waiting / Blocked
+```
+
+But preserve:
+
+```text
+Original status:
+"Waiting for assets"
+```
+
+as source evidence.
+
+---
+
+# 18. It should create tasks intelligently
+
+A row doesn't always equal a task.
+
+For example:
+
+```text
+WOW Indian
+Weekly Content
+3
+```
+
+could represent a commitment, not three tasks.
+
+Whereas:
+
+```text
+Create Reel 1
+Create Reel 2
+Create Reel 3
+```
+
+clearly represents individual tasks.
+
+The Assistant needs to infer the **semantic structure**, not just import spreadsheet rows mechanically.
+
+---
+
+# 19. It should ask only when necessary
+
+Good:
+
+> I found 12 deliverables and matched them to existing projects. One brand, "Restaurant C", doesn't exist yet. Should I create it under Karna Kreative?
+
+Bad:
+
+> What's the client?
+> What's the project?
+> What's the priority?
+> What's the deadline?
+> What's the task type?
+
+when all of that is already in the sources.
+
+The entire purpose of this system is to avoid those questions.
+
+---
+
+# 20. Import modes
+
+I'd support:
+
+### Organize
+
+> Analyze this and update Personal OS.
+
+### Preview
+
+> Tell me what you found, don't change anything.
+
+### Import
+
+> Import all valid records.
+
+### Sync
+
+> Keep this source synchronized with Personal OS.
+
+The last one becomes interesting for frequently updated Google Sheets.
+
+---
+
+# 21. "Sync this sheet"
+
+Imagine you give it the Karna weekly sheet once.
+
+Then tell it:
+
+> "Use this as Karna's weekly work source."
+
+Now:
+
+```text
+Google Sheet
+      ↓
+Scheduled sync
+      ↓
+Detect changes
+      ↓
+Compare previous state
+      ↓
+Update occurrences
+      ↓
+Create new tasks
+      ↓
+Update requirements
+      ↓
+Notify only meaningful changes
+```
+
+That eliminates your weekly manual work.
+
+---
+
+# 22. Source tracking
+
+For every imported source store:
+
+```text
+Source
+Provider
+URL
+External ID
+Name
+Last Modified
+Last Processed
+Content Hash
+Version
+Processing Status
+```
+
+So the system knows:
+
+> Have I already processed this version?
+
+---
+
+# 23. Source versioning
+
+Suppose the Google Doc changes.
+
+The system detects:
+
+```text
+Previous version
++
+New version
+```
+
+Then asks the Document/Agent system:
+
+```text
+What changed?
+```
+
+Example:
+
+```text
+Changed:
+Deadline Friday → Saturday
+
+Added:
+New requirement for food reel
+
+Removed:
+Old logo requirement
+```
+
+Then update only affected records.
+
+---
+
+# 24. The Assistant should produce an import report
+
+After processing:
+
+```text
+Organized successfully
+
+Karna Kreative
+├── 3 brands matched
+├── 1 new brand detected
+├── 8 tasks created
+├── 5 existing tasks updated
+├── 2 recurring commitments matched
+├── 7 assets linked
+├── 3 documents indexed
+└── 1 conflict requires review
+```
+
+This is the kind of feedback you want.
+
+---
+
+# 25. The whole workflow
+
+Your real-world workflow becomes:
+
+```text
+CLIENT
+  ↓
+Sends Sheet
+  +
+Sends Doc
+  +
+Sends Message
+  ↓
+YOU
+  ↓
+"Organize this."
+  ↓
+PERSONAL OS ASSISTANT
+  ↓
+READ
+  ↓
+UNDERSTAND
+  ↓
+MATCH
+  ↓
+COMPARE
+  ↓
+EXTRACT
+  ↓
+DEDUPE
+  ↓
+CLASSIFY
+  ↓
+ROUTE
+  ↓
+CREATE / UPDATE
+  ↓
+LINK
+  ↓
+CHECK ASSETS
+  ↓
+SCHEDULE
+  ↓
+REMIND
+  ↓
+REPORT
+```
+
+---
+
+# 26. What gets created automatically
+
+From one Sheet + Doc + message, Personal OS could create/update:
+
+```text
+Client
+Brand / Account
+Project
+Recurring Commitment
+Commitment Occurrence
+Tasks
+Subtasks
+Requirements
+Deadlines
+Links
+Documents
+Files
+Assets
+Notes
+Relationships
+Reminders
+Calendar blocks
+```
+
+But it should **reuse existing records wherever possible**.
+
+---
+
+# 27. Agent responsibilities
+
+The Assistant doesn't do everything itself.
+
+For this workflow:
+
+```text
+Assistant
+    ↓
+Orchestrator
+    │
+    ├── Source Agent
+    │     └── reads Sheet / Doc
+    │
+    ├── Entity Agent
+    │     └── matches Client / Brand / Project
+    │
+    ├── Task Agent
+    │     └── creates / updates tasks
+    │
+    ├── Document Agent
+    │     └── extracts document information
+    │
+    ├── Asset Agent
+    │     └── finds required files
+    │
+    ├── Planning Agent
+    │     └── schedules work
+    │
+    └── Reminder Agent
+          └── schedules notifications
+```
+
+---
+
+# 28. One special capability I would add: Import Intelligence
+
+Make a dedicated orchestration workflow:
+
+```text
+Import Intelligence
+```
+
+Input:
+
+```text
+One or more sources
+```
+
+Output:
+
+```text
+Entities
+Changes
+New records
+Updated records
+Conflicts
+Duplicates
+Missing information
+Actions
+```
+
+Then the Assistant calls this whenever you say:
+
+> "Organize this."
+
+---
+
+# 29. The critical database relationship
+
+You need to preserve:
+
+```text
+External Source
+       ↓
+Source Version
+       ↓
+Extraction
+       ↓
+Proposed Change
+       ↓
+Approved Change
+       ↓
+Domain Entity
+```
+
+For example:
+
+```text
+Google Sheet
+↓
+Sheet Version #18
+↓
+Extracted 10 deliverables
+↓
+Matched 8 existing tasks
+↓
+Created 2 new tasks
+```
+
+This gives you complete traceability.
+
+---
+
+# 30. The ultimate experience
+
+Eventually your workflow becomes ridiculously simple:
+
+You receive:
+
+```text
+Karna Kreative
+↓
+Message
+↓
+Google Sheet
+↓
+Google Doc
+```
+
+You send the links to Personal OS and say:
+
+> **"Handle this."**
+
+The system:
+
+```text
+✓ Read the sources
+✓ Identified Karna Kreative
+✓ Matched 3 existing brands
+✓ Detected this week's deliverables
+✓ Compared against last week
+✓ Updated recurring work
+✓ Created new task occurrences
+✓ Applied deadlines
+✓ Linked requirements
+✓ Found assets
+✓ Attached source documents
+✓ Scheduled reminders
+✓ Calculated this week's workload
+✓ Found one missing asset
+```
+
+Then the only thing you need to see is:
+
+> **Done. One thing needs your attention: Restaurant C's product photos are missing.**
+
+That is the direction I would take your Assistant. **The raw Sheet/Doc/message should become an import command, not a data-entry exercise.**

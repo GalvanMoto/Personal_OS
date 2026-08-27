@@ -15,7 +15,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "tsx --conditions=react-server prisma/seed.ts",
-    "test": "tsx --conditions=react-server --test tests/dates.test.ts tests/extraction.test.ts tests/strategies.test.ts tests/storage.test.ts tests/money.test.ts tests/statements.test.ts tests/integrations.test.ts",
+    "test": "tsx --conditions=react-server --test tests/dates.test.ts tests/extraction.test.ts tests/strategies.test.ts tests/storage.test.ts tests/money.test.ts tests/statements.test.ts tests/integrations.test.ts tests/import-intelligence.test.ts",
     "test:db": "tsx --conditions=react-server --test --test-concurrency=1 tests/pipeline.test.ts tests/assistant.test.ts tests/agent-tools.test.ts tests/search.test.ts tests/scheduler.test.ts tests/files.test.ts tests/finance.test.ts",
     "check": "npm run typecheck && npm run test && npm run test:db && npm run check:tenancy",
     "worker": "tsx --conditions=react-server scripts/worker.ts",

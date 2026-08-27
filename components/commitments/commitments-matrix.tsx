@@ -24,6 +24,7 @@ import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty"
 import { generateWeeklyTasksAction } from "@/app/w/[workspace]/commitments/actions"
 import { CreateCommitmentDrawer } from "./create-commitment-drawer"
 import { CreateBrandDrawer } from "./create-brand-drawer"
+import { ImportSourcesDrawer } from "./import-sources-drawer"
 import { cn } from "@/lib/utils"
 
 export function CommitmentsMatrix({
@@ -111,6 +112,7 @@ export function CommitmentsMatrix({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <ImportSourcesDrawer workspace={workspace} organizations={organizations} />
           <CreateBrandDrawer workspace={workspace} organizations={organizations} />
           <CreateCommitmentDrawer workspace={workspace} organizations={organizations} brands={brands} />
           <Button

@@ -88,6 +88,18 @@ function plan(message: string): Plan {
   const text = message.trim()
   const lower = text.toLowerCase()
 
+  if (
+    /(?:organize|handle|process|import|reconcile)\s+(?:this|these|sources?|sheet|doc|tasks?)/i.test(lower) ||
+    /(?:docs\.google\.com\/(?:spreadsheets|document)|drive\.google\.com)/i.test(lower) ||
+    /(?:karna|client)\s+(?:sent|gave)\s+this/i.test(lower)
+  ) {
+    return {
+      kind: "tool",
+      tool: "organize_sources",
+      args: { message: text, autoApply: true },
+    }
+  }
+
   if (/^(what|whats|what's)\s+(should|do)\s+i\s+(do|work on)/.test(lower)) {
     return { kind: "tool", tool: "next_best_action", args: {} }
   }
@@ -301,6 +313,11 @@ function describe(tool: string, result: unknown, args: unknown): string {
     case "create_reminder": {
       const reminder = result as { remindAt: Date | string }
       return `I'll remind you on ${formatDate(new Date(reminder.remindAt))}.`
+    }
+
+    case "organize_sources": {
+      const res = result as { report?: string; summary?: string }
+      return res.report || "Successfully organized and ingested your client sources into structured tasks and commitments."
     }
 
     default:
