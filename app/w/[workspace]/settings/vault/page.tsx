@@ -247,7 +247,7 @@ export default async function VaultPage({
               </CardDescription>
             </div>
             <div className="flex items-center gap-1.5">
-              {["SBI", "HDFC", "ICICI", "AXIS", "KOTAK", "CHASE", "ZERODHA"].map((b) => (
+              {["SBI", "HDFC", "ICICI", "JIO", "AXIS", "KOTAK", "CHASE", "ZERODHA"].map((b) => (
                 <a
                   key={b}
                   href={`?bank=${b}`}
