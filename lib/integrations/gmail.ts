@@ -7,11 +7,29 @@ const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
 const GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me"
 const USERINFO_API = "https://www.googleapis.com/oauth2/v3/userinfo"
 
-/// Read-only mail plus the user's email address for the account label.
+/// Modify mail (read, mark read, trash/bin) plus the user's email address for the account label.
 export const GMAIL_SCOPES = [
-  "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/gmail.modify",
   "https://www.googleapis.com/auth/userinfo.email",
 ]
+
+export async function trashGmailMessage(
+  accessToken: string,
+  externalId: string
+): Promise<boolean> {
+  try {
+    const res = await fetch(`${GMAIL_API}/messages/${encodeURIComponent(externalId)}/trash`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
 
 type StoredTokens = {
   accessToken: string

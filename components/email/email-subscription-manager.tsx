@@ -215,7 +215,7 @@ export function EmailSubscriptionManager({
       await deleteEmails(workspace, ids)
       setEmails((prev) => prev.filter((e) => !selectedIds.has(e.id)))
       setSelectedIds(new Set())
-      setStatusMessage(`Successfully deleted ${ids.length} email(s).`)
+      setStatusMessage(`Successfully deleted ${ids.length} email(s) and moved to Gmail Trash.`)
       setTimeout(() => setStatusMessage(null), 4000)
     })
   }
@@ -236,12 +236,12 @@ export function EmailSubscriptionManager({
   }
 
   const handleDeleteAllFromSender = (fromEmail: string) => {
-    if (!confirm(`Delete all emails received from ${fromEmail}?`)) return
+    if (!confirm(`Delete all emails received from ${fromEmail} and move them to Gmail Trash?`)) return
 
     startTransition(async () => {
       await deleteEmailsBySender(workspace, fromEmail)
       setEmails((prev) => prev.filter((e) => e.fromEmail?.toLowerCase() !== fromEmail.toLowerCase()))
-      setStatusMessage(`Deleted all emails from ${fromEmail}.`)
+      setStatusMessage(`Deleted all emails from ${fromEmail} and moved to Gmail Trash.`)
       setTimeout(() => setStatusMessage(null), 4000)
     })
   }
