@@ -518,12 +518,12 @@ function AssistantChatInner({
                                 >
                                   <BubbleContent
                                     className={cn(
-                                      "max-w-[92%]",
-                                      isUser && "whitespace-pre-wrap"
+                                      "min-w-fit max-w-[92%] break-words",
+                                      isUser && "whitespace-pre-wrap px-3.5 py-2 font-medium leading-relaxed"
                                     )}
                                   >
                                     {isUser ? (
-                                      part.content
+                                      <span>{part.content}</span>
                                     ) : (
                                       <RichContent
                                         content={part.content}
