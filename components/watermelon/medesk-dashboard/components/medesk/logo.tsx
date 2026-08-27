@@ -1,16 +1,22 @@
-import type { SVGProps } from "react";
-import { Sparkles } from "lucide-react";
+import type { HTMLAttributes } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-export function MedeskLogo({ className }: SVGProps<SVGSVGElement>) {
+export function MedeskLogo({ className }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        "flex size-8 items-center justify-center rounded-xl bg-linear-to-tr from-indigo-600 via-violet-600 to-cyan-400 text-white shadow-md shadow-indigo-500/20",
+        "flex size-8 shrink-0 items-center justify-center rounded-xl overflow-hidden shadow-md shadow-indigo-500/20",
         className,
       )}
     >
-      <Sparkles className="size-4" />
+      <Image
+        src="/logo.png"
+        alt="Logo"
+        width={32}
+        height={32}
+        className="size-full object-contain"
+      />
     </div>
   );
 }

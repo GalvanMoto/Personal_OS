@@ -1,6 +1,7 @@
 import * as React from "react"
 import Link from "next/link"
-import { Sparkles, ArrowLeft } from "lucide-react"
+import Image from "next/image"
+import { ArrowLeft } from "lucide-react"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -40,9 +41,14 @@ export function AuthShell({
       {/* Main Card */}
       <div className="flex w-full max-w-sm flex-col gap-4 mx-auto my-auto">
         <Link href="/" className="flex items-center gap-2.5 self-center group">
-          <div className="size-9 rounded-xl bg-linear-to-tr from-indigo-600 via-violet-600 to-cyan-400 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-            <Sparkles className="size-4.5" />
-          </div>
+          <Image
+            src="/logo.png"
+            alt="Personal OS Logo"
+            width={36}
+            height={36}
+            className="size-9 rounded-xl object-contain shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform"
+            priority
+          />
           <div className="flex items-center gap-1.5">
             <span className="font-bold text-lg tracking-tight text-foreground">DLRS</span>
             <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-mono h-4 bg-muted/50 border-border/80">
