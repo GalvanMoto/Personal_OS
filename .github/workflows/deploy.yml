@@ -53,9 +53,8 @@ jobs:
               cp -n /var/www/personal-os/.next/static/chunks/* /var/www/personal-os/.chunk-cache/chunks/ 2>/dev/null || true
             fi
             
-            # Build Next.js application
-            pkill -f "next build" 2>/dev/null || true
-            sleep 1
+            # Remove any stale Next.js build lock
+            rm -rf /var/www/personal-os/.next/lock /var/www/personal-os/.next/trace 2>/dev/null || true
             npm run build
             
             # Merge previously generated chunks so active client sessions don't 404
