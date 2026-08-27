@@ -397,6 +397,71 @@ export const importBankStatementDef = toolDefinition({
   }),
 })
 
+export const jioBankStatementExtractorDef = toolDefinition({
+  name: "jio_bank_statement_extractor",
+  description:
+    "Dedicated Jio Payments Bank statement extractor with OCR fallback. Use when import_bank_statement opens Jio PDFs but returns 'no transaction rows matched' or when the PDF is a scanned image. Handles Jio's 2-date (01-Jul-2026) + wrapped narration + 3-amount (WITHDRAWALS/DEPOSITS/CLOSING) table, tries vault passwords (GAUT0912 = NAME first 4 + DOB DDMM) with case-insensitive Jio label matching, and falls back to vision/LLM table extraction when the regex parser finds no rows. Always try import_bank_statement first; use this only for Jio layout failures or explicit Jio requests.",
+  inputSchema: z.object({
+    from: z
+      .string()
+      .optional()
+      .default("estatements@jiopayments.bank.in")
+      .describe("Sender address, default Jio Payments Bank"),
+    query: z
+      .string()
+      .optional()
+      .describe("Subject words, e.g. 'July 2026'"),
+    days: z.number().int().min(1).max(400).default(180),
+    apply: z
+      .boolean()
+      .default(false)
+      .describe("false previews + OCR, true imports to ledger"),
+    useOcr: z
+      .boolean()
+      .default(true)
+      .describe("When true, uses vision OCR + LLM table parsing if regex finds 0 rows"),
+  }),
+  outputSchema: z.object({
+    status: z.enum([
+      "IMPORTED",
+      "PREVIEW",
+      "LOCKED",
+      "NOTHING_FOUND",
+      "NOT_CONNECTED",
+      "OCR_FALLBACK",
+    ]),
+    message: z.string(),
+    searched: z.string(),
+    emailsScanned: z.number(),
+    imported: z.number().optional(),
+    skippedDuplicates: z.number().optional(),
+    statements: z.array(
+      z.object({
+        fileName: z.string(),
+        bank: z.string(),
+        unlockedWith: z.string().optional(),
+        rowCount: z.number(),
+        totalDebits: z.string(),
+        totalCredits: z.string(),
+        earliest: z.string().optional(),
+        latest: z.string().optional(),
+        sample: z.array(
+          z.object({
+            date: z.string(),
+            description: z.string(),
+            amount: z.string(),
+            direction: z.string(),
+            category: z.string(),
+          })
+        ),
+      })
+    ),
+    unreadable: z.array(z.object({ fileName: z.string(), reason: z.string() })),
+    ocrUsed: z.boolean().optional(),
+    ocrReason: z.string().optional(),
+  }),
+})
+
 export const organizeSourcesDef = toolDefinition({
   name: "organize_sources",
   description:

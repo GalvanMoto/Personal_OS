@@ -10,6 +10,7 @@ import {
   explainValueDef,
   getAgendaDef,
   importBankStatementDef,
+  jioBankStatementExtractorDef,
   getTaskContextDef,
   nextBestActionDef,
   organizeSourcesDef,
@@ -326,6 +327,14 @@ export const organizeSources = organizeSourcesDef.server<AgentRuntimeContext>(
     }
 )
 
+export const jioBankStatementExtractor = jioBankStatementExtractorDef.server<AgentRuntimeContext>(
+  async (args, context) => {
+    const { db, ctx } = requireContext(context)
+    const { importJioStatements } = await import("@/lib/domain/jio-statement-extractor")
+    return (await importJioStatements(db, ctx, args as any)) as any
+  }
+)
+
 // --- Approval-gated --------------------------------------------------------
 
 export const sendEmail = sendEmailDef.server<AgentRuntimeContext>(
@@ -355,6 +364,7 @@ export const serverTools = [
   remember,
   recall,
   importBankStatement,
+  jioBankStatementExtractor,
   organizeSources,
   sendEmail,
 ]
