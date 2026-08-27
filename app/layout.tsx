@@ -65,6 +65,27 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#4f46e5" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                window.addEventListener('error', function(event) {
+                  var msg = (event && event.message) || '';
+                  var isChunk = /Loading chunk/i.test(msg) || /Failed to load chunk/i.test(msg) || /ChunkLoadError/i.test(msg);
+                  var isScriptTag = event && event.target && event.target.tagName === 'SCRIPT' && event.target.src && event.target.src.indexOf('/_next/static/chunks/') !== -1;
+                  if (isChunk || isScriptTag) {
+                    var now = Date.now();
+                    var last = parseInt(sessionStorage.getItem('chunk_retry_ts') || '0', 10);
+                    if (now - last > 8000) {
+                      sessionStorage.setItem('chunk_retry_ts', String(now));
+                      window.location.reload();
+                    }
+                  }
+                }, true);
+              })();
+            `,
+          }}
+        />
       </head>
       <body>
         <Script
