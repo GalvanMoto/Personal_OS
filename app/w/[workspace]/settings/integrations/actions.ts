@@ -47,3 +47,25 @@ export async function disconnectCalendar(workspace: string) {
     data: { status: "DISCONNECTED", secretCipher: null },
   })
 }
+
+export async function disconnectIntegrationById(workspace: string, integrationId: string) {
+  const { db, tenant } = await requireWorkspace(workspace)
+
+  await db.integration.updateMany({
+    where: { tenantId: tenant.id, id: integrationId },
+    data: { status: "DISCONNECTED", secretCipher: null },
+  })
+}
+
+export async function syncIntegrationById(workspace: string, integrationId: string) {
+  const { db, tenant } = await requireWorkspace(workspace)
+
+  const integration = await db.integration.findFirst({
+    where: { tenantId: tenant.id, id: integrationId, status: "CONNECTED" },
+  })
+  if (!integration) throw new Error("Integration not found or disconnected.")
+
+  await enqueue(db, "email.sync", { integrationId: integration.id })
+  const { drain } = await import("@/lib/jobs/runner")
+  await drain(2)
+}
