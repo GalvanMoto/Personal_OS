@@ -208,11 +208,14 @@ export default async function VaultPage({
                   <Label className="text-xs">Label / Bank Name</Label>
                   <Input
                     name="label"
-                    placeholder="e.g. SBI, HDFC, Primary PAN"
-                    defaultValue="PAN"
+                    placeholder="e.g. JIO, SBI, HDFC (or leave as 'default')"
+                    defaultValue="default"
                     className="h-8 text-xs"
                     required
                   />
+                  <p className="text-[0.625rem] text-muted-foreground">
+                    For Jio use <span className="font-mono">JIO</span> or <span className="font-mono">JPB</span>. For direct password, label the bank.
+                  </p>
                 </div>
               </div>
               <div className="space-y-1">

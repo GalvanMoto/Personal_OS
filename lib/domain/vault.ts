@@ -80,11 +80,56 @@ export function describePasswordCandidates(
   vault: Record<string, string>,
   bank?: string
 ): PasswordCandidate[] {
-  const pan = vault["PAN:PAN"] || vault["PAN:default"] || ""
-  const dob = vault["DOB:DOB"] || vault["DOB:default"] || ""
-  const phone = vault["PHONE:PHONE"] || vault["PHONE:default"] || ""
-  const name = vault["NAME:NAME"] || vault["NAME:default"] || ""
-  const cust = vault["CUSTOMER_ID:CUSTOMER_ID"] || vault["CUSTOMER_ID:default"] || ""
+  // Flexible lookup: old UI defaulted label to "PAN" regardless of kind, so
+  // strict "KIND:KIND" missed credentials. Accept any label for that kind.
+  // Also handles cases where user saved NAME under PAN kind by mistake — we
+  // scan all values for shape matches as fallback.
+  const findFirstByKind = (kind: string): string => {
+    const exact = vault[`${kind}:${kind}`] || vault[`${kind}:default`]
+    if (exact?.trim()) return exact.trim()
+    for (const [k, v] of Object.entries(vault)) {
+      if (k.startsWith(`${kind}:`) && v?.trim()) return v.trim()
+    }
+    return ""
+  }
+
+  let pan = findFirstByKind("PAN")
+  let dob = findFirstByKind("DOB")
+  let phone = findFirstByKind("PHONE")
+  let name = findFirstByKind("NAME")
+  let cust = findFirstByKind("CUSTOMER_ID")
+
+  // Cross-kind fallback: if NAME empty but vault has a pure-letters value
+  // (e.g. user saved "GAUTAM" under PAN), use it as name. Similarly for DOB
+  // saved under wrong kind.
+  if (!name) {
+    for (const [, v] of Object.entries(vault)) {
+      const t = v.trim()
+      if (/^[A-Za-z\s\.]{4,40}$/.test(t) && !/^[A-Z]{5}[0-9]{4}[A-Z]$/i.test(t)) {
+        name = t
+        break
+      }
+    }
+  }
+  if (!dob) {
+    for (const [, v] of Object.entries(vault)) {
+      const t = v.trim()
+      const digits = t.replace(/\D/g, "")
+      if (digits.length === 8 || digits.length === 4) {
+        dob = t
+        break
+      }
+    }
+  }
+  if (!pan) {
+    for (const [, v] of Object.entries(vault)) {
+      const t = v.trim().toUpperCase()
+      if (/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(t)) {
+        pan = v.trim()
+        break
+      }
+    }
+  }
 
   const candidates: PasswordCandidate[] = []
   const push = (value: string, label: string) => {
@@ -107,15 +152,58 @@ export function describePasswordCandidates(
     }
   }
 
-  const name4 = name.replace(/\s+/g, "").slice(0, 4).toUpperCase()
+  // Jio/SBI spec: "without special characters / space" — strip everything
+  // non-alpha, not just spaces (handles "A. R. Rehman" → "ARRE").
+  const name4 = name.replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase()
   const panUpper = pan.toUpperCase()
 
   // Direct bank templates and exact secrets
+  // Match is intentionally lenient: users save labels like "JIO", "Jio Payments",
+  // "JPB", "Jio Payments Bank", "JioBank". For JIO hint we match substrings.
+  const bankUpper = bank?.toUpperCase()
+  const pushWithCaseVariants = (value: string, label: string) => {
+    const trimmed = value.trim()
+    if (!trimmed) return
+    push(trimmed, label)
+    const upper = trimmed.toUpperCase()
+    const lower = trimmed.toLowerCase()
+    if (upper !== trimmed) push(upper, `${label} (uppercase)`)
+    if (lower !== trimmed && lower !== upper) push(lower, `${label} (lowercase)`)
+  }
+
   for (const [k, val] of Object.entries(vault)) {
     if (k.startsWith("BANK_TEMPLATE:") || k.startsWith("PDF_PASSWORD:")) {
-      const bKey = k.split(":")[1]?.toUpperCase()
-      if (!bank || bKey === bank.toUpperCase()) {
-        push(val, `saved password for ${bKey || "this bank"}`)
+      const bKey = k.split(":")[1]?.toUpperCase() || ""
+      const labelMatch =
+        !bankUpper ||
+        bKey === bankUpper ||
+        bKey.includes(bankUpper!) ||
+        bankUpper!.includes(bKey) ||
+        // JIO aliases
+        (bankUpper === "JIO" && /JIO|JPB|PAYMENTS/.test(bKey)) ||
+        (bankUpper === "GENERIC" && true)
+      if (labelMatch) {
+        pushWithCaseVariants(val, `saved password for ${k.split(":")[1] || "this bank"}`)
+      }
+      // Also try exact value regardless of label if it's a direct password
+      // shape like 4 letters + 4 digits (e.g. GAUT0912) — user may have saved
+      // it under wrong label.
+      if (bankUpper && /^[A-Z]{4}\d{4}$/.test(val.trim().toUpperCase())) {
+        pushWithCaseVariants(val.trim(), `saved password (direct)`)
+      }
+    }
+  }
+  // Fallback: any vault entry that looks like a direct password for this bank
+  // should also be tried, even if kind isn't BANK_TEMPLATE (covers UI confusion
+  // where user saved GAUT0912 under NAME/DOB/Phone by mistake).
+  for (const [k, val] of Object.entries(vault)) {
+    if (/^[A-Z]{3,5}\d{3,6}$/i.test(val.trim()) && val.trim().length >= 6 && val.trim().length <= 10) {
+      // Only push if it wasn't already added as a direct template candidate
+      if (!bankUpper || k.toUpperCase().includes(bankUpper) || bankUpper === "JIO") {
+        // Avoid duplicating pure PAN/DOB/phone values already handled
+        if (val.trim().toUpperCase() !== panUpper && val.trim() !== dob && val.trim() !== phone) {
+          pushWithCaseVariants(val.trim(), `stored value ${k}`)
+        }
       }
     }
   }
