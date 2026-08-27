@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useState, type FormEvent } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import {
@@ -14,12 +14,49 @@ import {
   LineChart,
   Pie,
   PieChart,
-  ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
 } from "recharts"
 import { BarChart3 } from "lucide-react"
+
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
+} from "@/components/ui/item"
+import {
+  Questionnaire,
+  QuestionnaireActions,
+  QuestionnaireInput,
+  QuestionnaireItem,
+  QuestionnaireNext,
+  QuestionnairePrevious,
+  QuestionnaireProgress,
+  QuestionnaireSubmit,
+  QuestionnaireTitle,
+  QuestionnaireChoice,
+  QuestionnaireChoices,
+} from "@/components/ui/questionnaire"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
 type Block =
@@ -123,11 +160,10 @@ function safeParse<T>(json: string): T | null {
 function InteractiveCheckbox({ checked }: { checked?: boolean }) {
   const [on, setOn] = useState(Boolean(checked))
   return (
-    <input
-      type="checkbox"
+    <Checkbox
       checked={on}
-      onChange={() => setOn((v) => !v)}
-      className="mt-0.5 size-3.5 rounded border border-input accent-primary text-primary focus:ring-primary cursor-pointer shrink-0 align-middle inline-block"
+      onCheckedChange={(next) => setOn(next === true)}
+      className="mt-0.5 size-3.5 shrink-0"
     />
   )
 }
@@ -212,20 +248,20 @@ const markdownComponents = {
   },
   table: ({ node, ...p }: any) => (
     <div className="my-1.5 overflow-x-auto rounded-md border bg-card shadow-xs">
-      <table className="w-full border-collapse text-[0.6875rem]" {...p} />
+      <Table className="text-[0.6875rem]" {...p} />
     </div>
   ),
-  thead: ({ node, ...p }: any) => (
-    <thead className="bg-muted/60 border-b" {...p} />
-  ),
+  thead: ({ node, ...p }: any) => <TableHeader {...p} />,
+  tbody: ({ node, ...p }: any) => <TableBody {...p} />,
+  tr: ({ node, ...p }: any) => <TableRow {...p} />,
   th: ({ node, ...p }: any) => (
-    <th
-      className="px-2.5 py-1 text-left font-semibold text-foreground tracking-wider uppercase text-[0.5625rem]"
+    <TableHead
+      className="h-7 text-[0.5625rem] font-semibold tracking-wider uppercase"
       {...p}
     />
   ),
   td: ({ node, ...p }: any) => (
-    <td className="border-b border-border/30 px-2.5 py-1 align-top text-foreground/90 text-[0.6875rem]" {...p} />
+    <TableCell className="py-1 align-top text-[0.6875rem]" {...p} />
   ),
   input: ({ node, ...p }: any) => {
     if (p.type === "checkbox") {
@@ -253,19 +289,23 @@ function MetricsBlock({ json }: { json: string }) {
     return <pre className="my-1.5 rounded bg-muted/60 p-1.5 text-[0.65rem]">{json}</pre>
   }
   return (
-    <div className="my-1.5 grid grid-cols-2 gap-1.5 sm:grid-cols-3 md:grid-cols-4">
-      {data.map((m, i) => (
-        <div key={i} className="rounded-lg border border-border/60 bg-card/80 p-2 shadow-xs hover:border-primary/40 transition-all">
-          <p className="text-[0.5625rem] uppercase tracking-wider font-semibold text-muted-foreground truncate">
-            {m.label}
-          </p>
-          <p className="text-sm font-semibold tabular-nums mt-0.5 text-foreground leading-none">{m.value}</p>
-          {m.delta ? (
-            <p className="text-[0.5625rem] text-primary font-medium mt-1 truncate leading-none">{m.delta}</p>
+    <ItemGroup className="my-1.5 grid grid-cols-2 gap-1.5 sm:grid-cols-3 md:grid-cols-4">
+      {data.map((metric, index) => (
+        <Item key={index} variant="outline" size="sm" className="flex-col items-start gap-0.5">
+          <ItemDescription className="text-[0.5625rem] font-semibold tracking-wider uppercase">
+            {metric.label}
+          </ItemDescription>
+          <ItemTitle className="text-sm font-semibold tabular-nums">
+            {metric.value}
+          </ItemTitle>
+          {metric.delta ? (
+            <ItemDescription className="text-[0.5625rem] font-medium text-primary">
+              {metric.delta}
+            </ItemDescription>
           ) : null}
-        </div>
+        </Item>
       ))}
-    </div>
+    </ItemGroup>
   )
 }
 
@@ -286,10 +326,16 @@ function ChartBlock({ json }: { json: string }) {
 
   if (!Array.isArray(spec.data) || spec.data.length === 0) {
     return (
-      <div className="my-1.5 flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border/70 bg-card/40 p-4 text-center text-xs text-muted-foreground">
-        <BarChart3 className="size-4 text-muted-foreground/60" />
-        <span className="text-[0.6875rem]">No transactions recorded for this category yet</span>
-      </div>
+      <Empty className="my-1.5 border border-dashed p-4">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <BarChart3 />
+          </EmptyMedia>
+          <EmptyTitle className="text-[0.6875rem]">
+            Nothing recorded for this yet
+          </EmptyTitle>
+        </EmptyHeader>
+      </Empty>
     )
   }
 
@@ -332,114 +378,102 @@ function ChartBlock({ json }: { json: string }) {
   }
 
   const type = spec.type ?? "bar"
-  const height = 135
+
+  // shadcn's ChartContainer owns the responsive wrapper, the theme-aware
+  // colours and the tooltip, so the four near-identical inline tooltip styles
+  // this used to carry are gone — and the palette now follows the workspace
+  // theme in both light and dark instead of six hardcoded hex values.
+  const chartConfig: ChartConfig = Object.fromEntries(
+    series.map((entry, index) => [
+      entry.key,
+      {
+        label: entry.label,
+        color: entry.color ?? `var(--chart-${(index % 5) + 1})`,
+      },
+    ])
+  )
+
+  const axes = (
+    <>
+      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+      <XAxis
+        dataKey={xKey}
+        tickLine={false}
+        axisLine={false}
+        tickMargin={6}
+        tick={{ fontSize: 9 }}
+      />
+      <YAxis tickLine={false} axisLine={false} width={34} tick={{ fontSize: 9 }} />
+      <ChartTooltip content={<ChartTooltipContent />} />
+    </>
+  )
 
   return (
-    <div className="my-1.5 rounded-lg border border-border/60 bg-card/80 p-2 shadow-xs">
-      <div style={{ height }}>
-        <ResponsiveContainer width="100%" height="100%">
-          {type === "pie" ? (
-            <PieChart>
-              <Pie
-                data={normalizedData}
-                dataKey={series[0]?.key ?? "amount"}
-                nameKey={xKey}
-                outerRadius="75%"
-              >
-                {normalizedData.map((_, i) => (
-                  <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "var(--popover)",
-                  borderColor: "var(--border)",
-                  borderRadius: "6px",
-                  fontSize: "11px",
-                  padding: "4px 8px",
-                }}
-              />
-            </PieChart>
-          ) : type === "line" ? (
-            <LineChart data={normalizedData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.25} />
-              <XAxis dataKey={xKey} tick={{ fontSize: 9 }} />
-              <YAxis tick={{ fontSize: 9 }} width={32} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "var(--popover)",
-                  borderColor: "var(--border)",
-                  borderRadius: "6px",
-                  fontSize: "11px",
-                  padding: "4px 8px",
-                }}
-              />
-              {series.map((s, i) => (
-                <Line
-                  key={s.key}
-                  type="monotone"
-                  dataKey={s.key}
-                  name={s.label}
-                  stroke={s.color ?? PALETTE[i % PALETTE.length]}
-                  strokeWidth={1.75}
-                />
-              ))}
-            </LineChart>
-          ) : type === "area" ? (
-            <AreaChart data={normalizedData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.25} />
-              <XAxis dataKey={xKey} tick={{ fontSize: 9 }} />
-              <YAxis tick={{ fontSize: 9 }} width={32} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "var(--popover)",
-                  borderColor: "var(--border)",
-                  borderRadius: "6px",
-                  fontSize: "11px",
-                  padding: "4px 8px",
-                }}
-              />
-              {series.map((s, i) => (
-                <Area
-                  key={s.key}
-                  type="monotone"
-                  dataKey={s.key}
-                  name={s.label}
-                  stroke={s.color ?? PALETTE[i % PALETTE.length]}
-                  fill={s.color ?? PALETTE[i % PALETTE.length]}
-                  fillOpacity={0.2}
-                  strokeWidth={1.75}
-                />
-              ))}
-            </AreaChart>
-          ) : (
-            <BarChart data={normalizedData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.25} />
-              <XAxis dataKey={xKey} tick={{ fontSize: 9 }} />
-              <YAxis tick={{ fontSize: 9 }} width={32} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "var(--popover)",
-                  borderColor: "var(--border)",
-                  borderRadius: "6px",
-                  fontSize: "11px",
-                  padding: "4px 8px",
-                }}
-              />
-              {series.map((s, i) => (
-                <Bar
-                  key={s.key}
-                  dataKey={s.key}
-                  name={s.label}
-                  fill={s.color ?? PALETTE[i % PALETTE.length]}
-                  radius={[3, 3, 0, 0]}
-                />
-              ))}
-            </BarChart>
-          )}
-        </ResponsiveContainer>
-      </div>
-    </div>
+    <ChartContainer
+      config={chartConfig}
+      className="my-1.5 aspect-auto h-36 w-full rounded-lg border bg-card/80 p-2 shadow-xs"
+    >
+      {type === "pie" ? (
+        <PieChart>
+          <ChartTooltip content={<ChartTooltipContent nameKey={xKey} />} />
+          <Pie
+            data={normalizedData}
+            dataKey={series[0]?.key ?? "amount"}
+            nameKey={xKey}
+            outerRadius="75%"
+          >
+            {normalizedData.map((_, index) => (
+              <Cell key={index} fill={`var(--chart-${(index % 5) + 1})`} />
+            ))}
+          </Pie>
+          <ChartLegend content={<ChartLegendContent nameKey={xKey} />} />
+        </PieChart>
+      ) : type === "line" ? (
+        <LineChart data={normalizedData} margin={{ top: 5, right: 5, left: -12 }}>
+          {axes}
+          {series.map((entry) => (
+            <Line
+              key={entry.key}
+              type="monotone"
+              dataKey={entry.key}
+              name={entry.label}
+              stroke={`var(--color-${entry.key})`}
+              strokeWidth={1.75}
+              dot={false}
+            />
+          ))}
+        </LineChart>
+      ) : type === "area" ? (
+        <AreaChart data={normalizedData} margin={{ top: 5, right: 5, left: -12 }}>
+          {axes}
+          {series.map((entry) => (
+            <Area
+              key={entry.key}
+              type="monotone"
+              dataKey={entry.key}
+              name={entry.label}
+              stroke={`var(--color-${entry.key})`}
+              fill={`var(--color-${entry.key})`}
+              fillOpacity={0.2}
+              strokeWidth={1.75}
+            />
+          ))}
+        </AreaChart>
+      ) : (
+        <BarChart data={normalizedData} margin={{ top: 5, right: 5, left: -12 }}>
+          {axes}
+          {series.map((entry) => (
+            <Bar
+              key={entry.key}
+              dataKey={entry.key}
+              name={entry.label}
+              fill={`var(--color-${entry.key})`}
+              radius={3}
+            />
+          ))}
+        </BarChart>
+      )}
+    </ChartContainer>
   )
 }
 
@@ -451,22 +485,30 @@ function InfoCard({ json }: { json: string }) {
     return <pre className="my-1.5 rounded bg-muted/60 p-1.5 text-[0.65rem]">{json}</pre>
   }
   return (
-    <div className="my-1.5 rounded-lg border border-border/60 bg-card/80 p-2.5 shadow-xs">
-      {spec.title ? (
-        <p className="mb-0.5 text-xs font-semibold text-foreground">{spec.title}</p>
+    <Item variant="outline" size="sm" className="my-1.5 flex-col items-stretch gap-1.5">
+      <ItemContent className="gap-0">
+        {spec.title ? <ItemTitle>{spec.title}</ItemTitle> : null}
+        {spec.subtitle ? (
+          <ItemDescription className="font-mono">{spec.subtitle}</ItemDescription>
+        ) : null}
+      </ItemContent>
+      {spec.fields?.length ? (
+        <Table className="text-[0.625rem]">
+          <TableBody>
+            {spec.fields.map(([key, value], index) => (
+              <TableRow key={index} className="border-none hover:bg-transparent">
+                <TableCell className="w-[40%] py-1 font-medium text-muted-foreground">
+                  {key}
+                </TableCell>
+                <TableCell className="py-1 font-semibold text-foreground">
+                  {value}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       ) : null}
-      {spec.subtitle ? (
-        <p className="mb-1.5 text-[0.625rem] text-muted-foreground font-mono">{spec.subtitle}</p>
-      ) : null}
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-        {spec.fields?.map(([k, v], i) => (
-          <div key={i} className="contents">
-            <dt className="text-muted-foreground font-medium text-[0.625rem]">{k}</dt>
-            <dd className="font-semibold text-foreground text-[0.625rem]">{v}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
+    </Item>
   )
 }
 
@@ -490,76 +532,78 @@ function QuestionnaireBlock({
   onSubmit?: (summary: string) => void
 }) {
   const spec = safeParse<QuestionnaireSpec>(json)
-  const [answers, setAnswers] = useState<Record<string, string>>({})
   const [submitted, setSubmitted] = useState(false)
 
-  if (!spec || !Array.isArray(spec.questions)) {
+  if (!spec || !Array.isArray(spec.questions) || spec.questions.length === 0) {
     return <pre className="my-1.5 rounded bg-muted/60 p-1.5 text-[0.65rem]">{json}</pre>
   }
 
-  function handleSend() {
-    setSubmitted(true)
-    const lines = spec!.questions.map((q) => {
-      const ans = answers[q.id] || "—"
-      return `${q.label}: ${ans}`
+  const questions = spec.questions
+
+  // One question on screen at a time, with progress and back/next, rather than
+  // a wall of inputs. The answers come out of the form itself on submit, so
+  // there is no parallel answer state to keep in step with the DOM.
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    const lines = questions.map((question) => {
+      const value = data.get(question.id)
+      return `${question.label}: ${value ? String(value) : "—"}`
     })
+    setSubmitted(true)
     onSubmit?.(lines.join("\n"))
   }
 
+  if (submitted) {
+    return (
+      <Item variant="muted" size="sm" className="my-1.5">
+        <ItemContent>
+          <ItemDescription>Answers sent.</ItemDescription>
+        </ItemContent>
+      </Item>
+    )
+  }
+
   return (
-    <div className="my-1.5 rounded-lg border border-primary/30 bg-card/80 p-2.5 shadow-xs">
-      {spec.prompt ? (
-        <p className="mb-2 text-xs font-semibold text-foreground flex items-center gap-1.5">
-          <span>{spec.prompt}</span>
-        </p>
-      ) : null}
-      <div className="space-y-1.5">
-        {spec.questions.map((q) => (
-          <div key={q.id} className="space-y-0.5">
-            <label className="text-[0.625rem] font-medium text-muted-foreground">
-              {q.label}
-            </label>
-            {q.type === "select" && q.options ? (
-              <select
-                disabled={submitted}
-                value={answers[q.id] || ""}
-                onChange={(e) =>
-                  setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
-                }
-                className="w-full rounded border border-input bg-background px-2 py-1 text-xs h-7"
-              >
-                <option value="">Choose…</option>
-                {q.options.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                disabled={submitted}
-                type={q.type ?? "text"}
-                value={answers[q.id] || ""}
-                onChange={(e) =>
-                  setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
-                }
-                className="w-full rounded border border-input bg-background px-2 py-1 text-xs h-7"
-              />
-            )}
-          </div>
-        ))}
-      </div>
-      {!submitted && onSubmit ? (
-        <div className="mt-2.5 flex justify-end">
-          <button
-            onClick={handleSend}
-            className="rounded bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:opacity-90 transition-all h-7"
-          >
-            Submit
-          </button>
-        </div>
-      ) : null}
-    </div>
+    <Questionnaire
+      onSubmit={handleSubmit}
+      items={questions.map((question) => ({
+        name: question.id,
+        choices: question.options?.map((option) => ({ value: option })),
+      }))}
+      className="my-1.5 rounded-lg border border-primary/30 bg-card/80 p-3"
+    >
+      <QuestionnaireProgress />
+
+      {questions.map((question) => (
+        <QuestionnaireItem key={question.id} name={question.id}>
+          <QuestionnaireTitle className="text-xs">
+            {question.label}
+          </QuestionnaireTitle>
+
+          {question.type === "select" && question.options?.length ? (
+            <QuestionnaireChoices>
+              {question.options.map((option) => (
+                <QuestionnaireChoice key={option} value={option}>
+                  {option}
+                </QuestionnaireChoice>
+              ))}
+            </QuestionnaireChoices>
+          ) : (
+            <QuestionnaireInput
+              type={question.type === "number" ? "number" : question.type === "date" ? "date" : "text"}
+              placeholder="Your answer"
+            />
+          )}
+
+          <QuestionnaireActions>
+            <QuestionnairePrevious />
+            <QuestionnaireNext />
+            <QuestionnaireSubmit />
+          </QuestionnaireActions>
+        </QuestionnaireItem>
+      ))}
+    </Questionnaire>
   )
 }
 

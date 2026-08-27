@@ -1,8 +1,10 @@
-/* Market — landing only, dashboard taste, no dashboard override */
 .market-shell {
   --market-card: var(--card);
   --market-border: var(--border);
   --market-muted: var(--muted);
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 .market-card {
@@ -57,6 +59,7 @@
   backdrop-filter: blur(8px);
   font-size: 0.75rem;
   font-weight: 500;
+  max-width: 100%;
 }
 
 .market-gradient-text {

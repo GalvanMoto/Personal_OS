@@ -43,17 +43,17 @@ export function Hero() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top Header Badge — market + dashboard taste */}
         <div className="flex flex-col items-center text-center space-y-5 max-w-4xl mx-auto">
-          <div className="market-badge">
-            <span className="flex h-2 w-2 rounded-full bg-indigo-400 animate-pulse" />
-            <img src="/logo.png" alt="DLRS logo" className="size-4 rounded-md object-contain" />
+          <div className="market-badge max-w-full flex-wrap justify-center text-center px-3 py-1 text-xs">
+            <span className="flex h-2 w-2 rounded-full bg-indigo-400 animate-pulse shrink-0" />
+            <img src="/logo.png" alt="DLRS logo" className="size-4 rounded-md object-contain shrink-0" />
             <span className="font-semibold text-foreground">DLRS 2.0</span>
-            <span className="text-muted-foreground">•</span>
-            <span>Personal Operating System for Studios &amp; Freelance</span>
-            <ArrowRight className="size-3.5 text-indigo-400" />
+            <span className="text-muted-foreground hidden sm:inline">•</span>
+            <span className="hidden sm:inline">Personal Operating System for Studios &amp; Freelance</span>
+            <ArrowRight className="size-3.5 text-indigo-400 shrink-0" />
           </div>
 
           {/* Main Title */}
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground leading-[1.1]">
+          <h1 className="text-3xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground leading-[1.15] sm:leading-[1.1]">
             Stop managing tasks.{" "}
             <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent">
               Let your OS run them.
@@ -61,14 +61,14 @@ export function Hero() {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-base sm:text-xl text-muted-foreground max-w-2xl font-normal leading-relaxed">
+          <p className="text-sm sm:text-xl text-muted-foreground max-w-2xl font-normal leading-relaxed px-2 sm:px-0">
             Drop raw WhatsApp clips, voice notes, PDF statements, and client briefs.
             DLRS turns messy inputs into structured projects, syncs organized trees in Google Drive,
             and proactively powers your day — <strong className="text-foreground font-semibold">zero manual data entry</strong>.
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 w-full max-w-sm sm:max-w-none">
             <Link href="/dashboard" className="w-full sm:w-auto">
               <Button size="lg" className="w-full h-11 px-7 font-semibold bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-lg shadow-indigo-500/25 gap-2 group text-sm">
                 <span>Launch Cockpit</span>
@@ -77,7 +77,7 @@ export function Hero() {
             </Link>
 
             <a href="#features" className="w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto h-12 px-6 text-base font-medium border-border/80 bg-background/50 backdrop-blur-xs hover:bg-accent gap-2">
+              <Button size="lg" variant="outline" className="w-full sm:w-auto h-11 px-6 text-sm font-medium border-border/80 bg-background/50 backdrop-blur-xs hover:bg-accent gap-2">
                 <Play className="size-4 text-indigo-400 fill-indigo-400/20" />
                 <span>Explore Capabilities</span>
               </Button>
@@ -85,47 +85,47 @@ export function Hero() {
           </div>
 
           {/* Quick micro-proofs */}
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs sm:text-sm text-muted-foreground pt-3">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground pt-2">
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="size-4 text-emerald-500" />
+              <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
               <span>Universal Multimodal Inbox</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="size-4 text-emerald-500" />
+              <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
               <span>Google Drive Hierarchical Sync</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="size-4 text-emerald-500" />
+              <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
               <span>Deterministic Bank Ledger</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="size-4 text-emerald-500" />
-              <span>AI Chief-of-Staff with Azure OpenAI</span>
+              <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
+              <span>AI Chief-of-Staff</span>
             </div>
           </div>
         </div>
 
         {/* Hero Interactive Cockpit Preview */}
-        <div className="mt-12 relative max-w-5xl mx-auto">
+        <div className="mt-10 sm:mt-12 relative max-w-5xl mx-auto">
           {/* Decorative frame gradient */}
           <div className="absolute -inset-1.5 bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-cyan-500/30 rounded-2xl blur-lg opacity-70 -z-10" />
 
           <Card className="border border-border/80 bg-card/95 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden">
             {/* Window Top Bar */}
-            <div className="px-4 py-3 bg-muted/40 border-b border-border/60 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="size-3 rounded-full bg-rose-500/80" />
-                <div className="size-3 rounded-full bg-amber-500/80" />
-                <div className="size-3 rounded-full bg-emerald-500/80" />
-                <span className="ml-2 text-xs font-mono text-muted-foreground hidden sm:flex items-center gap-1.5">
+            <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-muted/40 border-b border-border/60 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+              <div className="flex items-center gap-1.5 shrink-0">
+                <div className="size-2.5 sm:size-3 rounded-full bg-rose-500/80" />
+                <div className="size-2.5 sm:size-3 rounded-full bg-amber-500/80" />
+                <div className="size-2.5 sm:size-3 rounded-full bg-emerald-500/80" />
+                <span className="ml-2 text-[11px] font-mono text-muted-foreground hidden md:flex items-center gap-1.5">
                   <Cpu className="size-3.5 text-indigo-400" />
                   dlrs://personal-os/live-cockpit
                 </span>
               </div>
-              <div className="flex items-center gap-1 bg-background/60 p-1 rounded-lg border border-border/60">
+              <div className="flex items-center gap-1 bg-background/60 p-0.5 sm:p-1 rounded-lg border border-border/60 shrink-0">
                 <button
                   onClick={() => setActiveTab("assistant")}
-                  className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${
+                  className={`text-[11px] sm:text-xs px-2 sm:px-2.5 py-1 rounded-md font-medium transition-all ${
                     activeTab === "assistant"
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
@@ -135,7 +135,7 @@ export function Hero() {
                 </button>
                 <button
                   onClick={() => setActiveTab("extract")}
-                  className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${
+                  className={`text-[11px] sm:text-xs px-2 sm:px-2.5 py-1 rounded-md font-medium transition-all ${
                     activeTab === "extract"
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
@@ -145,7 +145,7 @@ export function Hero() {
                 </button>
                 <button
                   onClick={() => setActiveTab("gdrive")}
-                  className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${
+                  className={`text-[11px] sm:text-xs px-2 sm:px-2.5 py-1 rounded-md font-medium transition-all ${
                     activeTab === "gdrive"
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
@@ -157,7 +157,7 @@ export function Hero() {
             </div>
 
             {/* Inner Dashboard View */}
-            <div className="p-5 md:p-7">
+            <div className="p-4 sm:p-6 md:p-7">
               {/* TAB 1: AI ASSISTANT CHIEF-OF-STAFF */}
               {activeTab === "assistant" && (
                 <div className="space-y-4">
@@ -169,15 +169,15 @@ export function Hero() {
                   </div>
 
                   {/* AI Response Card */}
-                  <div className="bg-muted/40 border border-border/60 rounded-xl p-4 space-y-3">
-                    <div className="flex items-center justify-between">
+                  <div className="bg-muted/40 border border-border/60 rounded-xl p-3.5 sm:p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <div className="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                        <div className="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
                           <Bot className="size-3.5" />
                         </div>
                         <span className="text-xs font-semibold text-foreground">AI Chief-of-Staff</span>
                       </div>
-                      <Badge variant="outline" className="text-[10px] font-mono text-emerald-500 border-emerald-500/30 bg-emerald-500/5">
+                      <Badge variant="outline" className="text-[9px] sm:text-[10px] font-mono text-emerald-500 border-emerald-500/30 bg-emerald-500/5 shrink-0">
                         Azure OpenAI gpt-5.4-nano
                       </Badge>
                     </div>
@@ -187,7 +187,7 @@ export function Hero() {
                     </p>
 
                     {/* 3 Compact KPI Metric Cards */}
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <div className="rounded-lg border border-border/60 bg-card/80 p-2.5">
                         <p className="text-[0.5625rem] uppercase font-semibold text-muted-foreground tracking-wider">Spent (30 Days)</p>
                         <p className="text-sm font-semibold tabular-nums mt-0.5 text-foreground">₹2,914.00</p>

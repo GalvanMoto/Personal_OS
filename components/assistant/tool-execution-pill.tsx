@@ -2,22 +2,20 @@
 
 import { AlertCircle, Loader2, ShieldAlert } from "lucide-react"
 
-import { cn } from "@/lib/utils"
+import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker"
 
 /**
  * What a tool is doing, while it is doing it.
  *
- * The states come from TanStack's `ToolCallState`, and every one of them is
- * handled here — an earlier version matched on invented names like "running",
- * so anything that was not `complete` fell through to a spinner and a *failed*
- * tool sat there pretending to work forever.
+ * Rendered as a `Marker` — the inline, muted status line the chat primitives
+ * provide for exactly this — rather than a coloured chip, so a run that touches
+ * six tools reads as a quiet trace under the answer instead of six badges
+ * competing with it.
+ *
+ * Every `ToolCallState` is handled. An earlier version matched invented names
+ * like "running", so anything that was not `complete` fell through to a spinner
+ * and a *failed* tool sat there pretending to still be working.
  */
-
-const RUNNING = new Set([
-  "awaiting-input",
-  "input-streaming",
-  "input-complete",
-])
 
 /// Friendlier than the raw tool name, which is what the user actually reads.
 const LABELS: Record<string, string> = {
@@ -42,6 +40,8 @@ const LABELS: Record<string, string> = {
   focus_task: "Bringing that into view",
 }
 
+const RUNNING = new Set(["awaiting-input", "input-streaming", "input-complete"])
+
 export function ToolExecutionPill({
   name,
   state,
@@ -53,44 +53,39 @@ export function ToolExecutionPill({
 }) {
   const label = LABELS[name] ?? name
 
-  // Done is silent — a finished pill is clutter once the answer is written.
+  // Done is silent — a finished trace is clutter once the answer is written.
   if (state === "complete" || state === "approval-responded") {
     return null
   }
 
   if (state === "error") {
     return (
-      <div className="my-1 inline-flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-1 text-[0.6875rem]">
-        <AlertCircle className="size-3 shrink-0 text-destructive" />
-        <span className="font-medium text-foreground">{label}</span>
-        <span className="text-destructive">failed</span>
-      </div>
+      <Marker className="text-destructive">
+        <MarkerIcon>
+          <AlertCircle />
+        </MarkerIcon>
+        <MarkerContent>{label} failed</MarkerContent>
+      </Marker>
     )
   }
 
   if (state === "approval-requested") {
     return (
-      <div className="my-1 inline-flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[0.6875rem]">
-        <ShieldAlert className="size-3 shrink-0 text-amber-500" />
-        <span className="font-medium text-foreground">{label}</span>
-        <span className="text-amber-600 dark:text-amber-400">
-          waiting for your approval
-        </span>
-      </div>
+      <Marker className="text-amber-600 dark:text-amber-400">
+        <MarkerIcon>
+          <ShieldAlert />
+        </MarkerIcon>
+        <MarkerContent>{label} — waiting for your approval</MarkerContent>
+      </Marker>
     )
   }
 
-  const running = !state || RUNNING.has(state)
-
   return (
-    <div
-      className={cn(
-        "my-1 inline-flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1 text-[0.6875rem]",
-        running && "animate-pulse"
-      )}
-    >
-      <Loader2 className="size-3 shrink-0 animate-spin text-primary" />
-      <span className="font-medium text-foreground">{label}</span>
-    </div>
+    <Marker className={!state || RUNNING.has(state) ? "animate-pulse" : undefined}>
+      <MarkerIcon>
+        <Loader2 className="animate-spin" />
+      </MarkerIcon>
+      <MarkerContent>{label}…</MarkerContent>
+    </Marker>
   )
 }
