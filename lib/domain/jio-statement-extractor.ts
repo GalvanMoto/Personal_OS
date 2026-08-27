@@ -1,5 +1,10 @@
 import "server-only"
 
+import { execFile } from "node:child_process"
+import { writeFile, unlink } from "node:fs/promises"
+import { join } from "node:path"
+import { tmpdir } from "node:os"
+
 import { chat, streamToText, type ContentPart } from "@tanstack/ai"
 import { agentAdapter, isAgentConfigured } from "@/lib/ai/agent/runtime"
 import { extractText } from "@/lib/ai/extract-text"
@@ -196,6 +201,88 @@ async function extractWithVision(bytes: Buffer): Promise<string | null> {
   }
 }
 
+/**
+ * Python layout-aware parser (isolated, from chatwithbankstatement).
+ * Uses pdfplumber word positions + balance verification – bank-agnostic and
+ * far more robust than regex for wrapped Jio tables. Isolated: does not
+ * disturb the existing TypeScript parser; this is an additional fallback.
+ */
+async function parseWithPython(
+  bytes: Buffer,
+  password?: string
+): Promise<StatementParseResult | null> {
+  const tmpPath = join(tmpdir(), `jio-${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`)
+  try {
+    await writeFile(tmpPath, bytes)
+    const script = join(process.cwd(), "scripts", "jio_parse.py")
+    // Fallback to the copied chatwithbankstatement parser if jio_parse.py missing
+    const pyScript = await import("node:fs").then((fs) => (fs.existsSync(script) ? script : join(process.cwd(), "scripts", "parse_pdf.py"))).catch(() => script)
+
+    const result: any = await new Promise((resolve) => {
+      const child = execFile(
+        "python3",
+        [pyScript, tmpPath],
+        { timeout: 60000, maxBuffer: 32 * 1024 * 1024 },
+        (_err, stdout) => {
+          try {
+            resolve(JSON.parse(stdout))
+          } catch {
+            resolve({ error: "parse_failed", message: "python produced no JSON" })
+          }
+        }
+      )
+      child.stdin?.end(password ?? "")
+    })
+
+    if (result.error || !result.transactions || result.transactions.length === 0) return null
+
+    // Convert Python's {date, description, amount, type, balance} to StatementParseResult
+    const transactions: StatementParseResult["transactions"] = []
+    let totalDebits = BigInt(0)
+    let totalCredits = BigInt(0)
+    for (const r of result.transactions as Array<{
+      date: string
+      description: string
+      amount: number
+      type: "debit" | "credit"
+    }>) {
+      const date = new Date(r.date)
+      if (isNaN(date.getTime())) continue
+      const amountMinor = BigInt(Math.round(Math.abs(r.amount) * 100))
+      if (amountMinor === BigInt(0)) continue
+      const direction = r.type === "credit" ? "CREDIT" : "DEBIT"
+      if (direction === "DEBIT") totalDebits += amountMinor
+      else totalCredits += amountMinor
+      const cleanDesc = String(r.description).replace(/\s+/g, " ").trim().slice(0, 280)
+      const guess = categorize(cleanDesc, direction)
+      const externalRef = `JIO-${date.toISOString().split("T")[0]}-${cleanDesc.slice(0, 20).replace(/\W/g, "")}-${amountMinor.toString()}`
+      transactions.push({
+        date,
+        description: cleanDesc,
+        amountMinor,
+        direction,
+        category: guess.category,
+        externalRef,
+      })
+    }
+    if (transactions.length === 0) return null
+    return {
+      bank: "JIO",
+      currency: result.currency ?? "INR",
+      totalDebitsMinor: totalDebits,
+      totalCreditsMinor: totalCredits,
+      transactions,
+    }
+  } catch (e) {
+    console.warn("[jio-python] parse failed", e)
+    return null
+  } finally {
+    try {
+      await unlink(tmpPath)
+    } catch {}
+  }
+}
+
 async function tryParseFile(
   db: TenantDb,
   ctx: DomainContext,
@@ -233,6 +320,18 @@ async function tryParseFile(
   if (result.transactions.length > 0) {
     const parsed = toParsed(fileId, file.name, result, outcome.unlockedWith)
     return { ok: true, parsed, result, via: outcome.unlockedWith || "text" }
+  }
+
+  // Isolated Python layout-aware parser (from chatwithbankstatement) – bank-agnostic
+  // word-position clustering + balance verification. Does not disturb existing TS parser.
+  if (useOcr) {
+    const unlockedCandidate = candidates.find((c) => c.label === outcome.unlockedWith) ?? candidates[0]
+    const pwd = unlockedCandidate?.value
+    const pyResult = await parseWithPython(bytes, pwd)
+    if (pyResult && pyResult.transactions.length > 0) {
+      const parsed = toParsed(fileId, file.name, pyResult, "python layout parser")
+      return { ok: true, parsed, result: pyResult, via: "python" }
+    }
   }
 
   // Regex found no rows but text exists – try LLM table extraction (layout drift)
