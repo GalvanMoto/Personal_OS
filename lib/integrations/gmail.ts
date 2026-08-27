@@ -37,6 +37,25 @@ function requireEnv(name: "GMAIL_CLIENT_ID" | "GMAIL_CLIENT_SECRET"): string {
 }
 
 /**
+ * Resolves the public, external redirect URI regardless of reverse proxies.
+ */
+export function getPublicRedirectUri(
+  request: Request,
+  path: string = "/api/integrations/gmail/callback"
+): string {
+  const forwardedHost = request.headers.get("x-forwarded-host")
+  const hostHeader = request.headers.get("host")
+  const urlHost = new URL(request.url).host
+
+  const host = forwardedHost || hostHeader || urlHost
+  const isLocal = host.includes("localhost") || host.includes("127.0.0.1")
+  const proto = isLocal ? "http" : "https"
+  const cleanPath = path.startsWith("/") ? path : `/${path}`
+
+  return `${proto}://${host}${cleanPath}`
+}
+
+/**
  * Builds the Google consent URL.
  *
  * `state` carries the workspace slug so the callback knows which tenant to

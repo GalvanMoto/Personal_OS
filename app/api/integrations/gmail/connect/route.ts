@@ -1,6 +1,6 @@
 import { getCurrentSession } from "@/lib/auth/dal"
 import { signState } from "@/lib/auth/session"
-import { gmailAuthUrl } from "@/lib/integrations/gmail"
+import { gmailAuthUrl, getPublicRedirectUri } from "@/lib/integrations/gmail"
 
 /**
  * Kicks off the Gmail OAuth flow.
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "workspace is required." }, { status: 400 })
   }
 
-  const redirectUri = new URL("/api/integrations/gmail/callback", request.url).toString()
+  const redirectUri = getPublicRedirectUri(request, "/api/integrations/gmail/callback")
 
   try {
     const state = signState(workspace)

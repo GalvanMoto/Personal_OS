@@ -6,6 +6,7 @@ import { encryptSecret } from "@/lib/security/secret"
 import {
   exchangeCodeForTokens,
   fetchUserInfo,
+  getPublicRedirectUri,
   GMAIL_SCOPES,
 } from "@/lib/integrations/gmail"
 import { enqueue } from "@/lib/jobs/queue"
@@ -51,7 +52,7 @@ export async function GET(request: Request) {
   const tenantId = membership.tenant.id
   const workspaceSlug = verifiedWorkspace
   const db = tenantDb(tenantId)
-  const redirectUri = new URL("/api/integrations/gmail/callback", request.url).toString()
+  const redirectUri = getPublicRedirectUri(request, "/api/integrations/gmail/callback")
 
   try {
     const tokens = await exchangeCodeForTokens(code, redirectUri)
