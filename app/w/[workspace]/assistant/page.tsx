@@ -65,7 +65,7 @@ export default async function AssistantPage({
       label: "Pending Approvals",
       value: pendingApprovalsCount.toString(),
       unit: "gated",
-      note: "destructive tools",
+      note: "outbound email",
       icon: Zap,
     },
     {
@@ -77,9 +77,9 @@ export default async function AssistantPage({
     },
     {
       label: "Safety Boundary",
-      value: "3-Tier",
-      unit: "gated",
-      note: "audit logged",
+      value: "No delete",
+      unit: "by design",
+      note: "every call audit logged",
       icon: ShieldCheck,
     },
   ]
@@ -102,6 +102,12 @@ export default async function AssistantPage({
       category: "Finance",
       icon: CreditCard,
       desc: "Deterministic aggregation from statement ledger.",
+    },
+    {
+      title: "Fetch my bank statements from email",
+      category: "Statements",
+      icon: FileSearch,
+      desc: "Unlocks password-protected PDFs from your vault.",
     },
   ]
 
@@ -194,7 +200,7 @@ export default async function AssistantPage({
                 <span className="font-semibold text-foreground text-[0.6875rem]">Safety Boundaries</span>
               </div>
               <p className="text-[0.625rem] text-muted-foreground leading-relaxed">
-                Read, search, and calculations run autonomously. Mutating tasks, files, and emails stop for explicit user confirmation.
+                Reading, creating and editing run autonomously and are logged. The assistant has no delete tool at all. Sending email is the only action that stops for your approval.
               </p>
             </CardContent>
           </Card>

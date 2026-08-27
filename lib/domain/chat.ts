@@ -2,7 +2,7 @@ import "server-only"
 
 import type { TenantDb } from "@/lib/db/tenant"
 import type { DomainContext } from "@/lib/domain/context-types"
-import { prisma } from "@/lib/db/client"
+import type { StreamChunk } from "@tanstack/ai"
 import { publishRealtime } from "@/lib/realtime/bus"
 
 export interface SerializedChatMessage {
@@ -134,6 +134,102 @@ export async function persistChatMessage(
   }).catch(() => {})
 
   return msg
+}
+
+
+/**
+ * Passes the agent's stream through to the browser while recording what it said.
+ *
+ * The reply only exists as it streams — once the response is closed the text is
+ * gone unless something kept it. This wraps the iterable rather than buffering
+ * it, so the client still sees tokens the moment they are produced and the row
+ * is written from what actually went out.
+ *
+ * The write lives in `finally` on purpose: a user who closes the tab halfway
+ * through still saw half an answer, and a transcript missing it would be a
+ * transcript that disagrees with their memory of the conversation.
+ */
+export async function* recordAssistantTurn(
+  stream: AsyncIterable<StreamChunk>,
+  db: TenantDb,
+  ctx: DomainContext,
+  conversationId: string
+): AsyncGenerator<StreamChunk> {
+  let text = ""
+  const calls = new Map<
+    string,
+    { name: string; state: string; rawArgs: string; result?: unknown }
+  >()
+
+  const ensure = (id: string, name?: string) => {
+    const existing = calls.get(id)
+    if (existing) {
+      if (name) existing.name = name
+      return existing
+    }
+    const created: {
+      name: string
+      state: string
+      rawArgs: string
+      result?: unknown
+    } = { name: name ?? "tool", state: "complete", rawArgs: "" }
+    calls.set(id, created)
+    return created
+  }
+
+  try {
+    for await (const chunk of stream) {
+      switch (chunk.type) {
+        case "TEXT_MESSAGE_CONTENT":
+          text += chunk.delta ?? ""
+          break
+        case "TOOL_CALL_START":
+          ensure(chunk.toolCallId, chunk.toolCallName)
+          break
+        case "TOOL_CALL_ARGS":
+          ensure(chunk.toolCallId).rawArgs += chunk.delta ?? ""
+          break
+        case "TOOL_CALL_RESULT": {
+          const call = ensure(chunk.toolCallId)
+          try {
+            call.result = JSON.parse(chunk.content)
+          } catch {
+            // Not every tool returns JSON; the string is still worth keeping.
+            call.result = chunk.content
+          }
+          break
+        }
+        case "RUN_ERROR":
+          for (const call of calls.values()) {
+            if (call.state !== "complete") call.state = "error"
+          }
+          break
+      }
+
+      yield chunk
+    }
+  } finally {
+    if (text.trim() || calls.size > 0) {
+      const toolCalls = [...calls.values()].map((call) => {
+        let args: unknown
+        try {
+          args = call.rawArgs ? JSON.parse(call.rawArgs) : undefined
+        } catch {
+          args = call.rawArgs || undefined
+        }
+        return { name: call.name, state: call.state, args, result: call.result }
+      })
+
+      await persistChatMessage(db, ctx, {
+        conversationId,
+        role: "ASSISTANT",
+        content: text.trim(),
+        toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+      }).catch((error) =>
+        console.warn("[chat] failed to save assistant reply:", error)
+      )
+    }
+  }
 }
 
 /**

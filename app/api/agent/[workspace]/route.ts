@@ -16,9 +16,8 @@ import {
   getConversationMessages,
   getOrCreateActiveConversation,
   persistChatMessage,
+  recordAssistantTurn,
 } from "@/lib/domain/chat"
-import type { TenantDb } from "@/lib/db/tenant"
-import type { DomainContext } from "@/lib/domain/context-types"
 
 /**
  * Fetch database-persisted chat messages for the active conversation thread.
@@ -55,58 +54,6 @@ export async function DELETE(
     success: true,
     conversationId: conversation.id,
   })
-}
-
-/**
- * Intercepts the AG-UI event stream to capture and persist the Assistant's final response
- * and tool calls directly into PostgreSQL upon stream completion.
- */
-async function* interceptAndPersistStream(
-  stream: AsyncIterable<any>,
-  conversationId: string,
-  db: TenantDb,
-  ctx: DomainContext
-) {
-  let fullText = ""
-  const toolCalls: Array<{ name: string; state?: string; args?: unknown; result?: unknown }> = []
-  let currentToolName = ""
-  let currentToolArgs = ""
-
-  try {
-    for await (const chunk of stream) {
-      yield chunk
-
-      if (chunk.type === "TEXT_MESSAGE_CONTENT" && typeof chunk.delta === "string") {
-        fullText += chunk.delta
-      } else if (chunk.type === "TOOL_CALL_START") {
-        currentToolName = chunk.toolName || ""
-        currentToolArgs = ""
-      } else if (chunk.type === "TOOL_CALL_ARGS" && typeof chunk.delta === "string") {
-        currentToolArgs += chunk.delta
-      } else if (chunk.type === "TOOL_CALL_END") {
-        let parsedArgs: unknown = currentToolArgs
-        try {
-          parsedArgs = JSON.parse(currentToolArgs)
-        } catch {}
-        toolCalls.push({
-          name: currentToolName || chunk.toolName || "tool",
-          state: "completed",
-          args: parsedArgs,
-        })
-        currentToolName = ""
-        currentToolArgs = ""
-      }
-    }
-  } finally {
-    if (fullText.trim() || toolCalls.length > 0) {
-      await persistChatMessage(db, ctx, {
-        conversationId,
-        role: "ASSISTANT",
-        content: fullText.trim(),
-        toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-      }).catch((err) => console.warn("[chat] failed to persist assistant reply:", err))
-    }
-  }
 }
 
 /**
@@ -195,6 +142,6 @@ export async function POST(
   })
 
   return toServerSentEventsResponse(
-    interceptAndPersistStream(stream, conversation.id, db, context.ctx)
+    recordAssistantTurn(stream, db, context.ctx, conversation.id)
   )
 }
