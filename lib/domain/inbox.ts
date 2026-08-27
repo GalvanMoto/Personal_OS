@@ -192,35 +192,29 @@ export async function applyProposal(
   let projectId: string | undefined
 
   if (projectName) {
-    const { project } = await resolveProject(db, ctx, projectName, organizationId)
-    projectId = project.id
-
-    if (organizationId && !project.organizationId) {
-      await db.project.update({
-        where: { id: project.id },
-        data: { organizationId },
-      })
-    }
-
-    if (organizationId) {
-      await link(db, {
-        fromType: "PROJECT",
-        fromId: project.id,
-        toType: "ORGANIZATION",
-        toId: organizationId,
-        relation: "BELONGS_TO",
-        createdBy: "AGENT",
-      })
-    }
-
-    await link(db, {
-      fromType: "PROJECT",
-      fromId: project.id,
-      toType: "INBOX_ITEM",
-      toId: item.id,
-      relation: "DERIVED_FROM",
-      createdBy: "AGENT",
+    // Only link to an existing project in the workspace. Do NOT auto-create projects from email text.
+    const existingProject = await db.project.findFirst({
+      where: {
+        OR: [
+          { name: { equals: projectName, mode: "insensitive" } },
+          { slug: slugify(projectName) },
+        ],
+      },
     })
+
+    if (existingProject) {
+      projectId = existingProject.id
+      if (organizationId && !existingProject.organizationId) {
+        await db.project.update({
+          where: { id: existingProject.id },
+          data: { organizationId },
+        })
+      }
+    } else if (overrides.projectName) {
+      // Explicit user creation only
+      const { project } = await resolveProject(db, ctx, projectName, organizationId)
+      projectId = project.id
+    }
   }
 
   // --- Tasks --------------------------------------------------------------
