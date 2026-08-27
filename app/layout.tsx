@@ -69,25 +69,40 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                window.addEventListener('error', function(event) {
-                  var msg = (event && event.message) || '';
-                  var isChunk = /Loading chunk/i.test(msg) || /Failed to load chunk/i.test(msg) || /ChunkLoadError/i.test(msg);
-                  var isScriptTag = event && event.target && event.target.tagName === 'SCRIPT' && event.target.src && event.target.src.indexOf('/_next/static/chunks/') !== -1;
-                  if (isChunk || isScriptTag) {
+                function handleChunkError(errStr) {
+                  var isChunk = /Loading chunk/i.test(errStr) || /Failed to load chunk/i.test(errStr) || /ChunkLoadError/i.test(errStr) || /turbopack/i.test(errStr);
+                  if (isChunk) {
                     var now = Date.now();
                     var last = parseInt(sessionStorage.getItem('chunk_retry_ts') || '0', 10);
-                    if (now - last > 8000) {
+                    if (now - last > 5000) {
                       sessionStorage.setItem('chunk_retry_ts', String(now));
                       window.location.reload();
                     }
                   }
+                }
+
+                window.addEventListener('error', function(event) {
+                  var msg = (event && (event.message || (event.error && event.error.message))) || '';
+                  var isScriptTag = event && event.target && event.target.tagName === 'SCRIPT' && event.target.src && event.target.src.indexOf('/_next/static/chunks/') !== -1;
+                  if (isScriptTag) {
+                    handleChunkError('Failed to load chunk');
+                  } else if (msg) {
+                    handleChunkError(msg);
+                  }
                 }, true);
+
+                window.addEventListener('unhandledrejection', function(event) {
+                  var reason = (event && event.reason && (event.reason.message || event.reason.name || String(event.reason))) || '';
+                  if (reason) {
+                    handleChunkError(reason);
+                  }
+                });
               })();
             `,
           }}
         />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-FSRQ8XNWYF"
           strategy="afterInteractive"
