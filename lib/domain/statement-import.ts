@@ -7,6 +7,7 @@ import { ingestEmailAttachments } from "@/lib/domain/attachments"
 import { readStoredFile } from "@/lib/domain/files"
 import { importTransactions } from "@/lib/domain/finance"
 import { formatMoney, money } from "@/lib/domain/money"
+import { categorize } from "@/lib/domain/categorize"
 import {
   detectBank,
   parseBankStatement,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/domain/statements"
 import { describePasswordCandidates, getVaultMap } from "@/lib/domain/vault"
 import { syncIntegrationEmails } from "@/lib/domain/email"
+import { parseWithPython } from "@/lib/domain/python-statement-parser"
 
 /**
  * Mail → statement → ledger, end to end.

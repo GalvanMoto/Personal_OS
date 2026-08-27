@@ -4,24 +4,30 @@ import type { ToolExecutionContext } from "@tanstack/ai"
 
 import { executeTool } from "@/lib/agents/tools"
 import {
+  cancelSubscriptionDef,
   createProjectDef,
   createReminderDef,
+  createSubscriptionDef,
   createTaskDef,
   explainValueDef,
   getAgendaDef,
+  getSubscriptionDef,
   importBankStatementDef,
   jioBankStatementExtractorDef,
   getTaskContextDef,
   nextBestActionDef,
   organizeSourcesDef,
+  pauseSubscriptionDef,
   recallDef,
   rememberDef,
   searchEmailsDef,
+  searchSubscriptionsDef,
   syncEmailsDef,
   searchTasksDef,
   sendEmailDef,
   spendingSummaryDef,
   upcomingPaymentsDef,
+  updateSubscriptionDef,
   updateTaskDef,
 } from "@/lib/ai/agent/definitions"
 import type { AgentRuntimeContext } from "@/lib/ai/agent/runtime"
@@ -275,6 +281,71 @@ export const upcomingPayments = upcomingPaymentsDef.server<AgentRuntimeContext>(
   })
 )
 
+// --- Subscriptions — universal control plane --------------------------------
+
+export const createSubscription = createSubscriptionDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("create_subscription", args, context)) as {
+      subscription: { id: string; name: string; vendor: string | null; cycle: string; nextDueAt: string | null }
+      reminder?: { id: string; remindAt: string } | null
+      notification?: { id: string } | null
+      isNew: boolean
+      message: string
+    }
+)
+
+export const searchSubscriptions = searchSubscriptionsDef.server<AgentRuntimeContext>(
+  async (args, context) => ({
+    subscriptions: (await run("search_subscriptions", args, context)) as Array<{
+      id: string
+      name: string
+      vendor: string | null
+      amountMinor: number
+      currency: string
+      cycle: string
+      nextDueAt: string | null
+      active: boolean
+    }>,
+  })
+)
+
+export const getSubscription = getSubscriptionDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("get_subscription", args, context)) as {
+      id: string
+      name: string
+      vendor: string | null
+      amountMinor: number
+      currency: string
+      cycle: string
+      nextDueAt: string | null
+      active: boolean
+      billingUrl: string | null
+    }
+)
+
+export const updateSubscription = updateSubscriptionDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("update_subscription", args, context)) as {
+      id: string
+      name: string
+      vendor: string | null
+      cycle: string
+      nextDueAt: string | null
+      active: boolean
+    }
+)
+
+export const cancelSubscription = cancelSubscriptionDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("cancel_subscription", args, context)) as { id: string; active: boolean }
+)
+
+export const pauseSubscription = pauseSubscriptionDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("pause_subscription", args, context)) as { id: string; active: boolean }
+)
+
 // --- Editing ---------------------------------------------------------------
 
 export const updateTask = updateTaskDef.server<AgentRuntimeContext>(
@@ -360,6 +431,12 @@ export const serverTools = [
   createReminder,
   spendingSummary,
   upcomingPayments,
+  createSubscription,
+  searchSubscriptions,
+  getSubscription,
+  updateSubscription,
+  cancelSubscription,
+  pauseSubscription,
   updateTask,
   remember,
   recall,

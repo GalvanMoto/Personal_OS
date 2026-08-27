@@ -6,6 +6,11 @@
  * changes between runs would make month-on-month comparisons meaningless.
  * A model is the right tool for the handful that fall through to UNKNOWN, not
  * for the 95% that match "SWIGGY" or "NETFLIX".
+ *
+ * Enhanced with `cleanDescription` + `deriveMerchant` from chatwithbankstatement
+ * (word-boundary, de-spaced, balance-verified) so Jio UPI strings like
+ * `UPI/DR/.../SHIV FOOD ZONE/...` resolve to `Shiv Food Zone` (FOOD) instead of
+ * raw `UPI/...` (TRANSFER).
  */
 
 export type Category =
@@ -26,12 +31,54 @@ export type Category =
 
 type Rule = { category: Category; patterns: RegExp }
 
+/** Strip PDF chrome, footers and repeated bank headers – keeps the merchant. */
+export function cleanDescription(description: string): string {
+  return String(description ?? "")
+    .replace(/\s*(?:Registered (?:Address|Office)|Head Office|Corporate Office|Branch Code|IFSC Code|CIN:\s*[A-Z0-9]+|GSTIN:\s*[A-Z0-9]+|This is a computer generated|No signature required).*$/i, "")
+    .replace(/\s*(?:Page\s*(?:no\.?|number)?\s*\d+(?:\s*of\s*\d+)?|AT [A-Z ]+ Page no\. Balance|Page no\. Balance).*$/i, "")
+    .replace(/\s+(?:www\.[a-z0-9.-]+\.[a-z]{2,}|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}).*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+/** Human-friendly merchant from a raw UPI/NEFT narration. */
+export function deriveMerchant(description: string): string | null {
+  const text = cleanDescription(description)
+  // UPI/IMPS: counterparty is the 3rd slash field
+  const upi = text.match(/^(?:UPI|IMPS)[/-](?:CR|DR)?[/-]?\d+[/-]([^/]{3,60})/i)
+  if (upi) return titleCase(upi[1].trim().slice(0, 50))
+  // NEFT/RTGS: last slash field with letters
+  if (/^(?:NEFT|RTGS)[*/]/i.test(text)) {
+    const parts = text.split(/[*/]/).filter((p) => /[a-z]{3,}/i.test(p))
+    const last = parts.pop()
+    if (last) return titleCase(last.trim().slice(0, 50))
+  }
+  let s = text
+    .replace(/\b(POS|ACH|NACH|VPS|MMT|UPI|NEFT|IMPS|RTGS|ECOM)\b/gi, " ")
+    .replace(/[*#]+\s*\w*\d\w*/g, " ")
+    .replace(/\b\d{3,}\b/g, " ")
+    .replace(/[/_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+  s = s.split(/\s+[-—–]\s+/)[0].trim()
+  if (!s) return null
+  const words = s.split(" ").slice(0, 3).join(" ")
+  return titleCase(words) || null
+}
+
+function titleCase(s: string) {
+  return s
+    .toLowerCase()
+    .replace(/\b[a-z]/g, (c) => c.toUpperCase())
+    .replace(/\.(com|net|org)\b/gi, (m) => m.toLowerCase())
+}
+
 // Order matters: the first match wins, so specific rules precede broad ones.
 const RULES: Rule[] = [
   {
     category: "FEES",
     patterns:
-      /\b(gst|service charge|processing fee|late fee|penalty|annual fee|convenience fee)\b/i,
+      /\b(gst|service charge|processing fee|late fee|penalty|annual fee|convenience fee|taxbuddy|amc charge|minimum balance|chq return|cheque return)\b/i,
   },
   {
     category: "SOFTWARE",
@@ -46,7 +93,7 @@ const RULES: Rule[] = [
   {
     category: "FOOD",
     patterns:
-      /\b(swiggy|zomato|dominos|mcdonald|kfc|burger king|starbucks|cafe|coffee|restaurant|dhaba|biryani|pizza|bakery|blinkit|zepto|instamart|bigbasket|dunzo|eatfit|faasos|behrouz)\b/i,
+      /\b(swiggy|zomato|dominos|mcdonald|kfc|burger king|starbucks|cafe|coffee|restaurant|dhaba|biryani|pizza|bakery|blinkit|zepto|instamart|bigbasket|dunzo|eatfit|faasos|behrouz|food zone|food court|shiv food|eating|dabha)\b/i,
   },
   {
     category: "TRAVEL",
@@ -85,7 +132,7 @@ const RULES: Rule[] = [
   {
     category: "BUSINESS",
     patterns:
-      /\b(invoice|consulting|retainer|freelance|contractor|vendor payment|client payment|professional fee)\b/i,
+      /\b(invoice|consulting|retainer|freelance|contractor|vendor payment|client payment|professional fee|taxbuddy)\b/i,
   },
   {
     category: "TRANSFER",
@@ -108,32 +155,60 @@ export type CategoryGuess = {
   matched: string | null
 }
 
+/** De-spaced fallback for split words like "Petrole um" or "ENT ERPRI SES" */
+const DESPACED_TOKENS: Array<[Category, string[]]> = [
+  ["FOOD", ["petroleum", "petrolpump", "restaurant", "foodzone"]],
+  ["SHOPPING", ["xpressbees", "ecomexpress"]],
+  ["BILLS", ["jiorecharge", "rechargeprepaid"]],
+]
+
 export function categorize(
   description: string,
   direction: "DEBIT" | "CREDIT" = "DEBIT"
 ): CategoryGuess {
-  const text = description.trim()
+  const cleaned = cleanDescription(description)
+  const merchant = deriveMerchant(description) ?? ""
+  const text = cleaned.trim()
+  const haystack = `${text} ${merchant}`.trim()
 
   if (!text) return { category: "UNKNOWN", confidence: 0, matched: null }
 
+  // Word-boundary rules first, but hold a bare "Transfers" rail match – it only
+  // means the description named a payment rail, which nearly all do. A
+  // de-spaced brand hit is more informative.
+  let railFallback: CategoryGuess | null = null
   for (const rule of RULES) {
-    const hit = text.match(rule.patterns)
+    const hit = haystack.match(rule.patterns)
     if (!hit) continue
-
-    // Money arriving is income even when the narration says UPI or NEFT.
-    if (direction === "CREDIT" && rule.category === "TRANSFER") {
-      return { category: "INCOME", confidence: 0.5, matched: hit[0].trim() }
+    if (rule.category === "TRANSFER") {
+      // For credits, a generic UPI/NEFT is not automatically income – only
+      // explicit salary/refund/interest should be. Keep Transfer as fallback.
+      railFallback = { category: "TRANSFER", confidence: 0.4, matched: hit[0].trim() }
+      break
     }
-
     return {
       category: rule.category,
-      confidence: rule.category === "TRANSFER" ? 0.4 : 0.9,
+      confidence: 0.9,
       matched: hit[0].trim(),
     }
   }
 
+  const despaced = haystack.toLowerCase().replace(/\s+/g, "")
+  for (const [category, tokens] of DESPACED_TOKENS) {
+    if (tokens.some((t) => despaced.includes(t))) {
+      return { category, confidence: 0.8, matched: tokens.find((t) => despaced.includes(t)) ?? null }
+    }
+  }
+
+  if (railFallback) {
+    if (direction === "CREDIT") {
+      return { category: "INCOME", confidence: 0.5, matched: railFallback.matched }
+    }
+    return railFallback
+  }
+
   return {
-    category: direction === "CREDIT" ? "INCOME" : "UNKNOWN",
+    category: direction === "CREDIT" ? "TRANSFER" : "UNKNOWN",
     confidence: direction === "CREDIT" ? 0.3 : 0,
     matched: null,
   }
@@ -145,8 +220,11 @@ export function categorize(
  * Statement lines carry rails, reference numbers and dates around the part that
  * identifies who was paid; stripping those is what lets recurring-payment
  * detection group January's Netflix charge with February's.
+ * Now uses `deriveMerchant` for UPI-aware extraction.
  */
 export function merchantKey(description: string): string {
+  const m = deriveMerchant(description)
+  if (m) return m.toLowerCase().replace(/[^a-z]/g, "").slice(0, 30)
   return description
     .toLowerCase()
     .replace(/\b(upi|neft|imps|rtgs|ach|nach|pos|atm|vps|mmt)\b/g, " ")
@@ -158,4 +236,10 @@ export function merchantKey(description: string): string {
     .slice(0, 3)
     .join(" ")
     .trim()
+}
+
+/** Backwards-compatible alias for the other codebase's counterpartyKey */
+export function counterpartyKey(description: string): string | null {
+  const k = merchantKey(description)
+  return k || null
 }

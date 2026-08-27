@@ -84,6 +84,162 @@ async function resolveTask(db: TenantDb, phrase: string): Promise<TaskMatch> {
   return { kind: "one", task: scored[0].task }
 }
 
+function extractBillingUrl(text: string): string | undefined {
+  const m = text.match(/https?:\/\/[^\s"'<>]+/i)
+  return m?.[0]
+}
+
+function extractPaymentDay(text: string): number | undefined {
+  const lower = text.toLowerCase()
+  // "on the 8th", "8th of every month", "payment date 8", "due on 12"
+  let m = lower.match(/(?:on\s+the\s+)?\b(\d{1,2})(?:st|nd|rd|th)\b/)
+  if (m) {
+    const n = parseInt(m[1], 10)
+    if (n >= 1 && n <= 31) return n
+  }
+  m = lower.match(/(?:payment\s*date|due\s*on|pay\s*on)\s*[:\-]?\s*(\d{1,2})\b/)
+  if (m) {
+    const n = parseInt(m[1], 10)
+    if (n >= 1 && n <= 31) return n
+  }
+  return undefined
+}
+
+function parseFrequency(text: string): "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY" {
+  const l = text.toLowerCase()
+  if (/\bweekly\b|\bevery\s+week\b/.test(l)) return "WEEKLY"
+  if (/\bquarterly\b|\bevery\s+quarter\b|\bevery\s+3\s+months\b/.test(l)) return "QUARTERLY"
+  if (/\byearly\b|\bannual(?:ly)?\b|\bevery\s+year\b/.test(l)) return "YEARLY"
+  return "MONTHLY"
+}
+
+function extractRemindDaysBefore(text: string): number | undefined {
+  const m = text.toLowerCase().match(/remind\s+me\s+(\d+)\s+days?\s+before/i)
+  if (m) {
+    const n = parseInt(m[1], 10)
+    if (n >= 1 && n <= 30) return n
+  }
+  if (/3\s+days?\s+before/i.test(text.toLowerCase())) return 3
+  return undefined
+}
+
+function extractProvider(text: string, billingUrl?: string): string | undefined {
+  const trimmed = text.trim()
+  // Pattern: Add <Provider> as subscription / monthly / yearly etc — include all frequency words
+  let m = trimmed.match(
+    /^(?:add|create|track|remember)\s+([A-Za-z0-9][A-Za-z0-9\s&.-]{1,40}?)\s+(?:as\s+)?(?:a\s+)?(?:monthly|weekly|quarterly|yearly|annual|subscription|bill|service)/i
+  )
+  if (m) return m[1].trim().split(/\s+/).slice(0, 3).join(" ").replace(/\s+(?:monthly|weekly|quarterly|yearly|annual)$/i, "").trim()
+  // Pattern: I pay <Provider> every month
+  m = trimmed.match(/i\s+pay\s+([A-Za-z0-9][A-Za-z0-9\s&.-]{1,30}?)\s+every/i)
+  if (m) return m[1].trim().split(/\s+/).slice(0, 3).join(" ").trim()
+  // Pattern: Add <Provider> monthly/weekly/yearly — must run before generic capitalized phrase that would capture verb
+  m = trimmed.match(/^(?:add|track|create|remember)\s+([A-Za-z0-9][A-Za-z0-9-]*)\s+(?:monthly|weekly|quarterly|yearly|annual)/i)
+  if (m) return m[1].trim()
+  // Pattern: <Provider> subscription / <Provider> monthly (avoid capturing leading verb Add/Track)
+  m = trimmed.match(/\b([A-Z][A-Za-z0-9]+(?:\s+[A-Z][A-Za-z0-9]+)?)\s+(?:subscription|monthly|yearly|weekly|quarterly|annual)/i)
+  if (m) {
+    const cand = m[1].trim()
+    // If candidate starts with verb like Add/Track/Create, strip it
+    const stripped = cand.replace(/^(?:add|track|create|remember)\s+/i, "").trim()
+    if (stripped && !/^(add|track|create)$/i.test(cand)) return stripped
+    // But if stripped is empty or still verb, fallback
+    if (!/^(add|track|create|remember)$/i.test(cand)) return cand
+  }
+  // Generic: first capitalized word after add/track
+  m = trimmed.match(/(?:add|track|create)\s+([A-Z][A-Za-z0-9-]+)/)
+  if (m) return m[1].trim()
+  // Fallback to URL host
+  if (billingUrl) {
+    try {
+      const host = new URL(billingUrl).hostname.replace(/^www\./, "")
+      const base = host.split(".")[0]
+      if (base && base.length > 2) return base.charAt(0).toUpperCase() + base.slice(1)
+    } catch {}
+  }
+  m = trimmed.match(/\b([A-Za-z]{3,})\b(?=\s+(?:payment|bill|subscription))/i)
+  if (m) return m[1].trim()
+  return undefined
+}
+
+function tryParseSubscriptionPlan(text: string): Plan | null {
+  const billingUrl = extractBillingUrl(text)
+  const lower = text.toLowerCase()
+
+  // Strong subscription signals
+  const hasSubKeyword = /\bsubscription\b|\brecurring\b|\bbilling\b/i.test(text)
+  const hasPaymentSchedule = /\bevery\s+(?:month|week|quarter|year)\b|\bmonthly\b|\bweekly\b|\bquarterly\b|\byearly\b|\bannual\b/i.test(lower)
+  const hasPayProvider = /\bi\s+pay\b.*\bevery\b/i.test(lower)
+  const hasAddProvider = /^(?:add|create|track|remember)\s+/i.test(text.trim())
+
+  // Need at least one strong signal combined with provider context
+  if (!hasSubKeyword && !hasPaymentSchedule && !hasPayProvider) return null
+  // If it's clearly a task creation, don't hijack
+  if (/^add\s+(?:a\s+)?task\b/i.test(text)) return null
+
+  // Query-like subscription intents should go to search, not create
+  if (/\b(what|which|show|list|find|search)\b.*\bsubscription/i.test(lower) && !hasAddProvider && !hasPayProvider) return null
+  if (/\bhow\s+much\b.*subscription/i.test(lower)) return null
+
+  const provider = extractProvider(text, billingUrl)
+  if (!provider) return null
+  // Don't capture overly generic provider like "Subscription" itself
+  if (/^subscription$/i.test(provider)) return null
+  if (provider.length < 2) return null
+
+  const frequency = parseFrequency(text)
+  const paymentDay = extractPaymentDay(text)
+  const remindDaysBefore = extractRemindDaysBefore(text)
+
+  return {
+    kind: "tool",
+    tool: "create_subscription",
+    args: {
+      provider,
+      frequency,
+      paymentDay: paymentDay ?? undefined,
+      billingUrl: billingUrl ?? undefined,
+      currency: "INR",
+      remindDaysBefore: remindDaysBefore ?? 1,
+    },
+  }
+}
+
+function tryParseSubscriptionQueryPlan(text: string): Plan | null {
+  const lower = text.toLowerCase()
+  // Bare "show my subscriptions" / "list subscriptions" without due word
+  if (/\b(?:show|list|find|search)\b.*\bsubscriptions?\b/i.test(lower) && !/^(?:add|create|track)/i.test(text.trim())) {
+    const m = text.match(/(?:for|about|from)\s+([A-Za-z0-9]+)/i)
+    const query = m?.[1]?.trim()
+    return { kind: "tool", tool: "search_subscriptions", args: { query: query ?? undefined } }
+  }
+  // "what subscriptions are due next week?", "what subscriptions are due?", "show my subscriptions"
+  if (/\bsubscriptions?\b/.test(lower) && /(?:due|upcoming|next|active|monthly|renew|bill)/.test(lower)) {
+    if (/(?:what|which|show|list|find|search|how\s+many|upcoming)/i.test(lower)) {
+      // Extract query hint after for/about/provider name if present
+      const m = text.match(/(?:for|about|from)\s+([A-Za-z0-9]+)/i)
+      const query = m?.[1]?.trim()
+      return { kind: "tool", tool: "search_subscriptions", args: { query: query ?? undefined } }
+    }
+  }
+  // "what invoices are overdue?" maps to subscriptions due as well
+  if (/\bwhat\b.*\bsubscriptions?\b.*\bdue\b/.test(lower)) {
+    return { kind: "tool", tool: "search_subscriptions", args: {} }
+  }
+  // "upcoming payments" maps to search_subscriptions
+  if (/\b(upcoming payments|next payments|bills?\s+due)\b/.test(lower)) {
+    return { kind: "tool", tool: "search_subscriptions", args: {} }
+  }
+  // Universal assistant commands from operational.txt §19
+  if (/\bwhat\b.*\b(?:subscriptions?|invoices?)\b.*\b(?:due|overdue|next week)\b/i.test(lower)) {
+    return { kind: "tool", tool: "search_subscriptions", args: {} }
+  }
+  if (/\btrack\s+everything\s+i\s+pay\s+monthly\b/i.test(lower)) {
+    return { kind: "tool", tool: "search_subscriptions", args: {} }
+  }
+  return null
+}
+
 function plan(message: string): Plan {
   const text = message.trim()
   const lower = text.toLowerCase()
@@ -99,6 +255,12 @@ function plan(message: string): Plan {
       args: { message: text, apply: true },
     }
   }
+
+  // Subscriptions — universal control plane (operational.txt §2)
+  const subQuery = tryParseSubscriptionQueryPlan(text)
+  if (subQuery) return subQuery
+  const subPlan = tryParseSubscriptionPlan(text)
+  if (subPlan) return subPlan
 
   if (/^(what|whats|what's)\s+(should|do)\s+i\s+(do|work on)/.test(lower)) {
     return { kind: "tool", tool: "next_best_action", args: {} }
@@ -318,6 +480,33 @@ function describe(tool: string, result: unknown, args: unknown): string {
     case "organize_sources": {
       const res = result as { report?: string; summary?: string }
       return res.report || "Successfully organized and ingested your client sources into structured tasks and commitments."
+    }
+
+    case "create_subscription": {
+      const res = result as { message?: string; isNew?: boolean; subscription?: { name: string; nextDueAt: string | null } }
+      if (res.message) return res.message
+      return res.isNew ? `Added "${res.subscription?.name}" as subscription.` : `Updated "${res.subscription?.name}".`
+    }
+
+    case "search_subscriptions": {
+      const rows = result as Array<{ name: string; vendor: string | null; cycle: string; nextDueAt: string | null }>
+      if (!rows || rows.length === 0) return "No subscriptions found."
+      return `${rows.length} subscription${rows.length === 1 ? "" : "s"}: ${rows
+        .slice(0, 5)
+        .map((s) => `"${s.name}" (${s.cycle.toLowerCase()}${s.nextDueAt ? `, due ${formatDate(new Date(s.nextDueAt))}` : ""})`)
+        .join(", ")}`
+    }
+
+    case "get_subscription": {
+      const s = result as { name: string; vendor: string | null; cycle: string; nextDueAt: string | null; billingUrl?: string | null }
+      return `${s.name} — ${s.cycle.toLowerCase()}${s.nextDueAt ? `, next due ${formatDate(new Date(s.nextDueAt))}` : ""}${s.billingUrl ? ` — ${s.billingUrl}` : ""}`
+    }
+
+    case "update_subscription":
+    case "cancel_subscription":
+    case "pause_subscription": {
+      const r = result as { name?: string; id: string }
+      return tool === "cancel_subscription" || tool === "pause_subscription" ? "Subscription cancelled." : `Updated "${r.name ?? r.id}".`
     }
 
     default:

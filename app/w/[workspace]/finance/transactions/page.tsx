@@ -8,6 +8,7 @@ import { UniversalFilterBar } from "@/components/filters/universal-filter-bar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty"
 import { formatMoney, money, sumMinor } from "@/lib/domain/money"
+import { deriveMerchant, cleanDescription, categorize } from "@/lib/domain/categorize"
 
 export const metadata = { title: "Bank Transactions Ledger · Personal OS" }
 
@@ -198,6 +199,10 @@ export default async function TransactionsPage({
             <div className="divide-y text-xs">
               {transactions.map((tx) => {
                 const isCredit = tx.direction === "CREDIT"
+                const merchant = deriveMerchant(tx.description) ?? cleanDescription(tx.description).slice(0, 60) ?? tx.description
+                const displayName = merchant || tx.description
+                const liveCategory = categorize(tx.description, tx.direction as "DEBIT" | "CREDIT").category
+                const displayCategory = liveCategory !== "UNKNOWN" ? liveCategory : tx.category ?? liveCategory
                 return (
                   <div
                     key={tx.id}
@@ -213,14 +218,21 @@ export default async function TransactionsPage({
                       </div>
 
                       <div className="truncate">
-                        <p className="font-medium text-sm text-foreground truncate">{tx.description}</p>
+                        <p className="font-medium text-sm text-foreground truncate" title={tx.description}>
+                          {displayName}
+                        </p>
+                        {displayName !== tx.description ? (
+                          <p className="truncate text-[0.625rem] text-muted-foreground/70" title={tx.description}>
+                            {tx.description.slice(0, 80)}
+                          </p>
+                        ) : null}
                         <div className="flex items-center gap-2 text-[0.625rem] text-muted-foreground mt-0.5">
                           <span>{tx.occurredAt.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}</span>
-                          {tx.category ? (
+                          {displayCategory ? (
                             <>
                               <span>·</span>
                               <Badge variant="secondary" className="text-[0.625rem]">
-                                {tx.category.toLowerCase()}
+                                {displayCategory.toLowerCase()}
                               </Badge>
                             </>
                           ) : null}

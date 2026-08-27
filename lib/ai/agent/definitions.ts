@@ -236,6 +236,118 @@ export const upcomingPaymentsDef = toolDefinition({
 })
 
 // ---------------------------------------------------------------------------
+// Subscriptions — universal control plane (operational.txt §15)
+// ---------------------------------------------------------------------------
+
+export const createSubscriptionDef = toolDefinition({
+  name: "create_subscription",
+  description:
+    "Create or update a subscription (idempotent). Provider + frequency + payment day + billing URL → Subscription + payment schedule + reminder + notification. E.g. 'Add Contabo monthly on the 8th with https://...'",
+  inputSchema: z.object({
+    provider: z.string().min(1).max(120),
+    service: z.string().max(120).optional(),
+    amountMinor: z.number().int().min(0).optional(),
+    currency: z.string().max(10).default("INR"),
+    frequency: z.enum(["WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"]).default("MONTHLY"),
+    paymentDay: z.number().int().min(1).max(31).optional(),
+    billingUrl: z.string().url().optional(),
+    category: z.string().max(60).optional(),
+    remindDaysBefore: z.number().int().min(1).max(30).default(1),
+  }),
+  outputSchema: z.object({
+    subscription: z.object({
+      id: z.string(),
+      name: z.string(),
+      vendor: z.string().nullable(),
+      cycle: z.string(),
+      nextDueAt: z.string().nullable(),
+    }),
+    reminder: z.object({ id: z.string(), remindAt: z.string() }).nullable().optional(),
+    notification: z.object({ id: z.string() }).nullable().optional(),
+    isNew: z.boolean(),
+    message: z.string(),
+  }),
+})
+
+export const searchSubscriptionsDef = toolDefinition({
+  name: "search_subscriptions",
+  description: "Search subscriptions by provider or name. Use for 'what subscriptions are due?'",
+  inputSchema: z.object({
+    query: z.string().optional(),
+    limit: z.number().int().min(1).max(50).default(20),
+  }),
+  outputSchema: z.object({
+    subscriptions: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        vendor: z.string().nullable(),
+        amountMinor: z.number(),
+        currency: z.string(),
+        cycle: z.string(),
+        nextDueAt: z.string().nullable(),
+        active: z.boolean(),
+      }),
+    ),
+  }),
+})
+
+export const getSubscriptionDef = toolDefinition({
+  name: "get_subscription",
+  description: "Get a single subscription by id with billing link.",
+  inputSchema: z.object({ id: z.string().min(1) }),
+  outputSchema: z.object({
+    id: z.string(),
+    name: z.string(),
+    vendor: z.string().nullable(),
+    amountMinor: z.number(),
+    currency: z.string(),
+    cycle: z.string(),
+    nextDueAt: z.string().nullable(),
+    active: z.boolean(),
+    billingUrl: z.string().nullable(),
+  }),
+})
+
+export const updateSubscriptionDef = toolDefinition({
+  name: "update_subscription",
+  description: "Update a subscription's amount, cycle, nextDueAt, active status, or billing URL.",
+  inputSchema: z.object({
+    id: z.string().min(1),
+    name: z.string().max(120).optional(),
+    vendor: z.string().max(120).optional(),
+    amountMinor: z.number().int().min(0).optional(),
+    currency: z.string().max(10).optional(),
+    cycle: z.enum(["WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"]).optional(),
+    nextDueAt: z.string().datetime().nullable().optional(),
+    active: z.boolean().optional(),
+    billingUrl: z.string().url().optional(),
+  }),
+  outputSchema: z.object({
+    id: z.string(),
+    name: z.string(),
+    vendor: z.string().nullable(),
+    cycle: z.string(),
+    nextDueAt: z.string().nullable(),
+    active: z.boolean(),
+  }),
+})
+
+export const cancelSubscriptionDef = toolDefinition({
+  name: "cancel_subscription",
+  description: "Cancel/pause a subscription. Sets active=false and cancels scheduled reminders.",
+  inputSchema: z.object({ id: z.string().min(1) }),
+  outputSchema: z.object({ id: z.string(), active: z.boolean() }),
+})
+
+export const pauseSubscriptionDef = toolDefinition({
+  name: "pause_subscription",
+  description: "Pause a subscription (alias for cancel).",
+  inputSchema: z.object({ id: z.string().min(1) }),
+  outputSchema: z.object({ id: z.string(), active: z.boolean() }),
+})
+
+// ---------------------------------------------------------------------------
 // Editing — reversible, so it runs like creating does
 // ---------------------------------------------------------------------------
 

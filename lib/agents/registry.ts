@@ -24,6 +24,7 @@ export type AgentScope =
   | "calendar.read"
   | "calendar.write"
   | "finance.read"
+  | "finance.write"
   | "finance.categories.write"
   | "reminders.read"
   | "reminders.write"
@@ -106,9 +107,18 @@ export const AGENT_REGISTRY: Record<string, AgentDefinition> = {
     id: "finance",
     name: "Financial Intelligence Agent",
     role: "Deterministic Statement & Ledger Engine",
-    purpose: "Parses bank PDF tables (SBI, HDFC, ICICI, Chase), detects subscriptions, and audits cash flow.",
-    scopes: ["finance.read", "finance.categories.write"],
-    allowedTools: ["get_spending_summary", "get_upcoming_payments", "search_subscriptions"],
+    purpose: "Parses bank PDF tables (SBI, HDFC, ICICI, Chase), detects subscriptions, and audits cash flow. Fully manages subscriptions as universal control plane.",
+    scopes: ["finance.read", "finance.categories.write", "reminders.write", "notifications.write"],
+    allowedTools: [
+      "spending_summary",
+      "upcoming_payments",
+      "create_subscription",
+      "search_subscriptions",
+      "get_subscription",
+      "update_subscription",
+      "cancel_subscription",
+      "pause_subscription",
+    ],
     canRequireApproval: false,
     maxRiskLevel: "SAFE",
   },

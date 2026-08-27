@@ -23,6 +23,13 @@ import { generateImportPlan, executeImportPlan } from "@/lib/domain/import-intel
 import { syncIntegrationEmails } from "@/lib/domain/email"
 import { recall, remember } from "@/lib/domain/memory"
 import { importStatementsFromEmail } from "@/lib/domain/statement-import"
+import {
+  cancelSubscription,
+  createOrUpdateSubscription,
+  getSubscription,
+  searchSubscriptions,
+  updateSubscription,
+} from "@/lib/domain/subscription-orchestrator"
 
 /**
  * The tool layer (PRD §27).
@@ -628,6 +635,149 @@ const tools: Tool<z.ZodType>[] = [
     }),
     handler: async (args, { db, ctx }) =>
       importStatementsFromEmail(db, ctx, args),
+  }),
+
+  // ---------------------------------------------------------------------------
+  // Subscriptions — universal control plane (operational.txt §2, §12, §14)
+  // ---------------------------------------------------------------------------
+
+  defineTool({
+    name: "create_subscription",
+    description:
+      "Create or update a subscription (idempotent). Handles provider, service, billing frequency, payment day, amount, currency, billing URL, and automatically creates payment schedule + reminder + notification. Use for: 'Add Contabo monthly on the 8th with https://...', 'Track Adobe subscription', 'I pay Contabo every month'.",
+    risk: "SAFE",
+    input: z.object({
+      provider: z.string().min(1).max(120).describe("Provider/merchant name, e.g. Contabo, Adobe, Notion"),
+      service: z.string().max(120).optional().describe("Service name, e.g. Server, Creative Cloud"),
+      amountMinor: z.number().int().min(0).optional().describe("Amount in minor units (paise/cents). 0 if unknown"),
+      currency: z.string().max(10).default("INR").describe("Currency code, default INR"),
+      frequency: z.enum(["WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"]).default("MONTHLY").describe("Billing frequency"),
+      paymentDay: z.number().int().min(1).max(31).optional().describe("Day of month for monthly billing (1-31), e.g. 8 for 8th"),
+      billingUrl: z.string().url().optional().describe("Billing portal URL"),
+      category: z.string().max(60).optional().describe("Category, e.g. Hosting, Software"),
+      remindDaysBefore: z.number().int().min(1).max(30).default(1).describe("Days before payment to remind, e.g. 3 for '3 days before'"),
+    }),
+    handler: async (args, { db, ctx }) => {
+      const result = await createOrUpdateSubscription(db, ctx, {
+        provider: args.provider,
+        service: args.service,
+        amountMinor: args.amountMinor,
+        currency: args.currency,
+        frequency: args.frequency,
+        paymentDay: args.paymentDay,
+        billingUrl: args.billingUrl,
+        category: args.category,
+        remindDaysBefore: args.remindDaysBefore,
+      })
+      return result
+    },
+  }),
+
+  defineTool({
+    name: "search_subscriptions",
+    description: "Search subscriptions by provider or name. Use for 'what subscriptions are due next week?', 'show my Adobe subscription'.",
+    risk: "SAFE",
+    input: z.object({
+      query: z.string().optional().describe("Search text for provider/name"),
+      limit: z.number().int().min(1).max(50).default(20),
+    }),
+    handler: async (args, { db }) => {
+      const rows = await searchSubscriptions(db, args.query)
+      return rows.slice(0, args.limit).map((s) => ({
+        id: s.id,
+        name: s.name,
+        vendor: s.vendor,
+        amountMinor: Number(s.amountMinor),
+        currency: s.currency,
+        cycle: s.cycle,
+        nextDueAt: s.nextDueAt?.toISOString() ?? null,
+        active: s.active,
+      }))
+    },
+  }),
+
+  defineTool({
+    name: "get_subscription",
+    description: "Get a single subscription by id with full details and billing link if any.",
+    risk: "SAFE",
+    input: z.object({ id: z.string().min(1) }),
+    handler: async (args, { db }) => {
+      const sub = await getSubscription(db, args.id)
+      if (!sub) throw new Error("Subscription not found")
+      // Find linked billing URL via EntityLink -> LinkResource
+      let billingUrl: string | null = null
+      try {
+        const link = await db.entityLink.findFirst({
+          where: { fromType: "SUBSCRIPTION", fromId: sub.id, toType: "LINK" as any },
+        } as never)
+        if (link) {
+          const res = await db.linkResource.findUnique({ where: { id: (link as any).toId } })
+          billingUrl = (res as any)?.url ?? null
+        }
+      } catch {}
+      return {
+        id: sub.id,
+        name: sub.name,
+        vendor: sub.vendor,
+        amountMinor: Number(sub.amountMinor),
+        currency: sub.currency,
+        cycle: sub.cycle,
+        nextDueAt: sub.nextDueAt?.toISOString() ?? null,
+        active: sub.active,
+        billingUrl,
+      }
+    },
+  }),
+
+  defineTool({
+    name: "update_subscription",
+    description: "Update a subscription's amount, cycle, nextDueAt, active status, or billing URL. Idempotent.",
+    risk: "SAFE",
+    input: z.object({
+      id: z.string().min(1),
+      name: z.string().max(120).optional(),
+      vendor: z.string().max(120).optional(),
+      amountMinor: z.number().int().min(0).optional(),
+      currency: z.string().max(10).optional(),
+      cycle: z.enum(["WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"]).optional(),
+      nextDueAt: z.string().datetime().nullable().optional(),
+      active: z.boolean().optional(),
+      billingUrl: z.string().url().optional(),
+    }),
+    handler: async (args, { db, ctx }) => {
+      const { id, ...patch } = args
+      const updated = await updateSubscription(db, ctx, id, patch)
+      return {
+        id: updated.id,
+        name: updated.name,
+        vendor: updated.vendor,
+        cycle: updated.cycle,
+        nextDueAt: updated.nextDueAt?.toISOString() ?? null,
+        active: updated.active,
+      }
+    },
+  }),
+
+  defineTool({
+    name: "cancel_subscription",
+    description: "Cancel/pause a subscription. Sets active=false and cancels scheduled reminders.",
+    risk: "SAFE",
+    input: z.object({ id: z.string().min(1) }),
+    handler: async (args, { db, ctx }) => {
+      const updated = await cancelSubscription(db, ctx, args.id)
+      return { id: updated.id, active: updated.active }
+    },
+  }),
+
+  defineTool({
+    name: "pause_subscription",
+    description: "Pause a subscription (alias for cancel).",
+    risk: "SAFE",
+    input: z.object({ id: z.string().min(1) }),
+    handler: async (args, { db, ctx }) => {
+      const updated = await cancelSubscription(db, ctx, args.id)
+      return { id: updated.id, active: updated.active }
+    },
   }),
 ]
 
