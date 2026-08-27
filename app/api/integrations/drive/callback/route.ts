@@ -51,10 +51,11 @@ export async function GET(request: Request) {
     let accountRef: string | undefined
     try {
       const info = await fetchUserInfo(tokens.accessToken)
-      accountRef = info.email
+      accountRef = info.email?.toLowerCase()
     } catch {
       // Non-fatal
     }
+    const resolvedAccountRef = accountRef || `drive-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
     const secretCipher = encryptSecret(
       JSON.stringify({
@@ -66,19 +67,18 @@ export async function GET(request: Request) {
     )
 
     await db.integration.upsert({
-      where: { tenantId_provider: { tenantId, provider: "GOOGLE_DRIVE" } },
+      where: { tenantId_provider_accountRef: { tenantId, provider: "GOOGLE_DRIVE", accountRef: resolvedAccountRef } },
       create: {
         provider: "GOOGLE_DRIVE",
         status: "CONNECTED",
         secretCipher,
-        accountRef: accountRef ?? null,
+        accountRef: resolvedAccountRef,
         scopes: DRIVE_SCOPES,
         lastSyncAt: new Date(),
       } as never,
       update: {
         status: "CONNECTED",
         secretCipher,
-        accountRef: accountRef ?? null,
         scopes: DRIVE_SCOPES,
         lastSyncAt: new Date(),
       } as never,

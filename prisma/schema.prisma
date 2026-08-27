@@ -859,7 +859,7 @@ model Integration {
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@unique([tenantId, provider])
+  @@unique([tenantId, provider, accountRef])
   @@index([tenantId, provider])
   @@map("integrations")
 }

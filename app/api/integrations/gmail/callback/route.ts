@@ -77,7 +77,7 @@ export async function GET(request: Request) {
     )
 
     await db.integration.upsert({
-      where: { tenantId_provider: { tenantId, provider: "GMAIL" } },
+      where: { tenantId_provider_accountRef: { tenantId, provider: "GMAIL", accountRef: resolvedAccountRef } },
       create: {
         provider: "GMAIL",
         status: "CONNECTED",
@@ -89,14 +89,13 @@ export async function GET(request: Request) {
       update: {
         status: "CONNECTED",
         secretCipher,
-        accountRef: resolvedAccountRef,
         scopes: GMAIL_SCOPES,
         lastSyncAt: new Date(),
       } as never,
     })
 
     const integration = await db.integration.findUnique({
-      where: { tenantId_provider: { tenantId, provider: "GMAIL" } },
+      where: { tenantId_provider_accountRef: { tenantId, provider: "GMAIL", accountRef: resolvedAccountRef } },
     })
     if (integration) {
       await enqueue(db, "email.sync", { integrationId: integration.id })

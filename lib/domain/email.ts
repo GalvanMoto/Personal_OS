@@ -210,26 +210,8 @@ export async function ingestEmail(
     })
   }
 
-  // Mail that looks like work enters the inbox → task pipeline. Other mail
-  // stays searchable but does not spawn noisy tasks.
-  if (category === "TASK_REQUEST") {
-    const item = await db.inboxItem.create({
-      data: {
-        kind: "EMAIL",
-        status: "PENDING",
-        title: (email.subject ?? email.fromEmail ?? "Email").slice(0, 200),
-        rawText: buildRaw(email),
-        sourceType: "GMAIL",
-        sourceRef: email.externalId,
-      } as never,
-    })
-
-    await enqueue(db, "inbox.process", {
-      inboxItemId: item.id,
-      autoApply: true,
-    })
-  }
-
+  // Emails are preserved in emailMessage for communication intelligence and subscription management.
+  // We do NOT automatically create tasks from emails.
   return { created: true }
 }
 

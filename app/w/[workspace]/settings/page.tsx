@@ -13,16 +13,10 @@ export default async function SettingsPage({
   const { workspace } = await params
   const { db, tenant, user } = await requireWorkspace(workspace)
 
-  const [gmailInt, driveInt, calInt] = await Promise.all([
-    db.integration.findUnique({
-      where: { tenantId_provider: { tenantId: tenant.id, provider: "GMAIL" } },
-    }),
-    db.integration.findUnique({
-      where: { tenantId_provider: { tenantId: tenant.id, provider: "GOOGLE_DRIVE" } },
-    }),
-    db.integration.findUnique({
-      where: { tenantId_provider: { tenantId: tenant.id, provider: "GOOGLE_CALENDAR" } },
-    }),
+  const [gmailInts, driveInt, calInt] = await Promise.all([
+    db.integration.findMany({ where: { tenantId: tenant.id, provider: "GMAIL" } }),
+    db.integration.findFirst({ where: { tenantId: tenant.id, provider: "GOOGLE_DRIVE" } }),
+    db.integration.findFirst({ where: { tenantId: tenant.id, provider: "GOOGLE_CALENDAR" } }),
   ])
 
   return (
@@ -60,7 +54,7 @@ export default async function SettingsPage({
           createdAt: new Date().toISOString(),
         }}
         integrations={{
-          gmail: gmailInt?.status === "CONNECTED",
+          gmail: gmailInts.some((i) => i.status === "CONNECTED"),
           drive: driveInt?.status === "CONNECTED",
           calendar: calInt?.status === "CONNECTED",
         }}
