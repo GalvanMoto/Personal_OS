@@ -56,9 +56,14 @@ export function AssistantPanel({
 }) {
   const [draft, setDraft] = useState("")
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const storageKey = `personal_os_chat_${workspace}`
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // 1. Initial messages from persistent local storage
   const [initialMessages] = useState<any[]>(() => {
@@ -213,7 +218,7 @@ export function AssistantPanel({
       <CardContent className="flex min-h-0 flex-1 flex-col gap-3 p-4">
         <ScrollArea ref={scrollRef} className="min-h-0 flex-1 pr-3">
           <div className="flex flex-col gap-3">
-            {messages.length === 0 ? (
+            {!mounted || messages.length === 0 ? (
               <div className="py-6 flex flex-col items-center justify-center text-center space-y-4">
                 <div className="space-y-1">
                   <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2">
