@@ -28,6 +28,18 @@ export type StatementParseResult = {
 
 function parseFlexibleDate(dateStr: string): Date | null {
   const clean = dateStr.trim()
+  // dd-MMM-yyyy e.g. 01-Jul-2026 (Jio) — must be before numeric dmy
+  const dmyTextMatch = clean.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/)
+  if (dmyTextMatch) {
+    const [, d, mmm, y] = dmyTextMatch
+    const map: Record<string, number> = {
+      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+      jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+    }
+    const m = map[mmm.toLowerCase()]
+    if (m !== undefined) return new Date(Date.UTC(parseInt(y, 10), m, parseInt(d, 10)))
+  }
+
   // dd/mm/yyyy or dd-mm-yyyy or dd/mm/yy
   const dmyMatch = clean.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/)
   if (dmyMatch) {
@@ -90,6 +102,82 @@ export function parseBankStatement(
   const transactions: ParsedStatementRow[] = []
   let totalDebits = BigInt(0)
   let totalCredits = BigInt(0)
+
+  // Jio Payments Bank has a 2-date + wrapped narration + 3-amount row layout
+  // that the generic single-line parser misses. Handle it first.
+  if (bank === "JIO") {
+    const amountLineRe = /^\d{1,3}(?:,\d{3})*\.\d{2}\s+\d{1,3}(?:,\d{3})*\.\d{2}\s+\d{1,3}(?:,\d{3})*\.\d{2}\s*$/
+    const jioDateRe = /^(\d{2}-[A-Za-z]{3}-\d{4})\s+(\d{2}-[A-Za-z]{3}-\d{4})\s*(.*)$/
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(jioDateRe)
+      if (!m) continue
+      const date = parseFlexibleDate(m[1])
+      if (!date) continue
+      let narration = (m[3] || "").trim()
+      // Collect wrapped narration lines until amount line or next date
+      let j = i + 1
+      while (j < lines.length) {
+        const nxt = lines[j]
+        if (jioDateRe.test(nxt)) break
+        if (amountLineRe.test(nxt)) break
+        // Skip header fragments
+        if (/^(Jio Payments Bank|Registered Address|Page \d+ of|Account Statement|TRANSACTION|VALUE|NARRATION|WITHDRAWALS|DEPOSITS|CLOSING|BALANCE|OPENING|TOTAL|NO\. OF|REACH US|Account No|IFSC|Customer ID|MMID|Account Status|Nomination)/i.test(nxt)) {
+          j++
+          continue
+        }
+        if (narration) narration += " "
+        narration += nxt
+        j++
+      }
+      if (j >= lines.length) continue
+      const amountLine = lines[j]
+      if (!amountLineRe.test(amountLine)) continue
+      const parts = amountLine.trim().split(/\s+/)
+      if (parts.length < 3) continue
+      // Jio columns: WITHDRAWALS, DEPOSITS, CLOSING BALANCE
+      const w = parseAmount(parts[0])
+      const d = parseAmount(parts[1])
+      if (w === null || d === null) continue
+      const isCredit = d !== BigInt(0) && w === BigInt(0)
+      const isDebit = w !== BigInt(0) && d === BigInt(0)
+      // Skip summary rows (opening balance totals etc) with no narration
+      if (!narration || /^(Opening|Total|No\. of)/i.test(narration)) {
+        i = j
+        continue
+      }
+      const absAmount = isCredit ? d : isDebit ? w : (d !== BigInt(0) ? d : w)
+      if (!absAmount || absAmount === BigInt(0)) {
+        i = j
+        continue
+      }
+      const direction: TransactionDirection = isCredit ? "CREDIT" : "DEBIT"
+      if (direction === "DEBIT") totalDebits += absAmount
+      else totalCredits += absAmount
+      const cleanNarration = narration.replace(/\s+/g, " ").trim().slice(0, 280)
+      const guess = categorize(cleanNarration, direction)
+      const externalRef = `${bank}-${date.toISOString().split("T")[0]}-${cleanNarration.slice(0, 20).replace(/\W/g, "")}-${absAmount.toString()}`
+      transactions.push({
+        date,
+        description: cleanNarration,
+        amountMinor: absAmount,
+        direction,
+        category: guess.category,
+        externalRef,
+      })
+      i = j // consume amount line
+    }
+
+    if (transactions.length > 0) {
+      return {
+        bank,
+        currency: "INR",
+        totalDebitsMinor: totalDebits,
+        totalCreditsMinor: totalCredits,
+        transactions,
+      }
+    }
+    // Fall through to generic parser if Jio table not found (e.g. CSV export)
+  }
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
