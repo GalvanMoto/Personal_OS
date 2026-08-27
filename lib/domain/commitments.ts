@@ -238,6 +238,7 @@ export type CommitmentMatrixItem = {
     status: "ON_TRACK" | "AT_RISK" | "BEHIND" | "COMPLETED"
     remainingQuantity: number
   }
+  tasks: Array<{ id: string; title: string; status: string }>
 }
 
 export async function getCommitmentsProgressSummary(
@@ -253,7 +254,7 @@ export async function getCommitmentsProgressSummary(
         orderBy: { createdAt: "desc" },
         take: 1,
         include: {
-          tasks: { select: { id: true, status: true } },
+          tasks: { select: { id: true, title: true, status: true } },
         },
       },
     },
@@ -313,6 +314,7 @@ export async function getCommitmentsProgressSummary(
         status: health,
         remainingQuantity: remaining,
       },
+      tasks: tasks.map((t) => ({ id: t.id, title: t.title, status: t.status })),
     }
   })
 
