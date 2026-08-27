@@ -9,7 +9,7 @@
   "display_override": ["standalone", "window-controls-overlay"],
   "orientation": "portrait-primary",
   "background_color": "#09090b",
-  "theme_color": "#4f46e5",
+  "theme_color": "#09090b",
   "categories": ["productivity", "business", "utilities"],
   "lang": "en",
   "dir": "ltr",
