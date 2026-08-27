@@ -118,6 +118,30 @@ export const searchEmailsDef = toolDefinition({
   }),
 })
 
+export const syncEmailsDef = toolDefinition({
+  name: "sync_emails",
+  description:
+    "Fetch and synchronize the latest emails directly from connected Gmail/Google accounts into the workspace.",
+  inputSchema: z.object({
+    query: z.string().optional().describe("Optional filter query to search immediately after syncing"),
+    from: z.string().optional().describe("Optional sender filter"),
+  }),
+  outputSchema: z.object({
+    status: z.string(),
+    message: z.string().optional(),
+    fetched: z.number().optional(),
+    ingested: z.number().optional(),
+    emails: z.array(
+      z.object({
+        subject: z.string(),
+        from: z.string(),
+        snippet: z.string(),
+        receivedAt: z.string(),
+      })
+    ),
+  }),
+})
+
 // ---------------------------------------------------------------------------
 // Creating — additive and easily undone, so no interruption
 // ---------------------------------------------------------------------------

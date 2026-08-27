@@ -13,6 +13,7 @@ import {
   getTaskContextDef,
   nextBestActionDef,
   searchEmailsDef,
+  syncEmailsDef,
   searchTasksDef,
   sendEmailDef,
   spendingSummaryDef,
@@ -191,6 +192,31 @@ export const searchEmails = searchEmailsDef.server<AgentRuntimeContext>(
   }
 )
 
+export const syncEmails = syncEmailsDef.server<AgentRuntimeContext>(
+  async (args, context) => {
+    const result = (await run("sync_emails", args, context)) as {
+      status: string
+      message?: string
+      fetched?: number
+      ingested?: number
+      emails: Array<{
+        subject: string
+        from: string
+        snippet: string
+        receivedAt: string
+      }>
+    }
+
+    return {
+      status: result.status ?? "SYNCED",
+      message: result.message,
+      fetched: result.fetched,
+      ingested: result.ingested,
+      emails: result.emails ?? [],
+    }
+  }
+)
+
 // --- Creating --------------------------------------------------------------
 
 export const createTask = createTaskDef.server<AgentRuntimeContext>(
@@ -276,6 +302,7 @@ export const serverTools = [
   nextBestAction,
   searchTasks,
   searchEmails,
+  syncEmails,
   getTaskContext,
   explainValue,
   createTask,

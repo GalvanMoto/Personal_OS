@@ -21,6 +21,7 @@ import {
 import { logActivity } from "@/lib/events/activity"
 import { checkAgentPolicy } from "@/lib/agents/registry"
 import { generateImportPlan, executeImportPlan } from "@/lib/domain/import-intelligence"
+import { syncIntegrationEmails } from "@/lib/domain/email"
 
 /**
  * The tool layer (PRD §27).
@@ -365,6 +366,114 @@ const tools: Tool<z.ZodType>[] = [
       limit: z.number().int().min(1).max(50).default(20),
     }),
     handler: async (args, { db, ctx }) => {
+      // If Gmail is disconnected, hide all emails from frontend/agent
+      const connectedCount = await db.integration.count({
+        where: { tenantId: ctx.tenantId, provider: "GMAIL", status: "CONNECTED" },
+      })
+      if (connectedCount === 0) {
+        return { emails: [] }
+      }
+
+      const where: Record<string, unknown> = { tenantId: ctx.tenantId }
+      if (args.query) {
+        where.OR = [
+          { subject: { contains: args.query, mode: "insensitive" } },
+          { body: { contains: args.query, mode: "insensitive" } },
+          { snippet: { contains: args.query, mode: "insensitive" } },
+        ]
+      }
+      if (args.from) {
+        where.fromEmail = { contains: args.from, mode: "insensitive" }
+      }
+
+      let rows = await db.emailMessage.findMany({
+        where,
+        orderBy: { receivedAt: "desc" },
+        take: args.limit,
+        select: {
+          id: true,
+          subject: true,
+          fromName: true,
+          fromEmail: true,
+          snippet: true,
+          receivedAt: true,
+        },
+      })
+
+      // If no matching rows, attempt a live sync from connected integrations and query again
+      if (rows.length === 0) {
+        const integrations = await db.integration.findMany({
+          where: { tenantId: ctx.tenantId, provider: "GMAIL", status: "CONNECTED" },
+        })
+        for (const integration of integrations) {
+          try {
+            await syncIntegrationEmails(db, ctx, integration)
+          } catch (err) {
+            console.warn(`[search_emails] auto-sync failed for ${integration.id}:`, err)
+          }
+        }
+
+        rows = await db.emailMessage.findMany({
+          where,
+          orderBy: { receivedAt: "desc" },
+          take: args.limit,
+          select: {
+            id: true,
+            subject: true,
+            fromName: true,
+            fromEmail: true,
+            snippet: true,
+            receivedAt: true,
+          },
+        })
+      }
+
+      return {
+        emails: rows.map((r) => ({
+          subject: r.subject || "No Subject",
+          from: r.fromName ? `${r.fromName} <${r.fromEmail}>` : r.fromEmail || "Unknown",
+          snippet: r.snippet || "",
+          receivedAt: r.receivedAt ? (r.receivedAt instanceof Date ? r.receivedAt.toISOString() : String(r.receivedAt)) : "",
+        })),
+      }
+    },
+  }),
+
+  defineTool({
+    name: "sync_emails",
+    description:
+      "Fetch and synchronize latest emails from connected Gmail/Google accounts into the workspace database.",
+    risk: "SAFE",
+    input: z.object({
+      query: z.string().optional(),
+      from: z.string().optional(),
+    }),
+    handler: async (args, { db, ctx }) => {
+      const integrations = await db.integration.findMany({
+        where: { tenantId: ctx.tenantId, provider: "GMAIL", status: "CONNECTED" },
+      })
+
+      if (integrations.length === 0) {
+        return {
+          status: "NOT_CONNECTED",
+          message: "No connected Gmail account found in workspace. Please connect Gmail in Settings → Integrations.",
+          emails: [],
+        }
+      }
+
+      let totalFetched = 0
+      let totalIngested = 0
+
+      for (const integration of integrations) {
+        try {
+          const res = await syncIntegrationEmails(db, ctx, integration)
+          totalFetched += res.fetched
+          totalIngested += res.ingested
+        } catch (err) {
+          console.warn(`[sync_emails] sync failed for ${integration.id}:`, err)
+        }
+      }
+
       const where: Record<string, unknown> = { tenantId: ctx.tenantId }
       if (args.query) {
         where.OR = [
@@ -380,7 +489,7 @@ const tools: Tool<z.ZodType>[] = [
       const rows = await db.emailMessage.findMany({
         where,
         orderBy: { receivedAt: "desc" },
-        take: args.limit,
+        take: 15,
         select: {
           id: true,
           subject: true,
@@ -392,11 +501,14 @@ const tools: Tool<z.ZodType>[] = [
       })
 
       return {
+        status: "SYNCED",
+        fetched: totalFetched,
+        ingested: totalIngested,
         emails: rows.map((r) => ({
           subject: r.subject || "No Subject",
           from: r.fromName ? `${r.fromName} <${r.fromEmail}>` : r.fromEmail || "Unknown",
           snippet: r.snippet || "",
-          receivedAt: r.receivedAt ? r.receivedAt.toISOString() : "",
+          receivedAt: r.receivedAt ? (r.receivedAt instanceof Date ? r.receivedAt.toISOString() : String(r.receivedAt)) : "",
         })),
       }
     },

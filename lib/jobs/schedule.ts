@@ -24,6 +24,8 @@ type Schedule = {
 const SCHEDULES: Schedule[] = [
   // Reminders are time-sensitive; a minute of lag is invisible, an hour is not.
   { kind: "reminder.dispatch", everyMinutes: 1 },
+  // Syncs emails from connected Gmail integrations every 5 minutes.
+  { kind: "email.sync", everyMinutes: 5 },
   // Flags deadlines that are close with no work started against them.
   { kind: "deadline.sweep", everyMinutes: 60 },
   // The morning briefing.
@@ -68,6 +70,37 @@ export async function tick(now = new Date()) {
 
   for (const tenant of tenants) {
     for (const schedule of due) {
+      if (schedule.kind === "email.sync") {
+        const integrations = await prisma.integration.findMany({
+          where: { tenantId: tenant.id, provider: "GMAIL", status: "CONNECTED" },
+          select: { id: true },
+        })
+        for (const integration of integrations) {
+          const pending = await prisma.job.count({
+            where: {
+              tenantId: tenant.id,
+              kind: "email.sync",
+              status: { in: ["QUEUED", "RUNNING"] },
+            },
+          })
+          if (pending === 0) {
+            try {
+              await prisma.job.create({
+                data: {
+                  tenantId: tenant.id,
+                  kind: "email.sync",
+                  payload: { integrationId: integration.id } as never,
+                  runAt: now,
+                },
+              })
+              enqueued++
+              if (!kinds.includes("email.sync")) kinds.push("email.sync")
+            } catch {}
+          }
+        }
+        continue
+      }
+
       const pending = await prisma.job.count({
         where: {
           tenantId: tenant.id,

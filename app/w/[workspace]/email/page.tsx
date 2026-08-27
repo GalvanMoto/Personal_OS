@@ -24,11 +24,18 @@ export default async function EmailPage({
   const { workspace } = await params
   const { db, tenant } = await requireWorkspace(workspace)
 
-  const rawEmails = await db.emailMessage.findMany({
-    where: { tenantId: tenant.id },
-    orderBy: { receivedAt: "desc" },
-    take: 100,
+  // Hide emails when Gmail is disconnected - matches requirement: disconnect => don't show emails in frontend
+  const connectedGmailCount = await db.integration.count({
+    where: { tenantId: tenant.id, provider: "GMAIL", status: "CONNECTED" },
   })
+  const rawEmails =
+    connectedGmailCount === 0
+      ? []
+      : await db.emailMessage.findMany({
+          where: { tenantId: tenant.id },
+          orderBy: { receivedAt: "desc" },
+          take: 100,
+        })
 
   const senders = new Set(rawEmails.map((e) => e.fromEmail).filter(Boolean)).size
 

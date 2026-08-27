@@ -22,13 +22,16 @@ export default async function IntegrationsPage({
   const { workspace } = await params
   const { db, tenant } = await requireWorkspace(workspace)
 
-  const [allIntegrations, emailTotal] = await Promise.all([
+  const [allIntegrations, _emailTotal] = await Promise.all([
     db.integration.findMany({
       where: { tenantId: tenant.id },
       orderBy: { createdAt: "desc" },
     }),
     db.emailMessage.count({ where: { tenantId: tenant.id } }),
   ])
+  // Hide email count when Gmail disconnected — matches email page hiding behavior
+  const _gmailConnForCount = allIntegrations.filter((i) => i.provider === "GMAIL" && i.status === "CONNECTED")
+  const emailTotal = _gmailConnForCount.length === 0 ? 0 : _emailTotal
 
   const gmailInts = allIntegrations.filter((i) => i.provider === "GMAIL")
   const driveInt = allIntegrations.find((i) => i.provider === "GOOGLE_DRIVE")
