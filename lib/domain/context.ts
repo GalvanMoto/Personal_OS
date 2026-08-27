@@ -75,7 +75,12 @@ export async function buildContextPack(
     .map((record) => ({
       text: record.evidence!,
       source: record.sourceType,
-      capturedAt: record.createdAt.toISOString(),
+      capturedAt:
+        record.createdAt instanceof Date
+          ? record.createdAt.toISOString()
+          : typeof record.createdAt === "string"
+            ? record.createdAt
+            : new Date(record.createdAt).toISOString(),
     }))
 
   // Sibling tasks give the "3 reels" context: what else was asked for at once.
@@ -114,7 +119,7 @@ export async function buildContextPack(
       description: task.description,
       status: task.status,
       priority: task.priority,
-      dueAt: task.dueAt?.toISOString() ?? null,
+      dueAt: task.dueAt ? (task.dueAt instanceof Date ? task.dueAt.toISOString() : String(task.dueAt)) : null,
     },
     project: task.project
       ? { id: task.project.id, name: task.project.name, slug: task.project.slug }
@@ -142,7 +147,11 @@ export async function buildContextPack(
     previousWork: previousWork.map((entry) => ({
       id: entry.id,
       title: entry.title,
-      completedAt: entry.completedAt?.toISOString() ?? null,
+      completedAt: entry.completedAt
+        ? entry.completedAt instanceof Date
+          ? entry.completedAt.toISOString()
+          : String(entry.completedAt)
+        : null,
     })),
     openQuestions,
     sources: inboxItems.map((item) => ({

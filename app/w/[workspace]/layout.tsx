@@ -57,7 +57,7 @@ export default async function WorkspaceLayout({
       level: entry.level,
       // Notification hrefs are stored workspace-relative.
       href: entry.href ? `/w/${tenant.slug}${entry.href}` : null,
-      createdAt: entry.createdAt.toISOString(),
+      createdAt: entry.createdAt instanceof Date ? entry.createdAt.toISOString() : String(entry.createdAt),
       read: entry.readAt !== null,
     })),
     unreadCount,

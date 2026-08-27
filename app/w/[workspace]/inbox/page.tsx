@@ -52,7 +52,7 @@ export default async function InboxPage({
     kind: item.kind,
     status: item.status,
     error: item.error,
-    createdAt: item.createdAt.toISOString(),
+    createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : String(item.createdAt),
     proposal: (item.proposal as InboxProposal | null) ?? null,
   })
 
