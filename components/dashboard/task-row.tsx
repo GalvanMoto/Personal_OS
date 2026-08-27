@@ -1,13 +1,15 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { CheckIcon, PlayIcon, UndoIcon } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { CheckIcon, EyeIcon, PlayIcon, Trash2Icon, UndoIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
-import { setTaskStatusAction } from "@/lib/actions/tasks"
+import { deleteTaskAction, setTaskStatusAction } from "@/lib/actions/tasks"
 import { cn } from "@/lib/utils"
 
 export type TaskRowData = {
@@ -58,6 +60,7 @@ export function TaskRow({
   task: TaskRowData
   showReasons?: boolean
 }) {
+  const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const done = task.status === "DONE"
@@ -67,6 +70,15 @@ export function TaskRow({
     startTransition(async () => {
       const result = await setTaskStatusAction(workspace, task.id, status)
       if (!result.ok) setError(result.error)
+    })
+  }
+
+  function handleDelete() {
+    if (!confirm(`Delete "${task.title}"?`)) return
+    startTransition(async () => {
+      const res = await deleteTaskAction(workspace, task.id)
+      if (!res.ok) setError(res.error)
+      else router.refresh()
     })
   }
 
@@ -85,9 +97,9 @@ export function TaskRow({
         </Button>
 
         <div className="min-w-0 flex-1">
-          <p className={cn("text-xs", done && "text-muted-foreground line-through")}>
+          <Link href={`/w/${workspace}/tasks/${task.id}`} className={cn("block text-xs hover:underline", done && "text-muted-foreground line-through")}>
             {task.title}
-          </p>
+          </Link>
 
           <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[0.625rem] text-muted-foreground">
             {task.project ? <span>{task.project}</span> : null}
@@ -122,18 +134,33 @@ export function TaskRow({
           ) : null}
         </div>
 
-        {!done && task.status !== "IN_PROGRESS" ? (
+        <div className="flex shrink-0 items-center gap-1">
+          <Link href={`/w/${workspace}/tasks/${task.id}`} className="inline-flex items-center justify-center size-6 rounded hover:bg-muted text-muted-foreground hover:text-foreground" aria-label="View task">
+            <EyeIcon className="size-3.5" />
+          </Link>
           <Button
             size="icon-xs"
             variant="ghost"
-            className="shrink-0"
+            className="shrink-0 text-muted-foreground hover:text-destructive"
             disabled={pending}
-            aria-label="Start task"
-            onClick={() => setStatus("IN_PROGRESS")}
+            aria-label="Delete task"
+            onClick={handleDelete}
           >
-            <PlayIcon />
+            <Trash2Icon className="size-3.5" />
           </Button>
-        ) : null}
+          {!done && task.status !== "IN_PROGRESS" ? (
+            <Button
+              size="icon-xs"
+              variant="ghost"
+              className="shrink-0"
+              disabled={pending}
+              aria-label="Start task"
+              onClick={() => setStatus("IN_PROGRESS")}
+            >
+              <PlayIcon />
+            </Button>
+          ) : null}
+        </div>
       </div>
       <Separator />
     </div>

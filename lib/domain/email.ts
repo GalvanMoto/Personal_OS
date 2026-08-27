@@ -121,7 +121,10 @@ async function resolveSender(
 
   let person = await db.person.findFirst({ where: { email: fromEmail } })
 
-  if (!person) {
+  // Do not create person records for automated, no-reply, billing or newsletter senders
+  const isBotSender = /(no-reply|noreply|notifications|alerts|updates|newsletter|digest|mailer-daemon|billing|estatements|donotreply|bounce|automated|info\.e@|offers@|recommendation)/i.test(fromEmail)
+
+  if (!person && !isBotSender) {
     person = await db.person.create({
       data: {
         name: email.fromName ?? fromEmail,
@@ -139,6 +142,8 @@ async function resolveSender(
       evidence: email.subject,
     })
   }
+
+  if (!person) return null
 
   const domain = fromEmail.split("@")[1]
   if (domain && !person.organizationId) {
