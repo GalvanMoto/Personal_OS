@@ -107,7 +107,7 @@ export async function GET(request: Request) {
 
     return new Response(null, {
       status: 302,
-      headers: { Location: new URL(`/w/${workspaceSlug}/settings/integrations`, request.url).toString() },
+      headers: { Location: `/w/${workspaceSlug}/settings/integrations` },
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Gmail connection failed."
