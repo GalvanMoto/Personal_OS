@@ -17,7 +17,7 @@ export type ParsedStatementRow = {
 }
 
 export type StatementParseResult = {
-  bank: "SBI" | "HDFC" | "ICICI" | "CHASE" | "GENERIC"
+  bank: "SBI" | "HDFC" | "ICICI" | "CHASE" | "JIO" | "GENERIC"
   accountNumber?: string
   currency: string
   statementPeriod?: { start?: Date; end?: Date }
@@ -57,7 +57,7 @@ function parseFlexibleDate(dateStr: string): Date | null {
 /**
  * Detects the originating bank from header text.
  */
-export function detectBank(text: string): "SBI" | "HDFC" | "ICICI" | "CHASE" | "GENERIC" {
+export function detectBank(text: string): "SBI" | "HDFC" | "ICICI" | "CHASE" | "JIO" | "GENERIC" {
   const lower = text.toLowerCase()
   if (lower.includes("state bank of india") || lower.includes("sbi") || lower.includes("onlinesbi")) {
     return "SBI"
@@ -71,6 +71,9 @@ export function detectBank(text: string): "SBI" | "HDFC" | "ICICI" | "CHASE" | "
   if (lower.includes("jpmorgan chase") || lower.includes("chase bank") || lower.includes("chase.com")) {
     return "CHASE"
   }
+  if (lower.includes("jio payments bank") || lower.includes("jpb") || lower.includes("jiopaymentsbank") || lower.includes("jio payments")) {
+    return "JIO"
+  }
   return "GENERIC"
 }
 
@@ -79,7 +82,7 @@ export function detectBank(text: string): "SBI" | "HDFC" | "ICICI" | "CHASE" | "
  */
 export function parseBankStatement(
   text: string,
-  bankHint?: "SBI" | "HDFC" | "ICICI" | "CHASE" | "AUTO"
+  bankHint?: "SBI" | "HDFC" | "ICICI" | "CHASE" | "JIO" | "AUTO"
 ): StatementParseResult {
   const bank = (!bankHint || bankHint === "AUTO") ? detectBank(text) : bankHint
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
