@@ -1,4 +1,4 @@
-"use server"
+import "server-only"
 
 import { findDate } from "@/lib/ai/dates"
 import type { TenantDb } from "@/lib/db/tenant"
