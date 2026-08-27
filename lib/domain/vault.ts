@@ -94,32 +94,45 @@ export function buildPasswordCandidates(vault: Record<string, string>, bank?: st
   const name4 = name.replace(/\s+/g, "").slice(0, 4).toUpperCase()
   const panUpper = pan.toUpperCase()
 
-  // Bank templates
-  const templateKey = bank ? `BANK_TEMPLATE:${bank}` : ""
-  const template = templateKey ? vault[templateKey] : ""
-  if (template) push(template)
+  // Direct bank templates and exact secrets
+  for (const [k, val] of Object.entries(vault)) {
+    if (k.startsWith("BANK_TEMPLATE:") || k.startsWith("PDF_PASSWORD:")) {
+      const bKey = k.split(":")[1]?.toUpperCase()
+      if (!bank || bKey === bank.toUpperCase()) {
+        push(val)
+      }
+    }
+  }
 
-  // Common patterns (SBI, HDFC, ICICI, etc.)
+  // 1. SBI (Name first 4 + DOB DDMM) or (DOB DDMM + Mobile last 5)
   if (name4 && ddmm) push(`${name4}${ddmm}`)
   if (name4 && ddmmyyyy) push(`${name4}${ddmmyyyy}`)
-  if (panUpper && ddmm) push(`${panUpper}${ddmm}`)
-  if (panUpper && ddmmyyyy) push(`${panUpper}${ddmmyyyy}`)
+  if (phone && phone.length >= 5 && ddmm) push(`${ddmm}${phone.slice(-5)}`)
+  if (phone && phone.length >= 4 && ddmm) push(`${phone.slice(-4)}${ddmm}`)
+
+  // 2. HDFC (Cust ID) or (Cust ID + DOB DDMM) or (PAN)
+  if (cust) push(cust)
   if (cust && ddmm) push(`${cust}${ddmm}`)
   if (cust && ddmmyyyy) push(`${cust}${ddmmyyyy}`)
+  if (panUpper) push(panUpper)
+
+  // 3. ICICI & AXIS (Name first 4 + DOB DDMM) or (PAN + DOB DDMM)
+  if (panUpper && ddmm) push(`${panUpper}${ddmm}`)
+  if (panUpper && ddmmyyyy) push(`${panUpper}${ddmmyyyy}`)
+  if (name4 && cust && cust.length >= 4) push(`${name4}${cust.slice(-4)}`)
+
+  // 4. Phone & DOB combos
   if (phone) {
     push(phone)
     push(phone.slice(-4))
-    if (ddmm) push(`${phone.slice(-4)}${ddmm}`)
+    if (ddmmyyyy) push(`${phone.slice(-4)}${ddmmyyyy}`)
   }
-  if (panUpper) push(panUpper)
+
+  // 5. Raw identifiers
   if (ddmmyyyy) push(ddmmyyyy)
   if (ddmm) push(ddmm)
+  if (yyyymmdd) push(yyyymmdd)
   if (dob) push(dob)
-  if (cust) push(cust)
-  if (pan) push(pan)
-
-  // Generic fallbacks
-  if (phone && ddmmyyyy) push(`${phone}${ddmmyyyy}`)
 
   return candidates.slice(0, 20)
 }
