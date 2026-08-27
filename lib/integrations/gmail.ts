@@ -280,8 +280,13 @@ function cheapClassifyMeta(
   const subject = (headerValue(headers, "Subject") ?? "").toLowerCase()
   const text = `${subject}\n${meta.snippet ?? rawSnippet ?? ""}`.toLowerCase()
   const hasUnsub = headers.some((h) => h.name.toLowerCase() === "list-unsubscribe")
-  const labels = (headerValue(headers, "X-GM-LABELS") ?? "").toLowerCase()
+  // Wealth, Mutual Funds, and Financial transactions are always prioritized candidates
+  const isFinance = /(sip|statement|transaction|invoice|receipt|fund|holding|folio|ucc \d+|nj ewealth|njgroup|cams|kfintech|zerodha|groww|bank)/.test(text)
+  if (isFinance) {
+    return { verdict: "CANDIDATE", reason: "financial_investment" }
+  }
 
+  const labels = (headerValue(headers, "X-GM-LABELS") ?? "").toLowerCase()
   if (labels.includes("category_social") || labels.includes("category_forums")) {
     return { verdict: "NOISE", reason: "gmail_label" }
   }

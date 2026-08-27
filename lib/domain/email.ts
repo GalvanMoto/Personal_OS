@@ -31,13 +31,13 @@ export function classifyEmail(
   const subject = (email?.subject || "").toLowerCase()
   const listUnsub = email?.listUnsubscribe || ""
 
-  // 1. FINANCIAL & INVOICE DETECTION
+  // 1. FINANCIAL, INVOICE & INVESTMENT / SIP DETECTION
   const isFinancialSender =
-    /@(stripe\.com|razorpay\.com|paypal\.com|quickbooks\.com|zoho\.com|xero\.com|hdfcbank\.net|icicibank\.com|sbi\.co\.in|chase\.com|bankofamerica\.com|americanexpress\.com|billdesk\.com|cashfree\.com|paytm\.com|zerodha\.com|cred\.club)/.test(
+    /@(stripe\.com|razorpay\.com|paypal\.com|quickbooks\.com|zoho\.com|xero\.com|hdfcbank\.net|icicibank\.com|sbi\.co\.in|chase\.com|bankofamerica\.com|americanexpress\.com|billdesk\.com|cashfree\.com|paytm\.com|zerodha\.com|cred\.club|njevents\.in|njgroup\.in|njwealth\.in|camsonline\.com|kfintech\.com|groww\.in|upstox\.com|kuvera\.in|angelone\.in|mfuindia\.com|utimf\.com|sbimf\.com|hdfcfund\.com|icicipruamc\.com|nipponindiamf\.com|edelweissmf\.com)/.test(
       from
-    )
+    ) || /^(finance|billing|invoices|statements|accounts|sip|investments)@/.test(from)
   const isFinancialSubject =
-    /(invoice|tax invoice|payment received|receipt|order confirmation|statement of account|bill|payment confirmation|transaction alert|e-statement|amount debited|amount credited|gstin|billing receipt)/.test(
+    /(invoice|tax invoice|payment received|receipt|order confirmation|statement of account|bill|payment confirmation|transaction alert|e-statement|amount debited|amount credited|gstin|billing receipt|sip transaction|sip debit|sip intimation|mutual fund|folio no|units allotted|portfolio disclosure|cas statement|contract note|holding statement|ucc \d+)/.test(
       subject + " " + text
     )
   if (isFinancialSender || isFinancialSubject) {
