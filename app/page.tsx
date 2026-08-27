@@ -9,6 +9,7 @@ import { ComparisonSection } from "@/components/landing/comparison-section"
 import { FAQSection } from "@/components/landing/faq-section"
 import { CTASection } from "@/components/landing/cta-section"
 import { Footer } from "@/components/landing/footer"
+import "@/components/landing/market.css"
 
 export default async function LandingPage() {
   const user = await getCurrentUser()
@@ -38,7 +39,7 @@ export default async function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-indigo-500/20 selection:text-indigo-400">
+    <div className="market-shell min-h-screen bg-background text-foreground flex flex-col selection:bg-indigo-500/20 selection:text-indigo-400">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
       {/* Top Navigation */}

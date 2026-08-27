@@ -97,6 +97,27 @@ export const explainValueDef = toolDefinition({
   }),
 })
 
+export const searchEmailsDef = toolDefinition({
+  name: "search_emails",
+  description:
+    "Search received emails, invoices, bank statement alerts, client briefs, and newsletters in the workspace.",
+  inputSchema: z.object({
+    query: z.string().optional().describe("Keywords from subject, body or snippet"),
+    from: z.string().optional().describe("Sender email address or company domain"),
+    limit: z.number().int().min(1).max(50).default(20),
+  }),
+  outputSchema: z.object({
+    emails: z.array(
+      z.object({
+        subject: z.string(),
+        from: z.string(),
+        snippet: z.string(),
+        receivedAt: z.string(),
+      })
+    ),
+  }),
+})
+
 // ---------------------------------------------------------------------------
 // Creating — additive and easily undone, so no interruption
 // ---------------------------------------------------------------------------

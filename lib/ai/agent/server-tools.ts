@@ -12,6 +12,7 @@ import {
   getAgendaDef,
   getTaskContextDef,
   nextBestActionDef,
+  searchEmailsDef,
   searchTasksDef,
   sendEmailDef,
   spendingSummaryDef,
@@ -173,6 +174,23 @@ export const explainValue = explainValueDef.server<AgentRuntimeContext>(
   }
 )
 
+export const searchEmails = searchEmailsDef.server<AgentRuntimeContext>(
+  async (args, context) => {
+    const result = (await run("search_emails", args, context)) as {
+      emails: Array<{
+        subject: string
+        from: string
+        snippet: string
+        receivedAt: string
+      }>
+    }
+
+    return {
+      emails: result.emails ?? [],
+    }
+  }
+)
+
 // --- Creating --------------------------------------------------------------
 
 export const createTask = createTaskDef.server<AgentRuntimeContext>(
@@ -257,6 +275,7 @@ export const serverTools = [
   getAgenda,
   nextBestAction,
   searchTasks,
+  searchEmails,
   getTaskContext,
   explainValue,
   createTask,

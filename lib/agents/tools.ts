@@ -355,6 +355,53 @@ const tools: Tool<z.ZodType>[] = [
   }),
 
   defineTool({
+    name: "search_emails",
+    description: "Search received emails, invoices, bank alerts, communications, and subscriptions.",
+    risk: "SAFE",
+    input: z.object({
+      query: z.string().optional().describe("Search keywords from subject or body"),
+      from: z.string().optional().describe("Sender email or domain filter"),
+      limit: z.number().int().min(1).max(50).default(20),
+    }),
+    handler: async (args, { db, ctx }) => {
+      const where: Record<string, unknown> = { tenantId: ctx.tenantId }
+      if (args.query) {
+        where.OR = [
+          { subject: { contains: args.query, mode: "insensitive" } },
+          { body: { contains: args.query, mode: "insensitive" } },
+          { snippet: { contains: args.query, mode: "insensitive" } },
+        ]
+      }
+      if (args.from) {
+        where.fromEmail = { contains: args.from, mode: "insensitive" }
+      }
+
+      const rows = await db.emailMessage.findMany({
+        where,
+        orderBy: { receivedAt: "desc" },
+        take: args.limit,
+        select: {
+          id: true,
+          subject: true,
+          fromName: true,
+          fromEmail: true,
+          snippet: true,
+          receivedAt: true,
+        },
+      })
+
+      return {
+        emails: rows.map((r) => ({
+          subject: r.subject || "No Subject",
+          from: r.fromName ? `${r.fromName} <${r.fromEmail}>` : r.fromEmail || "Unknown",
+          snippet: r.snippet || "",
+          receivedAt: r.receivedAt ? r.receivedAt.toISOString() : "",
+        })),
+      }
+    },
+  }),
+
+  defineTool({
     name: "delete_task",
     description: "Permanently delete a task.",
     risk: "SENSITIVE",
