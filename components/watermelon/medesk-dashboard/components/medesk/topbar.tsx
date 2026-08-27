@@ -13,6 +13,7 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { buildNavigation } from "@/components/dashboard/navigation-config";
 import { useShell } from "@/components/dashboard/shell-context";
+import { ActivityCenterDrawer } from "@/components/activity/activity-center-drawer";
 
 export function DashboardTopbar() {
   const pathname = usePathname();
@@ -137,33 +138,38 @@ export function DashboardTopbar() {
             </div>
           </div>
 
-          <InputGroup className="hidden h-9 w-72 shrink-0 rounded-xl border border-border/50 bg-secondary/80 py-1 pr-2 pl-2.5 md:flex focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
-            <InputGroupAddon className="gap-1.5 p-0 text-muted-foreground">
-              <SearchIcon className="size-3.5" />
-            </InputGroupAddon>
-            <InputGroupInput
-              ref={searchInputRef}
-              className="h-full p-0 px-1 text-xs placeholder:text-muted-foreground"
-              aria-label="Search tasks, deliverables, clients"
-              placeholder="Search tasks, deliverables, clients..."
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") runSearch(searchQuery);
-              }}
-            />
-            {searchQuery === "" ? (
-              <InputGroupAddon
-                align="inline-end"
-                className="p-0 text-muted-foreground"
-              >
-                <div className="flex h-5 w-8 items-center justify-center gap-0.5 rounded-md bg-background/80 border border-border/60 p-1 text-[10px] font-mono">
-                  <CommandIcon className="size-2.5" />
-                  <span>K</span>
-                </div>
+          <div className="flex items-center gap-2">
+            <InputGroup className="hidden h-9 w-64 lg:w-72 shrink-0 rounded-xl border border-border/50 bg-secondary/80 py-1 pr-2 pl-2.5 md:flex focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
+              <InputGroupAddon className="gap-1.5 p-0 text-muted-foreground">
+                <SearchIcon className="size-3.5" />
               </InputGroupAddon>
-            ) : null}
-          </InputGroup>
+              <InputGroupInput
+                ref={searchInputRef}
+                className="h-full p-0 px-1 text-xs placeholder:text-muted-foreground"
+                aria-label="Search tasks, deliverables, clients"
+                placeholder="Search tasks, deliverables, clients..."
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") runSearch(searchQuery);
+                }}
+              />
+              {searchQuery === "" ? (
+                <InputGroupAddon
+                  align="inline-end"
+                  className="p-0 text-muted-foreground"
+                >
+                  <div className="flex h-5 w-8 items-center justify-center gap-0.5 rounded-md bg-background/80 border border-border/60 p-1 text-[10px] font-mono">
+                    <CommandIcon className="size-2.5" />
+                    <span>K</span>
+                  </div>
+                </InputGroupAddon>
+              ) : null}
+            </InputGroup>
+
+            {/* Global System Activity Center Badge */}
+            <ActivityCenterDrawer />
+          </div>
 
           <Button
             type="button"
