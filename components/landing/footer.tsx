@@ -57,7 +57,7 @@ export function Footer() {
         </div>
 
         <div className="pt-8 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© {new Date().getFullYear()} DLRS OS. Built for independent creators, builders, and operators.</p>
+          <p suppressHydrationWarning>© {new Date().getFullYear()} DLRS OS. Built for independent creators, builders, and operators.</p>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
               Press <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border font-mono text-[10px]">d</kbd> to toggle theme

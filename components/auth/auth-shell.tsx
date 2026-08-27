@@ -72,7 +72,7 @@ export function AuthShell({
 
       {/* Bottom Footer */}
       <div className="w-full text-center py-3 text-[11px] text-muted-foreground">
-        <span>© {new Date().getFullYear()} DLRS OS. Secure tenant-isolated workspace.</span>
+        <span suppressHydrationWarning>© {new Date().getFullYear()} DLRS OS. Secure tenant-isolated workspace.</span>
       </div>
     </div>
   )
