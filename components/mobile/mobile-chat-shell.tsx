@@ -53,28 +53,27 @@ export function MobileChatShell({
   return (
     <div className="flex h-svh w-full flex-col overflow-hidden bg-background">
       {/* Top Mobile Header */}
-      <header className="flex h-13 shrink-0 items-center justify-between border-b px-3.5 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 z-20">
-        <div className="flex items-center gap-2.5">
-          <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-sm text-white font-bold text-xs">
-            OS
-          </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-xs leading-none">DLRS Assistant</span>
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            </div>
-            <span className="text-[0.625rem] text-muted-foreground leading-tight">
-              {workspace} • Chief-of-Staff
+      <header className="flex h-12 shrink-0 items-center justify-between border-b px-2.5 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 z-20 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <img
+            src="/logo.png"
+            alt="DLRS Personal OS"
+            className="h-6 w-auto max-w-[80px] object-contain shrink-0"
+          />
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="font-semibold text-xs leading-none truncate">
+              DLRS Assistant
             </span>
+            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          {/* Live agent activity center */}
-          <ActivityCenterDrawer />
-
+        <div className="flex items-center gap-1 shrink-0">
           {/* Native Notification Bell & Permission Switch */}
           <NativeNotificationButton />
+
+          {/* Live agent activity center */}
+          <ActivityCenterDrawer />
 
           {/* Navigation Menu Trigger */}
           <Button

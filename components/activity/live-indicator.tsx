@@ -7,10 +7,12 @@ export function LiveIndicator({
   status,
   label,
   showIcon = true,
+  hideLabel = false,
 }: {
   status: SystemStatus
   label?: string
   showIcon?: boolean
+  hideLabel?: boolean
 }) {
   const isWorking =
     status === "processing" ||
@@ -38,20 +40,22 @@ export function LiveIndicator({
         <span className="size-2 rounded-full bg-emerald-500/80" />
       )}
 
-      {label ? (
-        <span className="font-mono text-[0.6875rem] text-muted-foreground">
-          {label}
-        </span>
-      ) : (
-        <span className="font-mono text-[0.6875rem] text-muted-foreground">
-          {isWorking
-            ? "Working..."
-            : isWaiting
-              ? "Waiting Approval"
-              : isFailed
-                ? "Attention Required"
-                : "Operational"}
-        </span>
+      {!hideLabel && (
+        label ? (
+          <span className="font-mono text-[0.6875rem] text-muted-foreground hidden sm:inline">
+            {label}
+          </span>
+        ) : (
+          <span className="font-mono text-[0.6875rem] text-muted-foreground hidden sm:inline">
+            {isWorking
+              ? "Working..."
+              : isWaiting
+                ? "Waiting Approval"
+                : isFailed
+                  ? "Attention Required"
+                  : "Operational"}
+          </span>
+        )
       )}
     </div>
   )
