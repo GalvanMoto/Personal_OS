@@ -68,7 +68,8 @@ type Block =
 
 const SPECIAL = new Set(["metrics", "chart", "info", "questionnaire"])
 
-function parseBlocks(content: string): Block[] {
+function parseBlocks(content?: string): Block[] {
+  if (!content || typeof content !== "string") return []
   const blocks: Block[] = []
   
   // Handles:
@@ -81,7 +82,7 @@ function parseBlocks(content: string): Block[] {
 
   while ((match = re.exec(content)) !== null) {
     if (match.index > last) {
-      const preceding = content.slice(last, match.index).trim()
+      const preceding = (content.slice(last, match.index) || "").trim()
       if (preceding) {
         blocks.push({ kind: "md", text: preceding })
       }
@@ -89,7 +90,7 @@ function parseBlocks(content: string): Block[] {
 
     if (match[1] !== undefined) {
       // Fenced block
-      const lang = match[1].toLowerCase()
+      const lang = (match[1] || "").toLowerCase()
       const body = (match[2] || "").trim()
       if (SPECIAL.has(lang)) {
         blocks.push({
@@ -104,15 +105,15 @@ function parseBlocks(content: string): Block[] {
           } else if ("type" in parsed && ["bar", "line", "area", "pie"].includes(parsed.type)) {
             blocks.push({ kind: "chart", json: body })
           } else {
-            blocks.push({ kind: "md", text: match[0] })
+            blocks.push({ kind: "md", text: match[0] || "" })
           }
         } else {
-          blocks.push({ kind: "md", text: match[0] })
+          blocks.push({ kind: "md", text: match[0] || "" })
         }
       }
     } else if (match[3]) {
       // Un-fenced keyword block
-      const lang = match[3].toLowerCase()
+      const lang = (match[3] || "").toLowerCase()
       const body = (match[4] || "").trim()
       if (SPECIAL.has(lang)) {
         blocks.push({
@@ -120,11 +121,11 @@ function parseBlocks(content: string): Block[] {
           json: body,
         })
       } else {
-        blocks.push({ kind: "md", text: match[0] })
+        blocks.push({ kind: "md", text: match[0] || "" })
       }
     } else if (match[5]) {
       // Raw standalone JSON chart object
-      const body = match[5].trim()
+      const body = (match[5] || "").trim()
       blocks.push({
         kind: "chart",
         json: body,
@@ -135,7 +136,7 @@ function parseBlocks(content: string): Block[] {
   }
 
   if (last < content.length) {
-    const trailing = content.slice(last).trim()
+    const trailing = (content.slice(last) || "").trim()
     if (trailing) {
       blocks.push({ kind: "md", text: trailing })
     }

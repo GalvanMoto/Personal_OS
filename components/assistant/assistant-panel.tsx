@@ -337,7 +337,10 @@ function AssistantChatInner({
     [messages]
   )
 
-  const commandQuery = /^\/\S*$/.test(draft) ? draft.slice(1).toLowerCase() : null
+  const commandQuery =
+    draft && typeof draft === "string" && /^\/\S*$/.test(draft)
+      ? draft.slice(1).toLowerCase()
+      : null
   const commandMatches =
     commandQuery === null
       ? []
@@ -348,7 +351,7 @@ function AssistantChatInner({
         )
 
   function submit(customContent?: string) {
-    const content = (customContent || draft).trim()
+    const content = String(customContent ?? draft ?? "").trim()
     if (!content) return
     if (isLoading) {
       try {
@@ -774,7 +777,7 @@ function AssistantChatInner({
               <Button
                 size="icon"
                 onClick={() => submit()}
-                disabled={!draft.trim()}
+                disabled={!String(draft || "").trim()}
                 aria-label="Send message"
                 className="size-9 shrink-0"
               >
