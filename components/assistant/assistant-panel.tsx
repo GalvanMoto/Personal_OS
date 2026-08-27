@@ -375,10 +375,23 @@ export function AssistantPanel({
         ) : null}
 
         {error ? (
-          <Alert variant="destructive">
-            <AlertDescription className="text-xs">
-              {error instanceof Error ? error.message : String(error)}
-            </AlertDescription>
+          <Alert variant="destructive" className="py-2">
+            <div className="flex items-center justify-between gap-2">
+              <AlertDescription className="text-xs">
+                {error instanceof Error ? error.message : String(error)}
+              </AlertDescription>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  try { stop() } catch {}
+                  window.location.reload()
+                }}
+                className="h-6 text-[0.6875rem] px-2 shrink-0 bg-background/80"
+              >
+                Reset Chat
+              </Button>
+            </div>
           </Alert>
         ) : null}
 
@@ -395,7 +408,7 @@ export function AssistantPanel({
             }}
             placeholder="Ask, or paste anything to capture it... (Enter to send, Shift+Enter for newline)"
             rows={1}
-            disabled={isLoading || Boolean(pending)}
+            disabled={isLoading}
             className="min-h-9 flex-1 resize-none text-xs"
           />
           {isLoading ? (
@@ -412,7 +425,7 @@ export function AssistantPanel({
             <Button
               size="icon"
               onClick={() => submit()}
-              disabled={!draft.trim() || Boolean(pending)}
+              disabled={!draft.trim()}
               aria-label="Send message"
               className="size-9 shrink-0"
             >
