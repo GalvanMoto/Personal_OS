@@ -64,6 +64,44 @@ export function calendarAuthUrl(redirectUri: string, state: string): string {
   return `${AUTH_ENDPOINT}?${params.toString()}`
 }
 
+export async function exchangeCodeForCalendarTokens(
+  code: string,
+  redirectUri: string
+): Promise<{ accessToken: string; refreshToken: string | null; expiresAt: number; scope?: string }> {
+  const clientId =
+    process.env.GOOGLE_CALENDAR_CLIENT_ID ||
+    process.env.GMAIL_CLIENT_ID ||
+    process.env.GOOGLE_CLIENT_ID!
+  const clientSecret =
+    process.env.GOOGLE_CALENDAR_CLIENT_SECRET ||
+    process.env.GMAIL_CLIENT_SECRET ||
+    process.env.GOOGLE_CLIENT_SECRET!
+
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: redirectUri,
+      grant_type: "authorization_code",
+    }),
+  })
+
+  if (!res.ok) {
+    throw new Error(`Calendar token exchange failed: ${res.status} ${await res.text()}`)
+  }
+
+  const data = await res.json()
+  return {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token ?? null,
+    expiresAt: Date.now() + data.expires_in * 1000,
+    scope: data.scope,
+  }
+}
+
 /**
  * Lists calendar events within a time range.
  */

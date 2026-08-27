@@ -1,0 +1,95 @@
+import { getCurrentSession } from "@/lib/auth/dal"
+import { verifyState } from "@/lib/auth/session"
+import { prisma } from "@/lib/db/client"
+import { tenantDb } from "@/lib/db/tenant"
+import { encryptSecret } from "@/lib/security/secret"
+import {
+  exchangeCodeForCalendarTokens,
+  CALENDAR_SCOPES,
+} from "@/lib/integrations/calendar"
+import { fetchUserInfo, getPublicRedirectUri } from "@/lib/integrations/gmail"
+
+export async function GET(request: Request) {
+  const url = new URL(request.url)
+  const code = url.searchParams.get("code")
+  const workspace = url.searchParams.get("state")
+  const oauthError = url.searchParams.get("error")
+
+  const session = await getCurrentSession()
+  if (!session) {
+    return Response.json({ error: "Sign in to connect Google Calendar." }, { status: 401 })
+  }
+
+  if (oauthError) {
+    return Response.json({ error: `Google refused: ${oauthError}` }, { status: 400 })
+  }
+  if (!code || !workspace) {
+    return Response.json({ error: "Missing code or state." }, { status: 400 })
+  }
+
+  const verifiedWorkspace = verifyState(workspace)
+  if (!verifiedWorkspace) {
+    return Response.json({ error: "Invalid OAuth state (CSRF)." }, { status: 403 })
+  }
+
+  const membership = await prisma.membership.findFirst({
+    where: { userId: session.user.id, tenant: { slug: verifiedWorkspace } },
+    include: { tenant: true },
+  })
+  if (!membership) {
+    return Response.json({ error: "Workspace access denied." }, { status: 403 })
+  }
+
+  const tenantId = membership.tenant.id
+  const workspaceSlug = verifiedWorkspace
+  const db = tenantDb(tenantId)
+  const redirectUri = getPublicRedirectUri(request, "/api/integrations/calendar/callback")
+
+  try {
+    const tokens = await exchangeCodeForCalendarTokens(code, redirectUri)
+
+    let accountRef: string | undefined
+    try {
+      const info = await fetchUserInfo(tokens.accessToken)
+      accountRef = info.email
+    } catch {
+      // Non-fatal
+    }
+
+    const secretCipher = encryptSecret(
+      JSON.stringify({
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresAt: tokens.expiresAt,
+        scope: tokens.scope,
+      })
+    )
+
+    await db.integration.upsert({
+      where: { tenantId_provider: { tenantId, provider: "GOOGLE_CALENDAR" } },
+      create: {
+        provider: "GOOGLE_CALENDAR",
+        status: "CONNECTED",
+        secretCipher,
+        accountRef: accountRef ?? null,
+        scopes: CALENDAR_SCOPES,
+        lastSyncAt: new Date(),
+      } as never,
+      update: {
+        status: "CONNECTED",
+        secretCipher,
+        accountRef: accountRef ?? null,
+        scopes: CALENDAR_SCOPES,
+        lastSyncAt: new Date(),
+      } as never,
+    })
+
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `/w/${workspaceSlug}/settings/integrations` },
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Google Calendar connection failed."
+    return Response.json({ error: message }, { status: 502 })
+  }
+}

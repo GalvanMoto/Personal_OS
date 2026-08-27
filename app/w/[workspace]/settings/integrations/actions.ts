@@ -27,3 +27,21 @@ export async function disconnectGmail(workspace: string) {
     data: { status: "DISCONNECTED", secretCipher: null },
   })
 }
+
+export async function disconnectDrive(workspace: string) {
+  const { db, tenant } = await requireWorkspace(workspace)
+
+  await db.integration.updateMany({
+    where: { tenantId: tenant.id, provider: "GOOGLE_DRIVE" },
+    data: { status: "DISCONNECTED", secretCipher: null },
+  })
+}
+
+export async function disconnectCalendar(workspace: string) {
+  const { db, tenant } = await requireWorkspace(workspace)
+
+  await db.integration.updateMany({
+    where: { tenantId: tenant.id, provider: "GOOGLE_CALENDAR" },
+    data: { status: "DISCONNECTED", secretCipher: null },
+  })
+}

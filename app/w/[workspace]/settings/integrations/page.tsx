@@ -1,5 +1,5 @@
 import { requireWorkspace } from "@/lib/auth/dal"
-import { syncNow, disconnectGmail } from "./actions"
+import { syncNow, disconnectGmail, disconnectDrive, disconnectCalendar } from "./actions"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -170,18 +170,34 @@ export default async function IntegrationsPage({
                 Google Drive
               </span>
               <Badge variant={isDriveConnected ? "secondary" : "outline"} className="text-[0.625rem]">
-                {driveInt?.status ?? "CONFIGURED"}
+                {driveInt?.status ?? "DISCONNECTED"}
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 text-xs">
             <p className="text-muted-foreground">
-              Automatically discovers brand assets, PDFs, and video links for Context Packs.
+              {isDriveConnected
+                ? `Connected${driveInt?.accountRef ? ` as ${driveInt.accountRef}` : ""}. Brand assets and files synchronized.`
+                : "Automatically discovers brand assets, PDFs, and video links for Context Packs."}
             </p>
             <div className="flex flex-wrap gap-2 pt-2">
-              <span className="rounded bg-muted/60 px-2 py-1 text-[0.625rem] font-mono text-muted-foreground">
-                Scopes: drive.readonly
-              </span>
+              {isDriveConnected ? (
+                <form action={disconnectDrive.bind(null, workspace)}>
+                  <button type="submit" className="rounded border px-3 py-1.5 text-xs">
+                    Disconnect
+                  </button>
+                </form>
+              ) : (
+                <a
+                  href={`/api/integrations/drive/connect?workspace=${workspace}`}
+                  className="rounded bg-primary px-3 py-1.5 text-xs text-primary-foreground"
+                >
+                  Connect Drive
+                </a>
+              )}
+              <Link href={`/w/${workspace}/files`} className="rounded border px-3 py-1.5 text-xs">
+                View files
+              </Link>
             </div>
           </CardContent>
         </Card>
@@ -195,18 +211,34 @@ export default async function IntegrationsPage({
                 Google Calendar
               </span>
               <Badge variant={isCalConnected ? "secondary" : "outline"} className="text-[0.625rem]">
-                {calInt?.status ?? "CONFIGURED"}
+                {calInt?.status ?? "DISCONNECTED"}
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 text-xs">
             <p className="text-muted-foreground">
-              Two-way deadline sync and conflict-free execution blocking.
+              {isCalConnected
+                ? `Connected${calInt?.accountRef ? ` as ${calInt.accountRef}` : ""}. Deadlines & execution schedule synchronized.`
+                : "Two-way deadline sync and conflict-free execution blocking."}
             </p>
             <div className="flex flex-wrap gap-2 pt-2">
-              <span className="rounded bg-muted/60 px-2 py-1 text-[0.625rem] font-mono text-muted-foreground">
-                Scopes: calendar.events
-              </span>
+              {isCalConnected ? (
+                <form action={disconnectCalendar.bind(null, workspace)}>
+                  <button type="submit" className="rounded border px-3 py-1.5 text-xs">
+                    Disconnect
+                  </button>
+                </form>
+              ) : (
+                <a
+                  href={`/api/integrations/calendar/connect?workspace=${workspace}`}
+                  className="rounded bg-primary px-3 py-1.5 text-xs text-primary-foreground"
+                >
+                  Connect Calendar
+                </a>
+              )}
+              <Link href={`/w/${workspace}/calendar`} className="rounded border px-3 py-1.5 text-xs">
+                View calendar
+              </Link>
             </div>
           </CardContent>
         </Card>
