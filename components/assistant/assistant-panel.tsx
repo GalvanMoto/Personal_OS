@@ -157,12 +157,19 @@ export function AssistantPanel({
     loaded: boolean
     conversationId?: string
     messages: UIMessage[]
+    error?: string | null
   }>({ loaded: false, messages: [] })
 
   useEffect(() => {
     let cancelled = false
-    fetch(`/api/agent/${workspace}`)
-      .then((res) => (res.ok ? res.json() : { messages: [] }))
+    fetch(`/api/agent/${workspace}`, { cache: "no-store" })
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.text().catch(() => "")
+          throw new Error(body || `Failed to load thread (${res.status})`)
+        }
+        return res.json()
+      })
       .then((data) => {
         if (!cancelled) {
           setInitialData({
@@ -182,11 +189,17 @@ export function AssistantPanel({
                 ? new Date(message.createdAt)
                 : new Date(),
             })),
+            error: null,
           })
         }
       })
-      .catch(() => {
-        if (!cancelled) setInitialData({ loaded: true, messages: [] })
+      .catch((err) => {
+        if (!cancelled)
+          setInitialData({
+            loaded: true,
+            messages: [],
+            error: err instanceof Error ? err.message : String(err),
+          })
       })
 
     return () => {
@@ -220,20 +233,77 @@ export function AssistantPanel({
     )
   }
 
+  if (initialData.error) {
+    return (
+      <Card className="flex h-full min-h-0 flex-col">
+        <CardHeader className="flex flex-row items-center justify-between border-b px-4 py-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <span>AI Chief-of-Staff</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 p-4">
+          <Alert variant="destructive" className="w-full max-w-md">
+            <AlertDescription className="text-xs">
+              Failed to restore thread: {initialData.error}
+            </AlertDescription>
+          </Alert>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setInitialData({ loaded: false, messages: [] })
+              fetch(`/api/agent/${workspace}`, { cache: "no-store" })
+                .then(async (res) => {
+                  if (!res.ok) throw new Error(`Failed (${res.status})`)
+                  return res.json()
+                })
+                .then((data) => {
+                  setInitialData({
+                    loaded: true,
+                    conversationId: data.conversationId,
+                    messages: (
+                      (data.messages ?? []) as Array<
+                        Omit<UIMessage, "createdAt"> & { createdAt?: string }
+                      >
+                    ).map((message: any) => ({
+                      ...message,
+                      createdAt: message.createdAt ? new Date(message.createdAt) : new Date(),
+                    })),
+                    error: null,
+                  })
+                })
+                .catch((err) =>
+                  setInitialData({
+                    loaded: true,
+                    messages: [],
+                    error: err instanceof Error ? err.message : String(err),
+                  })
+                )
+            }}
+          >
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <AssistantChatInner
       key={initialData.conversationId || "active"}
       workspace={workspace}
+      conversationId={initialData.conversationId}
       initialMessages={initialData.messages}
       onFocusTask={onFocusTask}
       onNewThread={() => {
-        fetch(`/api/agent/${workspace}`, { method: "DELETE" })
+        fetch(`/api/agent/${workspace}`, { method: "DELETE", cache: "no-store" })
           .then((res) => (res.ok ? res.json() : null))
           .then((data) => {
             setInitialData({
               loaded: true,
               conversationId: data?.conversationId || String(Date.now()),
               messages: [],
+              error: null,
             })
           })
           .catch(() => {
@@ -241,6 +311,7 @@ export function AssistantPanel({
               loaded: true,
               conversationId: String(Date.now()),
               messages: [],
+              error: null,
             })
           })
       }}
@@ -250,11 +321,13 @@ export function AssistantPanel({
 
 function AssistantChatInner({
   workspace,
+  conversationId,
   initialMessages,
   onFocusTask,
   onNewThread,
 }: {
   workspace: string
+  conversationId?: string
   initialMessages: UIMessage[]
   onFocusTask?: (taskId: string) => void
   onNewThread?: () => void
@@ -292,12 +365,12 @@ function AssistantChatInner({
         })
     )
 
-    return createChatClientOptions({
-      // Cast on purpose. `UIMessage`'s tool generic defaults to `any`, and
-      // letting this array take part in inference pins the whole client to it —
-      // which collapses the approval-interrupt union to `never` and takes the
-      // send_email banner with it. The `tools` argument below is what should
-      // drive that inference, and only it.
+    // Cast on purpose. `UIMessage`'s tool generic defaults to `any`, and
+    // letting this array take part in inference pins the whole client to it —
+    // which collapses the approval-interrupt union to `never` and takes the
+    // send_email banner with it. The `tools` argument below is what should
+    // drive that inference, and only it.
+    const opts = createChatClientOptions({
       initialMessages: initialMessages as never,
       connection: fetchServerSentEvents(`/api/agent/${workspace}`),
       // `update_task` is deliberately absent: it is a server tool that no
@@ -305,7 +378,12 @@ function AssistantChatInner({
       // it is client-runnable. Sending mail is the only interrupt left.
       tools: clientTools(focusTask, confirmWithUser, sendEmailDef.client()),
     })
-  }, [workspace, initialMessages])
+    // Stable threadId = DB conversation id. Without this, TanStack mints a
+    // random id per hard-refresh and the server's DB persistence (now pinned
+    // to conversation.id) forks the transcript — message history appears lost.
+    if (conversationId) (opts as unknown as Record<string, unknown>).threadId = conversationId
+    return opts
+  }, [workspace, conversationId, initialMessages])
 
   const {
     messages,

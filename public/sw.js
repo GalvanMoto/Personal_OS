@@ -1,5 +1,5 @@
 // DLRS Personal OS Service Worker — PWA: offline cache + push + badge + background sync
-const CACHE = "dlrs-v1";
+const CACHE = "dlrs-v2";
 const CORE = ["/manifest.json", "/favicon.ico", "/dashboard"];
 
 self.addEventListener("install", (event) => {
@@ -21,6 +21,10 @@ self.addEventListener("fetch", (event) => {
 
   // Only handle same-origin GET
   if (req.method !== "GET" || url.origin !== self.location.origin) return;
+
+  // Never cache API or realtime streams — they must be fresh or the
+  // assistant thread appears stuck/empty after a hard refresh.
+  if (url.pathname.startsWith("/api/")) return;
 
   // Navigations (pages) — NetworkFirst with offline fallback to cache
   if (req.mode === "navigate") {

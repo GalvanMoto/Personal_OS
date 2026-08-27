@@ -99,7 +99,9 @@ export async function POST(
     },
   }
 
-  // Persist user prompt in database conversation thread
+  // Persist user prompt in database conversation thread.
+  // The DB conversation is the source of truth; `agui.threadId` is ignored so
+  // hard-refresh never forks the transcript into a ghost thread.
   const conversation = await getOrCreateActiveConversation(db, tenant.id)
   const lastUserMsg = (agui.messages as any[]).filter((m) => m.role === "user").pop()
   if (lastUserMsg) {
@@ -134,7 +136,7 @@ export async function POST(
     systemPrompts: await agentSystemPrompts(db),
     agentLoopStrategy: defaultAgentStrategy,
     modelOptions: agentModelOptions,
-    threadId: agui.threadId || conversation.id,
+    threadId: conversation.id,
     runId: agui.runId,
     parentRunId: agui.parentRunId,
     resume: agui.resume,

@@ -10,7 +10,18 @@ export interface SerializedChatMessage {
   role: "user" | "assistant" | "system"
   parts: Array<
     | { type: "text"; content: string }
-    | { type: "tool-call"; name: string; state?: string; args?: unknown; result?: unknown }
+    | {
+        type: "tool-call"
+        id: string
+        name: string
+        arguments: string
+        state?: string
+        output?: unknown
+        // legacy fields kept for reading old rows
+        args?: unknown
+        result?: unknown
+      }
+    | { type: "tool-result"; toolCallId: string; content: string; state?: string }
   >
   createdAt: string
 }
@@ -72,14 +83,66 @@ export async function getConversationMessages(
     }
 
     if (m.toolCalls && Array.isArray(m.toolCalls)) {
-      for (const tc of m.toolCalls as Array<{ name: string; state?: string; args?: unknown; result?: unknown }>) {
+      for (const tc of m.toolCalls as Array<{
+        id?: string
+        name: string
+        state?: string
+        arguments?: string
+        args?: unknown
+        result?: unknown
+        output?: unknown
+      }>) {
+        const toolCallId =
+          tc.id && typeof tc.id === "string" && tc.id.length > 0
+            ? tc.id
+            : `tc_${m.id}_${Math.random().toString(36).slice(2, 8)}`
+        // Normalize arguments to a JSON string — TanStack expects `arguments: string`.
+        // Old rows used `args` (parsed object); new rows use `arguments` (string).
+        let argumentsStr = ""
+        if (typeof tc.arguments === "string") {
+          argumentsStr = tc.arguments
+        } else if (tc.args !== undefined) {
+          try {
+            argumentsStr = typeof tc.args === "string" ? tc.args : JSON.stringify(tc.args)
+          } catch {
+            argumentsStr = String(tc.args)
+          }
+        }
+        const output = tc.result ?? tc.output
+        const state =
+          tc.state === "completed" ? "complete" : tc.state || "complete"
+
         parts.push({
           type: "tool-call",
+          id: toolCallId,
           name: tc.name || "tool",
-          state: tc.state || "completed",
-          args: tc.args,
-          result: tc.result,
-        })
+          arguments: argumentsStr,
+          state,
+          ...(output !== undefined ? { output } : {}),
+          // keep legacy fields so old UI still sees something if it reads them
+          ...(tc.args !== undefined ? { args: tc.args } : {}),
+          ...(tc.result !== undefined ? { result: tc.result } : {}),
+        } as SerializedChatMessage["parts"][number])
+
+        // Also emit a tool-result part so convertMessagesToModelMessages can
+        // produce a proper `role: 'tool'` message with content for the next turn.
+        if (output !== undefined) {
+          let contentStr: string
+          if (typeof output === "string") contentStr = output
+          else {
+            try {
+              contentStr = JSON.stringify(output)
+            } catch {
+              contentStr = String(output)
+            }
+          }
+          parts.push({
+            type: "tool-result",
+            toolCallId,
+            content: contentStr,
+            state: "complete",
+          })
+        }
       }
     }
 
@@ -158,7 +221,7 @@ export async function* recordAssistantTurn(
   let text = ""
   const calls = new Map<
     string,
-    { name: string; state: string; rawArgs: string; result?: unknown }
+    { id: string; name: string; state: string; rawArgs: string; result?: unknown }
   >()
 
   const ensure = (id: string, name?: string) => {
@@ -168,11 +231,12 @@ export async function* recordAssistantTurn(
       return existing
     }
     const created: {
+      id: string
       name: string
       state: string
       rawArgs: string
       result?: unknown
-    } = { name: name ?? "tool", state: "complete", rawArgs: "" }
+    } = { id, name: name ?? "tool", state: "complete", rawArgs: "" }
     calls.set(id, created)
     return created
   }
@@ -210,14 +274,27 @@ export async function* recordAssistantTurn(
     }
   } finally {
     if (text.trim() || calls.size > 0) {
+      // Store in the new TanStack-compatible shape: `id` + `arguments` (string)
+      // + `output`. Old code stored `args` (parsed) + `result`; we keep both
+      // for backward compatibility while migrating to the correct fields.
       const toolCalls = [...calls.values()].map((call) => {
-        let args: unknown
+        let parsedArgs: unknown
         try {
-          args = call.rawArgs ? JSON.parse(call.rawArgs) : undefined
+          parsedArgs = call.rawArgs ? JSON.parse(call.rawArgs) : undefined
         } catch {
-          args = call.rawArgs || undefined
+          parsedArgs = call.rawArgs || undefined
         }
-        return { name: call.name, state: call.state, args, result: call.result }
+        return {
+          id: call.id,
+          name: call.name,
+          state: call.state,
+          // New canonical fields
+          arguments: call.rawArgs || "",
+          output: call.result,
+          // Legacy aliases so getConversationMessages can read either shape
+          args: parsedArgs,
+          result: call.result,
+        }
       })
 
       await persistChatMessage(db, ctx, {
