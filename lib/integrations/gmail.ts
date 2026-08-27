@@ -243,15 +243,58 @@ async function gmailGet(accessToken: string, externalId: string): Promise<Normal
   return normalizeGmailMessage(msg)
 }
 
+// Cheap metadata fetch (headers + snippet, no body) for AI-last classification.
+// Uses format=metadata to avoid downloading full body for promos that will be skipped.
+async function gmailGetMeta(
+  accessToken: string,
+  externalId: string
+): Promise<{ id: string; threadId: string; snippet?: string; headers?: GmailHeader[]; internalDate?: string }> {
+  const url = new URL(`${GMAIL_API}/messages/${externalId}`)
+  url.searchParams.set("format", "metadata")
+  url.searchParams.set("metadataHeaders", "From,Subject,To,Date,List-Unsubscribe,X-GM-LABELS")
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  if (!res.ok) {
+    throw new Error(`Gmail get meta failed: ${res.status}`)
+  }
+  return (await res.json()) as { id: string; threadId: string; snippet?: string; payload?: { headers?: GmailHeader[] }; internalDate?: string }
+}
+
+function cheapClassifyMeta(
+  meta: { snippet?: string; headers?: GmailHeader[]; internalDate?: string },
+  rawSnippet?: string
+): { verdict: "NOISE" | "CANDIDATE"; reason: string } {
+  const headers = meta.headers ?? []
+  const from = (headerValue(headers, "From") ?? "").toLowerCase()
+  const subject = (headerValue(headers, "Subject") ?? "").toLowerCase()
+  const text = `${subject}\n${meta.snippet ?? rawSnippet ?? ""}`.toLowerCase()
+  const hasUnsub = headers.some((h) => h.name.toLowerCase() === "list-unsubscribe")
+  const labels = (headerValue(headers, "X-GM-LABELS") ?? "").toLowerCase()
+
+  if (labels.includes("category_promotions") || labels.includes("category_social") || labels.includes("category_forums")) {
+    return { verdict: "NOISE", reason: "gmail_label" }
+  }
+  if (hasUnsub) return { verdict: "NOISE", reason: "list-unsubscribe" }
+  if (/^(noreply|no-reply|donotreply|newsletter|marketing|promo|promotions|deals|offers|news|notifications|info|mailer-daemon|digest|updates|community)@/.test(from)) {
+    return { verdict: "NOISE", reason: "bot_sender" }
+  }
+  if (/(unsubscribe|opt-out|manage subscriptions|view in browser|% off|limited time offer|flash sale|discount code|deals of the week)/.test(text)) {
+    return { verdict: "NOISE", reason: "promo_keywords" }
+  }
+  return { verdict: "CANDIDATE", reason: "needs_full" }
+}
+
 async function gmailList(
   accessToken: string,
   cursor?: string
 ): Promise<{ messages: NormalizedEmail[]; nextCursor?: string }> {
   const url = new URL(`${GMAIL_API}/messages`)
-  url.searchParams.set("maxResults", "30")
+  url.searchParams.set("maxResults", "15")
+  // Keep Gmail-side filters, but also do cheap client-side promo filter to save AI quota
   url.searchParams.set(
     "q",
-    "category:primary -category:promotions -category:social -category:spam -category:forums -label:spam -label:trash"
+    "in:inbox category:primary -category:promotions -category:social -category:spam -category:forums -label:spam -label:trash"
   )
   if (cursor) url.searchParams.set("pageToken", cursor)
 
@@ -267,9 +310,23 @@ async function gmailList(
     nextPageToken?: string
   }
 
-  const messages = await Promise.all(
-    (data.messages ?? []).map((ref) => gmailGet(accessToken, ref.id))
-  )
+  const refs = data.messages ?? []
+  if (refs.length === 0) return { messages: [], nextCursor: data.nextPageToken }
+
+  // Stage 1: cheap metadata for all 30 (no body) — ~1 quota unit vs 5 for full
+  const metas = await Promise.all(refs.map((ref) => gmailGetMeta(accessToken, ref.id).catch(() => null)))
+  const candidates: { id: string }[] = []
+  for (let i = 0; i < refs.length; i++) {
+    const meta = metas[i]
+    if (!meta) continue
+    const cheap = cheapClassifyMeta({ headers: meta.headers, snippet: meta.snippet, internalDate: meta.internalDate }, meta.snippet)
+    if (cheap.verdict === "CANDIDATE") candidates.push({ id: refs[i].id })
+    // NOISE promos are skipped entirely — no full fetch, no AI, no storage
+  }
+
+  // Stage 2: fetch full body ONLY for candidates that passed cheap filter
+  // This is where AI quota is spent: at most ~30% of the batch in practice
+  const messages = await Promise.all(candidates.map((ref) => gmailGet(accessToken, ref.id)))
 
   return { messages, nextCursor: data.nextPageToken }
 }
