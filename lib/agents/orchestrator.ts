@@ -96,7 +96,7 @@ function plan(message: string): Plan {
     return {
       kind: "tool",
       tool: "organize_sources",
-      args: { message: text, autoApply: true },
+      args: { message: text, apply: true },
     }
   }
 

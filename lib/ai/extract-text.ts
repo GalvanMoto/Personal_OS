@@ -17,8 +17,29 @@ import { canReadImage, readImage } from "@/lib/ai/vision"
  */
 
 export type ExtractionOutcome =
-  | { supported: true; text: string; via: "text" | "pdf" | "vision" }
+  | {
+      supported: true
+      text: string
+      via: "text" | "pdf" | "vision"
+      /// Set when the file was encrypted and a candidate opened it. Carries the
+      /// candidate's *shape* ("PAN + DOB (DDMM)"), never the secret, so it is
+      /// safe to show the user and to hand to a model.
+      unlockedWith?: string
+    }
   | { supported: false; reason: string }
+
+/// A password to try, with a human-readable description of how it was derived.
+/// Plain strings are accepted too, for callers that have nothing to say about
+/// where theirs came from.
+export type PasswordAttempt = { value: string; label: string }
+
+function normalizeAttempts(
+  passwords?: Array<string | PasswordAttempt>
+): PasswordAttempt[] {
+  return (passwords ?? []).map((entry) =>
+    typeof entry === "string" ? { value: entry, label: "a stored password" } : entry
+  )
+}
 
 const TEXTUAL = [
   "text/",
@@ -47,7 +68,7 @@ export function canExtract(mimeType: string): boolean {
 
 async function extractPdf(
   data: Buffer,
-  passwords?: string[]
+  passwords?: Array<string | PasswordAttempt>
 ): Promise<ExtractionOutcome> {
   if (data.byteLength > MAX_PDF_BYTES) {
     return {
@@ -81,10 +102,14 @@ async function extractPdf(
       (initialError && typeof initialError === "object" && "name" in initialError && (initialError as { name: string }).name === "PasswordException")
 
     // 2. If password-protected and candidates are provided, try them in-memory
-    if (isPasswordProtected && passwords && passwords.length > 0) {
-      for (const pwd of passwords) {
+    const attempts = normalizeAttempts(passwords)
+
+    if (isPasswordProtected && attempts.length > 0) {
+      for (const attempt of attempts) {
         try {
-          const proxy = await getDocumentProxy(new Uint8Array(data), { password: pwd })
+          const proxy = await getDocumentProxy(new Uint8Array(data), {
+            password: attempt.value,
+          })
           const { text } = await extractPdfText(proxy, { mergePages: true })
           const trimmed = text.trim()
           if (trimmed) {
@@ -92,6 +117,7 @@ async function extractPdf(
               supported: true,
               text: trimmed.slice(0, MAX_TEXT_BYTES),
               via: "pdf",
+              unlockedWith: attempt.label,
             }
           }
         } catch {
@@ -125,7 +151,7 @@ async function extractPdf(
 export async function extractText(
   data: Buffer,
   mimeType: string,
-  passwords?: string[]
+  passwords?: Array<string | PasswordAttempt>
 ): Promise<ExtractionOutcome> {
   if (isTextual(mimeType)) {
     // A huge log file adds nothing once the model has the gist.

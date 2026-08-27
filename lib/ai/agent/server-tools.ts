@@ -7,11 +7,14 @@ import {
   createProjectDef,
   createReminderDef,
   createTaskDef,
-  deleteTaskDef,
   explainValueDef,
   getAgendaDef,
+  importBankStatementDef,
   getTaskContextDef,
   nextBestActionDef,
+  organizeSourcesDef,
+  recallDef,
+  rememberDef,
   searchEmailsDef,
   syncEmailsDef,
   searchTasksDef,
@@ -21,6 +24,7 @@ import {
   updateTaskDef,
 } from "@/lib/ai/agent/definitions"
 import type { AgentRuntimeContext } from "@/lib/ai/agent/runtime"
+import type { importStatementsFromEmail } from "@/lib/domain/statement-import"
 
 /**
  * Server implementations.
@@ -270,22 +274,59 @@ export const upcomingPayments = upcomingPaymentsDef.server<AgentRuntimeContext>(
   })
 )
 
-// --- Approval-gated --------------------------------------------------------
+// --- Editing ---------------------------------------------------------------
 
 export const updateTask = updateTaskDef.server<AgentRuntimeContext>(
   async (args, context) =>
-    (await run("update_task", args, context, { preApproved: true })) as {
+    (await run("update_task", args, context)) as {
       id: string
       status: string
     }
 )
 
-export const deleteTask = deleteTaskDef.server<AgentRuntimeContext>(
+// --- Memory ----------------------------------------------------------------
+
+export const remember = rememberDef.server<AgentRuntimeContext>(
   async (args, context) =>
-    (await run("delete_task", args, context, { preApproved: true })) as {
-      deleted: string
+    (await run("remember", args, context)) as {
+      key: string
+      stored: boolean
+      corrected: boolean
     }
 )
+
+export const recall = recallDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("recall", args, context)) as {
+      memories: Array<{
+        key: string
+        kind: string
+        value: string
+        pinned: boolean
+        updatedAt: string
+      }>
+    }
+)
+
+// --- Documents that arrive as files or links -------------------------------
+
+export const importBankStatement = importBankStatementDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("import_bank_statement", args, context)) as Awaited<
+      ReturnType<typeof importStatementsFromEmail>
+    >
+)
+
+export const organizeSources = organizeSourcesDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("organize_sources", args, context)) as {
+      status: "APPLIED" | "PREVIEW"
+      plan: unknown
+      report?: string
+    }
+)
+
+// --- Approval-gated --------------------------------------------------------
 
 export const sendEmail = sendEmailDef.server<AgentRuntimeContext>(
   async (args, context) =>
@@ -311,6 +352,9 @@ export const serverTools = [
   spendingSummary,
   upcomingPayments,
   updateTask,
-  deleteTask,
+  remember,
+  recall,
+  importBankStatement,
+  organizeSources,
   sendEmail,
 ]

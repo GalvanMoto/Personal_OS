@@ -50,6 +50,7 @@ export const TENANT_MODELS = new Set([
   "Brand",
   "RecurringCommitment",
   "CommitmentOccurrence",
+  "AgentMemory",
 ])
 
 /// Operations whose `where` we filter. Prisma's extended-where-unique lets us

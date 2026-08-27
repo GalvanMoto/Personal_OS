@@ -66,42 +66,43 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships   Membership[]
-  invitations   Invitation[]
-  organizations Organization[]
-  people        Person[]
-  projects      Project[]
-  tasks         Task[]
-  checklistItems TaskChecklistItem[]
-  inboxItems    InboxItem[]
-  files         FileObject[]
-  documents     Document[]
-  links         LinkResource[]
-  notes         Note[]
-  emails        EmailMessage[]
-  events        CalendarEvent[]
-  reminders     Reminder[]
-  notifications Notification[]
-  conversations Conversation[]
-  chatMessages  ChatMessage[]
-  provenance    Provenance[]
-  entityLinks   EntityLink[]
-  domainEvents  DomainEvent[]
-  jobs          Job[]
-  jobRuns       JobRun[]
-  activity      ActivityLog[]
-  approvals     ApprovalRequest[]
-  integrations  Integration[]
-  automations   AutomationRule[]
-  accounts      FinancialAccount[]
-  transactions  Transaction[]
-  subscriptions Subscription[]
-  contextPacks  ContextPack[]
-  searchDocuments SearchDocument[]
-  vaultSecrets  VaultSecret[]
-  brands        Brand[]
-  commitments   RecurringCommitment[]
+  memberships           Membership[]
+  invitations           Invitation[]
+  organizations         Organization[]
+  people                Person[]
+  projects              Project[]
+  tasks                 Task[]
+  checklistItems        TaskChecklistItem[]
+  inboxItems            InboxItem[]
+  files                 FileObject[]
+  documents             Document[]
+  links                 LinkResource[]
+  notes                 Note[]
+  emails                EmailMessage[]
+  events                CalendarEvent[]
+  reminders             Reminder[]
+  notifications         Notification[]
+  conversations         Conversation[]
+  chatMessages          ChatMessage[]
+  provenance            Provenance[]
+  entityLinks           EntityLink[]
+  domainEvents          DomainEvent[]
+  jobs                  Job[]
+  jobRuns               JobRun[]
+  activity              ActivityLog[]
+  approvals             ApprovalRequest[]
+  integrations          Integration[]
+  automations           AutomationRule[]
+  accounts              FinancialAccount[]
+  transactions          Transaction[]
+  subscriptions         Subscription[]
+  contextPacks          ContextPack[]
+  searchDocuments       SearchDocument[]
+  vaultSecrets          VaultSecret[]
+  brands                Brand[]
+  commitments           RecurringCommitment[]
   commitmentOccurrences CommitmentOccurrence[]
+  memories              AgentMemory[]
 
   @@map("tenants")
 }
@@ -204,20 +205,20 @@ enum OrgKind {
 /// Clients, vendors and partners share one table so entity resolution has a
 /// single place to dedupe against (PRD §36).
 model Organization {
-  id        String   @id @default(cuid())
-  tenantId  String
-  name      String
-  kind      OrgKind  @default(CLIENT)
-  slug      String
-  website   String?
-  notes     String?
+  id         String    @id @default(cuid())
+  tenantId   String
+  name       String
+  kind       OrgKind   @default(CLIENT)
+  slug       String
+  website    String?
+  notes      String?
   /// Brand colours, logo pointers, tone-of-voice — whatever the agents learn.
-  brand     Json?
+  brand      Json?
   archivedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant       Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   people       Person[]
   projects     Project[]
   brands       Brand[]
@@ -230,7 +231,7 @@ model Organization {
 }
 
 model Brand {
-  id             String                @id @default(cuid())
+  id             String   @id @default(cuid())
   tenantId       String
   organizationId String
   name           String
@@ -240,8 +241,8 @@ model Brand {
   color          String?
   socialLinks    Json?
   notes          String?
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   tenant       Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -309,15 +310,15 @@ model RecurringCommitment {
 }
 
 model CommitmentOccurrence {
-  id                String       @id @default(cuid())
+  id                String   @id @default(cuid())
   tenantId          String
   commitmentId      String
   cycleKey          String
   periodStart       DateTime
   periodEnd         DateTime
   targetQuantity    Int
-  completedQuantity Int          @default(0)
-  createdAt         DateTime     @default(now())
+  completedQuantity Int      @default(0)
+  createdAt         DateTime @default(now())
 
   tenant     Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   commitment RecurringCommitment @relation(fields: [commitmentId], references: [id], onDelete: Cascade)
@@ -400,12 +401,12 @@ enum TaskPriority {
 }
 
 model Task {
-  id                     String                @id @default(cuid())
+  id                     String       @id @default(cuid())
   tenantId               String
   title                  String
   description            String?
-  status                 TaskStatus            @default(TODO)
-  priority               TaskPriority          @default(MEDIUM)
+  status                 TaskStatus   @default(TODO)
+  priority               TaskPriority @default(MEDIUM)
   projectId              String?
   parentId               String?
   commitmentOccurrenceId String?
@@ -415,12 +416,12 @@ model Task {
   startedAt              DateTime?
   completedAt            DateTime?
   estimateMin            Int?
-  position               Int                   @default(0)
+  position               Int          @default(0)
   /// Cached output of the planning agent's scoring pass (PRD §22).
   score                  Float?
-  createdBy              ActorType             @default(USER)
-  createdAt              DateTime              @default(now())
-  updatedAt              DateTime              @updatedAt
+  createdBy              ActorType    @default(USER)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
 
   tenant     Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   project    Project?              @relation(fields: [projectId], references: [id], onDelete: SetNull)
@@ -440,12 +441,12 @@ model Task {
 }
 
 model TaskChecklistItem {
-  id       String   @id @default(cuid())
+  id       String  @id @default(cuid())
   tenantId String
   taskId   String
   label    String
-  done     Boolean  @default(false)
-  position Int      @default(0)
+  done     Boolean @default(false)
+  position Int     @default(0)
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
@@ -480,23 +481,23 @@ enum InboxStatus {
 }
 
 model InboxItem {
-  id         String      @id @default(cuid())
-  tenantId   String
-  kind       InboxKind   @default(TEXT)
-  status     InboxStatus @default(PENDING)
-  title      String?
+  id            String      @id @default(cuid())
+  tenantId      String
+  kind          InboxKind   @default(TEXT)
+  status        InboxStatus @default(PENDING)
+  title         String?
   /// Raw captured payload exactly as the user supplied it.
-  rawText    String?
-  sourceType SourceType  @default(USER_INPUT)
-  sourceRef  String?
+  rawText       String?
+  sourceType    SourceType  @default(USER_INPUT)
+  sourceRef     String?
   /// Text pulled out of an image/PDF before the agents reason over it.
   extractedText String?
   /// Structured proposal from the inbox agent, before the user accepts it.
-  proposal   Json?
-  error      String?
-  processedAt DateTime?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  proposal      Json?
+  error         String?
+  processedAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   tenant Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   files  FileObject[]
@@ -511,7 +512,7 @@ model InboxItem {
 // ---------------------------------------------------------------------------
 
 model FileObject {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   tenantId    String
   name        String
   mimeType    String
@@ -522,7 +523,7 @@ model FileObject {
   inboxItemId String?
   sourceType  SourceType @default(UPLOAD)
   sourceRef   String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime   @default(now())
 
   tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   inboxItem InboxItem? @relation(fields: [inboxItemId], references: [id], onDelete: SetNull)
@@ -585,7 +586,7 @@ model Note {
 // ---------------------------------------------------------------------------
 
 model EmailMessage {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   tenantId    String
   /// Provider-side id (Gmail message id), unique per tenant.
   externalId  String
@@ -597,11 +598,11 @@ model EmailMessage {
   snippet     String?
   body        String?
   receivedAt  DateTime
-  isRead      Boolean  @default(false)
+  isRead      Boolean   @default(false)
   /// Email agent's label: TASK_REQUEST, INVOICE, RECEIPT, MEETING, NOISE, ...
   category    String?
   processedAt DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -731,11 +732,11 @@ model ChatMessage {
 /// Assembled working context for a task (PRD §10, §21). Cached so opening a
 /// task is instant, invalidated when the underlying graph changes.
 model ContextPack {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   tenantId    String
   taskId      String
   payload     Json
-  generatedAt DateTime @default(now())
+  generatedAt DateTime  @default(now())
   staleAt     DateTime?
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -911,18 +912,18 @@ enum ApprovalStatus {
 /// Gate for sensitive agent actions (PRD §19, §25). The agent proposes; the
 /// human decides; the executor only runs APPROVED rows.
 model ApprovalRequest {
-  id         String         @id @default(cuid())
-  tenantId   String
-  agent      String
-  tool       String
-  args       Json
-  reason     String
-  status     ApprovalStatus @default(PENDING)
-  decidedBy  String?
-  decidedAt  DateTime?
-  expiresAt  DateTime?
-  result     Json?
-  createdAt  DateTime       @default(now())
+  id        String         @id @default(cuid())
+  tenantId  String
+  agent     String
+  tool      String
+  args      Json
+  reason    String
+  status    ApprovalStatus @default(PENDING)
+  decidedBy String?
+  decidedAt DateTime?
+  expiresAt DateTime?
+  result    Json?
+  createdAt DateTime       @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -949,19 +950,19 @@ enum IntegrationStatus {
 }
 
 model Integration {
-  id          String              @id @default(cuid())
-  tenantId    String
-  provider    IntegrationProvider
-  status      IntegrationStatus   @default(DISCONNECTED)
-  accountRef  String?
-  scopes      String[]
+  id           String              @id @default(cuid())
+  tenantId     String
+  provider     IntegrationProvider
+  status       IntegrationStatus   @default(DISCONNECTED)
+  accountRef   String?
+  scopes       String[]
   /// Encrypted token blob. Never store raw provider credentials.
   secretCipher String?
-  lastSyncAt  DateTime?
-  syncCursor  String?
-  lastError   String?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  lastSyncAt   DateTime?
+  syncCursor   String?
+  lastError    String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -971,17 +972,17 @@ model Integration {
 }
 
 model AutomationRule {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   tenantId  String
   name      String
   /// Domain event type that fires this rule.
   trigger   String
   condition Json?
   action    Json
-  enabled   Boolean  @default(true)
+  enabled   Boolean   @default(true)
   lastRunAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -1081,6 +1082,45 @@ model Subscription {
 // ---------------------------------------------------------------------------
 // Vault — encrypted PII for statement passwords (PAN/DOB/Phone) — PRD §8
 // ---------------------------------------------------------------------------
+
+/// What the assistant has learned and is allowed to carry between conversations.
+///
+/// Deliberately a small, keyed, human-readable store rather than an embedding
+/// index: the point is that the user can open Settings and read every single
+/// thing the agent believes about them, correct it, and see it change. A vector
+/// blob cannot be audited that way.
+model AgentMemory {
+  id       String   @id @default(cuid())
+  tenantId String
+  /// PREFERENCE | FACT | PERSON | ROUTINE | PROJECT | CONTEXT
+  kind     String   @default("FACT")
+  /// Stable slug, so writing the same thing twice corrects rather than duplicates.
+  key      String
+  value    String
+  /// Previous values, newest first. Corrections rewrite `value` and push the
+  /// old one here — the agent can be told it is wrong without the record of
+  /// what it used to believe being destroyed.
+  history  String[] @default([])
+
+  sourceType SourceType @default(AGENT)
+  sourceRef  String?
+  confidence Float      @default(1)
+  /// Bumped on recall, so ranking favours what actually gets used.
+  useCount   Int        @default(0)
+  lastUsedAt DateTime?
+  /// Set when the user pins something they always want in context.
+  pinned     Boolean    @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@index([tenantId, kind])
+  @@index([tenantId, pinned])
+  @@map("agent_memories")
+}
 
 model VaultSecret {
   id        String   @id @default(cuid())

@@ -6,7 +6,7 @@ import type { DomainContext } from "@/lib/domain/context-types"
 import { logActivity } from "@/lib/events/activity"
 import { indexEntity, removeFromIndex } from "@/lib/search"
 import { buildKey, keyBelongsTo, storage } from "@/lib/storage"
-import type { InboxKind } from "@/lib/generated/prisma/enums"
+import type { InboxKind, SourceType } from "@/lib/generated/prisma/enums"
 
 export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 
@@ -38,6 +38,12 @@ export async function storeUpload(
     mimeType: string
     bytes: Buffer
     inboxItemId?: string
+    /// Where the bytes came from. Defaults to a human upload; the mail pipeline
+    /// passes GMAIL so an attachment is distinguishable from a dropped file.
+    sourceType?: SourceType
+    /// Provider-side id of the thing that carried the file — a Gmail message
+    /// id, say — so a stored attachment can be traced back to its email.
+    sourceRef?: string
   }
 ) {
   if (input.bytes.byteLength === 0) {
@@ -79,7 +85,8 @@ export async function storeUpload(
       storageKey: stored.key,
       checksum: stored.checksum,
       inboxItemId: input.inboxItemId,
-      sourceType: "UPLOAD",
+      sourceType: input.sourceType ?? "UPLOAD",
+      sourceRef: input.sourceRef,
     } as never,
   })
 

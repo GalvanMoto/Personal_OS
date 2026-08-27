@@ -2,8 +2,8 @@ import { chat, chatParamsFromRequest, toServerSentEventsResponse } from "@tansta
 
 import { clientToolDefinitions } from "@/lib/ai/agent/definitions"
 import {
-  AGENT_SYSTEM_PROMPT,
   agentAdapter,
+  agentSystemPrompts,
   agentModelOptions,
   isAgentConfigured,
   type AgentRuntimeContext,
@@ -11,19 +11,52 @@ import {
 import { serverTools } from "@/lib/ai/agent/server-tools"
 import { defaultAgentStrategy } from "@/lib/ai/agent/strategies"
 import { requireWorkspace } from "@/lib/auth/dal"
+import {
+  createNewConversationThread,
+  getConversationMessages,
+  getOrCreateActiveConversation,
+  persistChatMessage,
+} from "@/lib/domain/chat"
 
 /**
- * AG-UI endpoint for the assistant.
- *
- * The workspace is resolved from the URL and proven against the session before
- * a single token is generated, and the resulting tenant-scoped handle is what
- * every tool receives through `context`. The agent therefore cannot read across
- * the tenant boundary even if the model asks it to — the boundary is upstream
- * of the model, not a rule in the prompt.
- *
- * The response is a native AG-UI event stream. No provider-specific wire format
- * reaches the browser, so the headless client and any framework adapter consume
- * the same bytes regardless of which model produced them.
+ * Fetch database-persisted chat messages for the active conversation thread.
+ */
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ workspace: string }> }
+) {
+  const { workspace } = await params
+  const { db, tenant } = await requireWorkspace(workspace)
+
+  const conversation = await getOrCreateActiveConversation(db, tenant.id)
+  const messages = await getConversationMessages(db, tenant.id, conversation.id)
+
+  return Response.json({
+    conversationId: conversation.id,
+    title: conversation.title,
+    messages,
+  })
+}
+
+/**
+ * Start a fresh conversation thread in the database.
+ */
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ workspace: string }> }
+) {
+  const { workspace } = await params
+  const { db, tenant } = await requireWorkspace(workspace)
+
+  const conversation = await createNewConversationThread(db, tenant.id)
+  return Response.json({
+    success: true,
+    conversationId: conversation.id,
+  })
+}
+
+/**
+ * AG-UI endpoint for the assistant with database thread persistence.
  */
 export async function POST(
   request: Request,
@@ -65,23 +98,45 @@ export async function POST(
     },
   }
 
+  // Persist user prompt in database conversation thread
+  const conversation = await getOrCreateActiveConversation(db, tenant.id)
+  const lastUserMsg = (agui.messages as any[]).filter((m) => m.role === "user").pop()
+  if (lastUserMsg) {
+    let textContent = ""
+    if (typeof lastUserMsg.content === "string") {
+      textContent = lastUserMsg.content
+    } else if (Array.isArray(lastUserMsg.parts)) {
+      textContent = lastUserMsg.parts
+        .map((p: any) => p.content || p.text || "")
+        .filter(Boolean)
+        .join("\n")
+    } else if (Array.isArray(lastUserMsg.content)) {
+      textContent = lastUserMsg.content
+        .map((p: any) => p.text || p.content || "")
+        .filter(Boolean)
+        .join("\n")
+    }
+
+    if (textContent.trim()) {
+      await persistChatMessage(db, context.ctx, {
+        conversationId: conversation.id,
+        role: "USER",
+        content: textContent.trim(),
+      }).catch((err) => console.warn("[chat] failed to save user msg:", err))
+    }
+  }
+
   const stream = chat({
     adapter: agentAdapter(),
     messages: agui.messages,
-    // Server implementations plus the definitions of tools the browser runs, so
-    // the model can call both halves.
     tools: [...serverTools, ...clientToolDefinitions],
-    systemPrompts: [AGENT_SYSTEM_PROMPT],
+    systemPrompts: await agentSystemPrompts(db),
     agentLoopStrategy: defaultAgentStrategy,
     modelOptions: agentModelOptions,
-    threadId: agui.threadId,
+    threadId: agui.threadId || conversation.id,
     runId: agui.runId,
-    // Carries an approved (or denied) interrupt back into the paused run.
     parentRunId: agui.parentRunId,
     resume: agui.resume,
-    // Deliberately last: `agui` also carries a `context` field, which is the
-    // AG-UI protocol's Context[] and not our runtime context. Spreading it into
-    // chat() would silently strip the database handle off every tool call.
     context,
   })
 

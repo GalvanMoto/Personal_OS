@@ -64,19 +64,35 @@ function maskPAN(pan: string) {
 }
 
 /**
- * Common Indian bank PDF password candidates.
- * Tries in order: bank-specific template first, then generic combos.
- * DOB is expected as DDMMYYYY or DD-MM-YYYY, we normalize to DDMM, DDMMYYYY, etc.
+ * Candidate PDF passwords derived from vault secrets.
+ *
+ * Each carries a `label` describing its *shape* — "PAN + DOB (DDMM)" — never
+ * the value. That is what lets the assistant tell the user which combination
+ * unlocked a statement without the secret itself passing through a model, a
+ * tool result, or the chat transcript.
+ *
+ * DOB is accepted as DDMMYYYY or DD-MM-YYYY and normalized to the fragments
+ * Indian banks actually use.
  */
-export function buildPasswordCandidates(vault: Record<string, string>, bank?: string): string[] {
+export type PasswordCandidate = { value: string; label: string }
+
+export function describePasswordCandidates(
+  vault: Record<string, string>,
+  bank?: string
+): PasswordCandidate[] {
   const pan = vault["PAN:PAN"] || vault["PAN:default"] || ""
   const dob = vault["DOB:DOB"] || vault["DOB:default"] || ""
   const phone = vault["PHONE:PHONE"] || vault["PHONE:default"] || ""
   const name = vault["NAME:NAME"] || vault["NAME:default"] || ""
   const cust = vault["CUSTOMER_ID:CUSTOMER_ID"] || vault["CUSTOMER_ID:default"] || ""
 
-  const candidates: string[] = []
-  const push = (s: string) => { const t = s.trim(); if (t && !candidates.includes(t)) candidates.push(t) }
+  const candidates: PasswordCandidate[] = []
+  const push = (value: string, label: string) => {
+    const trimmed = value.trim()
+    if (!trimmed) return
+    if (candidates.some((c) => c.value === trimmed)) return
+    candidates.push({ value: trimmed, label })
+  }
 
   // Normalize DOB variants
   let ddmm = "", ddmmyyyy = "", yyyymmdd = ""
@@ -99,42 +115,50 @@ export function buildPasswordCandidates(vault: Record<string, string>, bank?: st
     if (k.startsWith("BANK_TEMPLATE:") || k.startsWith("PDF_PASSWORD:")) {
       const bKey = k.split(":")[1]?.toUpperCase()
       if (!bank || bKey === bank.toUpperCase()) {
-        push(val)
+        push(val, `saved password for ${bKey || "this bank"}`)
       }
     }
   }
 
   // 1. SBI (Name first 4 + DOB DDMM) or (DOB DDMM + Mobile last 5)
-  if (name4 && ddmm) push(`${name4}${ddmm}`)
-  if (name4 && ddmmyyyy) push(`${name4}${ddmmyyyy}`)
-  if (phone && phone.length >= 5 && ddmm) push(`${ddmm}${phone.slice(-5)}`)
-  if (phone && phone.length >= 4 && ddmm) push(`${phone.slice(-4)}${ddmm}`)
+  if (name4 && ddmm) push(`${name4}${ddmm}`, "name (first 4) + DOB (DDMM)")
+  if (name4 && ddmmyyyy) push(`${name4}${ddmmyyyy}`, "name (first 4) + DOB (DDMMYYYY)")
+  if (phone && phone.length >= 5 && ddmm) push(`${ddmm}${phone.slice(-5)}`, "DOB (DDMM) + mobile (last 5)")
+  if (phone && phone.length >= 4 && ddmm) push(`${phone.slice(-4)}${ddmm}`, "mobile (last 4) + DOB (DDMM)")
 
   // 2. HDFC (Cust ID) or (Cust ID + DOB DDMM) or (PAN)
-  if (cust) push(cust)
-  if (cust && ddmm) push(`${cust}${ddmm}`)
-  if (cust && ddmmyyyy) push(`${cust}${ddmmyyyy}`)
-  if (panUpper) push(panUpper)
+  if (cust) push(cust, "customer ID")
+  if (cust && ddmm) push(`${cust}${ddmm}`, "customer ID + DOB (DDMM)")
+  if (cust && ddmmyyyy) push(`${cust}${ddmmyyyy}`, "customer ID + DOB (DDMMYYYY)")
+  if (panUpper) push(panUpper, "PAN")
 
   // 3. ICICI & AXIS (Name first 4 + DOB DDMM) or (PAN + DOB DDMM)
-  if (panUpper && ddmm) push(`${panUpper}${ddmm}`)
-  if (panUpper && ddmmyyyy) push(`${panUpper}${ddmmyyyy}`)
-  if (name4 && cust && cust.length >= 4) push(`${name4}${cust.slice(-4)}`)
+  if (panUpper && ddmm) push(`${panUpper}${ddmm}`, "PAN + DOB (DDMM)")
+  if (panUpper && ddmmyyyy) push(`${panUpper}${ddmmyyyy}`, "PAN + DOB (DDMMYYYY)")
+  if (name4 && cust && cust.length >= 4) push(`${name4}${cust.slice(-4)}`, "name (first 4) + customer ID (last 4)")
 
   // 4. Phone & DOB combos
   if (phone) {
-    push(phone)
-    push(phone.slice(-4))
-    if (ddmmyyyy) push(`${phone.slice(-4)}${ddmmyyyy}`)
+    push(phone, "mobile number")
+    push(phone.slice(-4), "mobile (last 4)")
+    if (ddmmyyyy) push(`${phone.slice(-4)}${ddmmyyyy}`, "mobile (last 4) + DOB (DDMMYYYY)")
   }
 
   // 5. Raw identifiers
-  if (ddmmyyyy) push(ddmmyyyy)
-  if (ddmm) push(ddmm)
-  if (yyyymmdd) push(yyyymmdd)
-  if (dob) push(dob)
+  if (ddmmyyyy) push(ddmmyyyy, "DOB (DDMMYYYY)")
+  if (ddmm) push(ddmm, "DOB (DDMM)")
+  if (yyyymmdd) push(yyyymmdd, "DOB (YYYYMMDD)")
+  if (dob) push(dob, "DOB as entered")
 
   return candidates.slice(0, 20)
+}
+
+/// The values alone, for callers that only need to try them.
+export function buildPasswordCandidates(
+  vault: Record<string, string>,
+  bank?: string
+): string[] {
+  return describePasswordCandidates(vault, bank).map((c) => c.value)
 }
 
 export function describeVaultForUI(kind: VaultKind, label: string, masked: string) {

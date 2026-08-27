@@ -15,7 +15,6 @@ import { after, before, describe, it } from "node:test"
 import { toolRegistry } from "@/lib/agents/tools"
 import {
   clientToolDefinitions,
-  deleteTaskDef,
   getAgendaDef,
   sendEmailDef,
   updateTaskDef,
@@ -23,8 +22,8 @@ import {
 import type { AgentRuntimeContext } from "@/lib/ai/agent/runtime"
 import {
   createTask as createTaskTool,
-  deleteTask as deleteTaskTool,
   getAgenda,
+  updateTask as updateTaskTool,
   nextBestAction,
   searchTasks,
   serverTools,
@@ -70,10 +69,10 @@ const exec = <T extends { execute?: (...args: never[]) => unknown }>(
 
 describe("tool definitions", () => {
   it("declares approval only on tools that change or destroy", () => {
-    assert.equal(updateTaskDef.needsApproval, true)
-    assert.equal(deleteTaskDef.needsApproval, true)
     assert.equal(sendEmailDef.needsApproval, true)
     assert.notEqual(getAgendaDef.needsApproval, true)
+    // Editing is reversible, so it stopped being an interruption.
+    assert.notEqual(updateTaskDef.needsApproval, true)
   })
 
   it("names every tool after one that exists in the registry", () => {
@@ -159,25 +158,72 @@ describe("server tool execution", () => {
     )
   })
 
-  it("executes an approval-gated tool without queuing a second approval", async () => {
+  it("gives the agent no way to delete anything", async () => {
+    // The guarantee is structural, not a rule in the prompt: there is no
+    // destructive tool in the registry, so a model that asks for one gets an
+    // unknown-tool error rather than a gate it might talk its way past.
+    const destructive = [...toolRegistry.keys()].filter((name) =>
+      /^(delete|remove|destroy|purge|drop|archive)_/.test(name)
+    )
+
+    assert.deepEqual(destructive, [], "no destructive tool may reach the agent")
+
+    for (const tool of serverTools) {
+      assert.ok(
+        !/^(delete|remove|destroy|purge|drop)_/.test(tool.name),
+        `"${tool.name}" is exposed to the model but reads as destructive`
+      )
+    }
+  })
+
+  it("edits a task without queuing an approval", async () => {
     const task = await runtime.db.task.findFirst({
       where: { title: "Agent-created task" },
     })
     assert.ok(task)
 
-    // The client already resolved the interrupt, so this must delete rather
-    // than parking another ApprovalRequest nobody is waiting on.
-    await exec(deleteTaskTool, { taskId: task.id })
+    const before = await runtime.db.approvalRequest.count()
 
-    assert.equal(
-      await runtime.db.task.count({ where: { id: task.id } }),
-      0,
-      "the approved delete should have gone through"
-    )
+    await exec(updateTaskTool, { taskId: task.id, status: "IN_PROGRESS" })
+
+    const updated = await runtime.db.task.findUnique({ where: { id: task.id } })
+    assert.equal(updated?.status, "IN_PROGRESS")
     assert.equal(
       await runtime.db.approvalRequest.count(),
-      0,
-      "no approval request should have been queued"
+      before,
+      "an edit should not have parked an approval request"
+    )
+  })
+
+  it("remembers and recalls across a conversation boundary", async () => {
+    const { remember, recall } = await import("@/lib/domain/memory")
+
+    await remember(runtime.db, runtime.ctx, {
+      key: "Prefers Morning Edits",
+      value: "Schedules heavy editing work before noon.",
+      kind: "PREFERENCE",
+    })
+
+    const found = await recall(runtime.db, { query: "editing" })
+    assert.equal(found.length, 1)
+    assert.match(found[0].value, /before noon/)
+
+    // A correction rewrites the value and keeps what was believed before.
+    await remember(runtime.db, runtime.ctx, {
+      key: "prefers-morning-edits",
+      value: "Now schedules heavy editing work after lunch.",
+    })
+
+    const row = await runtime.db.agentMemory.findFirst({
+      where: { key: "prefers-morning-edits" },
+    })
+    assert.match(row!.value, /after lunch/)
+    assert.deepEqual(row!.history, ["Schedules heavy editing work before noon."])
+
+    assert.equal(
+      await runtime.db.agentMemory.count(),
+      1,
+      "correcting a memory must not create a second row"
     )
   })
 })

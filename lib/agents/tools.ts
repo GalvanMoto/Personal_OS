@@ -13,7 +13,6 @@ import { explain } from "@/lib/domain/provenance"
 import {
   agenda,
   createTask,
-  deleteTask,
   nextBestAction,
   rankedTasks,
   updateTask,
@@ -22,6 +21,8 @@ import { logActivity } from "@/lib/events/activity"
 import { checkAgentPolicy } from "@/lib/agents/registry"
 import { generateImportPlan, executeImportPlan } from "@/lib/domain/import-intelligence"
 import { syncIntegrationEmails } from "@/lib/domain/email"
+import { recall, remember } from "@/lib/domain/memory"
+import { importStatementsFromEmail } from "@/lib/domain/statement-import"
 
 /**
  * The tool layer (PRD §27).
@@ -206,7 +207,7 @@ const tools: Tool<z.ZodType>[] = [
       "Change a task's status, priority, deadline or what it is waiting on.",
     // Moving a deadline reshapes the user's day, so it is announced rather than
     // performed silently.
-    risk: "CONFIRM",
+    risk: "SAFE",
     input: z.object({
       taskId: z.string().min(1),
       status: z
@@ -529,26 +530,19 @@ const tools: Tool<z.ZodType>[] = [
   }),
 
   defineTool({
-    name: "delete_task",
-    description: "Permanently delete a task.",
-    risk: "SENSITIVE",
-    input: z.object({ taskId: z.string().min(1) }),
-    handler: async (args, { db, ctx }) => {
-      const result = await deleteTask(db, ctx, args.taskId)
-      return { deleted: result.deleted }
-    },
-  }),
-
-  defineTool({
     name: "organize_sources",
     description:
       "Ingest, understand, reconcile, and organize client briefs, Google Sheets, and Google Docs into structured Brands, Recurring Commitments, Weekly Tasks, and Requirements.",
-    risk: "CONFIRM",
+    /// The gate here is `apply`, not an approval modal. The assistant is told to
+    /// preview first and describe what it found, which is a conversation the
+    /// user can steer — strictly better than a yes/no prompt over a plan they
+    /// have not seen yet. Everything it creates is editable afterwards.
+    risk: "SAFE",
     input: z.object({
       message: z.string().optional(),
       sourceUrls: z.array(z.string()).optional(),
       clientHint: z.string().optional(),
-      autoApply: z.boolean().default(true),
+      apply: z.boolean().default(false),
     }),
     handler: async (args, { db, ctx }) => {
       const plan = await generateImportPlan(db, {
@@ -557,7 +551,7 @@ const tools: Tool<z.ZodType>[] = [
         clientHint: args.clientHint,
       })
 
-      if (args.autoApply) {
+      if (args.apply) {
         const execution = await executeImportPlan(db, ctx, plan)
         return {
           status: "APPLIED",
@@ -572,6 +566,68 @@ const tools: Tool<z.ZodType>[] = [
         plan,
       }
     },
+  }),
+
+  // ---------------------------------------------------------------------------
+  // Memory
+  // ---------------------------------------------------------------------------
+
+  defineTool({
+    name: "remember",
+    description:
+      "Store or correct something about the user that should outlast this conversation.",
+    risk: "SAFE",
+    input: z.object({
+      key: z.string().min(1).max(80),
+      value: z.string().min(1).max(2000),
+      kind: z
+        .enum(["PREFERENCE", "FACT", "PERSON", "ROUTINE", "PROJECT", "CONTEXT"])
+        .default("FACT"),
+      pinned: z.boolean().default(false),
+    }),
+    handler: async (args, { db, ctx }) => {
+      const { memory, changed, corrected } = await remember(db, ctx, args)
+      return { key: memory.key, stored: changed, corrected }
+    },
+  }),
+
+  defineTool({
+    name: "recall",
+    description: "Search what is already known about the user.",
+    risk: "SAFE",
+    input: z.object({
+      query: z.string().optional(),
+      kind: z
+        .enum(["PREFERENCE", "FACT", "PERSON", "ROUTINE", "PROJECT", "CONTEXT"])
+        .optional(),
+      limit: z.number().int().min(1).max(50).default(10),
+    }),
+    handler: async (args, { db }) => ({
+      memories: await recall(db, args),
+    }),
+  }),
+
+  // ---------------------------------------------------------------------------
+  // Statements
+  // ---------------------------------------------------------------------------
+
+  defineTool({
+    name: "import_bank_statement",
+    description:
+      "Find bank statements in the user's mail, unlock them with the vault, parse them and put the transactions on the ledger.",
+    /// SAFE despite writing: the import is additive and deduped twice over, so
+    /// running it again settles rather than doubles. The judgement call the user
+    /// actually cares about — whether to import at all — is `apply`, which the
+    /// assistant is told to leave false until they say yes.
+    risk: "SAFE",
+    input: z.object({
+      from: z.string().optional(),
+      query: z.string().optional(),
+      days: z.number().int().min(1).max(400).default(120),
+      apply: z.boolean().default(false),
+    }),
+    handler: async (args, { db, ctx }) =>
+      importStatementsFromEmail(db, ctx, args),
   }),
 ]
 

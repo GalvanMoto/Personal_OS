@@ -9,8 +9,9 @@ import { z } from "zod"
  * describe them to the model are the same object. Nothing here imports the
  * database or a provider SDK, which is what lets this file cross the wire.
  *
- * `needsApproval` mirrors the risk class in `lib/agents/tools.ts`: anything
- * that leaves the system or destroys data stops for a human.
+ * `needsApproval` mirrors the risk class in `lib/agents/tools.ts`. Only one
+ * tool carries it: nothing here can delete, so reading, creating and editing
+ * all run uninterrupted, and the single stop is mail leaving for someone else.
  */
 
 const taskSummary = z.object({
@@ -235,13 +236,13 @@ export const upcomingPaymentsDef = toolDefinition({
 })
 
 // ---------------------------------------------------------------------------
-// Changing and destroying — these stop for a human
+// Editing — reversible, so it runs like creating does
 // ---------------------------------------------------------------------------
 
 export const updateTaskDef = toolDefinition({
   name: "update_task",
   description:
-    "Change a task's status, priority, deadline or what it is waiting on. Moving a deadline reshapes the user's plan, so this is confirmed before it runs.",
+    "Change a task's status, priority, deadline or what it is waiting on. Reversible, so it runs without stopping — say what you changed afterwards.",
   inputSchema: z.object({
     taskId: z.string(),
     status: z
@@ -252,16 +253,15 @@ export const updateTaskDef = toolDefinition({
     waitingOn: z.string().max(300).nullable().optional(),
   }),
   outputSchema: z.object({ id: z.string(), status: z.string() }),
-  needsApproval: true,
 })
 
-export const deleteTaskDef = toolDefinition({
-  name: "delete_task",
-  description: "Permanently delete a task. This cannot be undone.",
-  inputSchema: z.object({ taskId: z.string() }),
-  outputSchema: z.object({ deleted: z.string() }),
-  needsApproval: true,
-})
+// ---------------------------------------------------------------------------
+// Leaving the system — the one thing that still stops for a human
+//
+// Deleting is not here, and not gated either: the agent has no destructive tool
+// at all. Sending mail is different in kind — it is not a change to the user's
+// own data that can be edited back, it is a message another person receives.
+// ---------------------------------------------------------------------------
 
 export const sendEmailDef = toolDefinition({
   name: "send_email",
@@ -273,6 +273,151 @@ export const sendEmailDef = toolDefinition({
   }),
   outputSchema: z.object({ success: z.boolean(), messageId: z.string() }),
   needsApproval: true,
+})
+
+// ---------------------------------------------------------------------------
+// Memory — what survives the end of a conversation
+// ---------------------------------------------------------------------------
+
+const memoryKindEnum = z.enum([
+  "PREFERENCE",
+  "FACT",
+  "PERSON",
+  "ROUTINE",
+  "PROJECT",
+  "CONTEXT",
+])
+
+export const rememberDef = toolDefinition({
+  name: "remember",
+  description:
+    "Save something about the user that should outlast this conversation: how they like work done, a standing constraint, who someone is, a routine. Reuse the same key to correct something you already believe — the old value is kept as history, never lost. Do not use this for anything another tool can look up on demand; a deadline lives on the task, not in memory.",
+  inputSchema: z.object({
+    key: z
+      .string()
+      .min(1)
+      .max(80)
+      .describe("Short stable slug identifying the fact, e.g. prefers-morning-edits"),
+    value: z.string().min(1).max(2000).describe("The fact, written as a full sentence"),
+    kind: memoryKindEnum.default("FACT"),
+    pinned: z
+      .boolean()
+      .default(false)
+      .describe("Set only for something that should always be in context"),
+  }),
+  outputSchema: z.object({
+    key: z.string(),
+    stored: z.boolean(),
+    corrected: z.boolean(),
+  }),
+})
+
+export const recallDef = toolDefinition({
+  name: "recall",
+  description:
+    "Search what you already know about the user. The most-used memories are already in your system prompt, so reach for this only when you need something specific that is not there — an old preference, a person, a past decision.",
+  inputSchema: z.object({
+    query: z.string().optional().describe("Words to match against the memory"),
+    kind: memoryKindEnum.optional(),
+    limit: z.number().int().min(1).max(50).default(10),
+  }),
+  outputSchema: z.object({
+    memories: z.array(
+      z.object({
+        key: z.string(),
+        kind: z.string(),
+        value: z.string(),
+        pinned: z.boolean(),
+        updatedAt: z.string(),
+      })
+    ),
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// Documents that arrive as files or links
+// ---------------------------------------------------------------------------
+
+export const importBankStatementDef = toolDefinition({
+  name: "import_bank_statement",
+  description:
+    "Get bank and card statements out of the user's mail and onto the ledger. Finds the message, pulls the attachment, unlocks it with what the vault knows, reads the transactions and imports them. Use this for any request to fetch, check, read or import a statement — it searches the workspace and then Gmail itself, so never answer that a statement is out of reach without calling it first. Call with apply=false unless the user plainly asked to import, report what was found, then call again with apply=true once they agree. Re-running is safe: transactions already on the ledger are skipped.",
+  inputSchema: z.object({
+    from: z
+      .string()
+      .optional()
+      .describe("Sender address or bank domain, e.g. sbi.co.in or jiopaymentsbank"),
+    query: z
+      .string()
+      .optional()
+      .describe("Subject words, when the user named a particular statement"),
+    days: z.number().int().min(1).max(400).default(120),
+    apply: z
+      .boolean()
+      .default(false)
+      .describe("false reports what was found and writes nothing; true imports"),
+  }),
+  outputSchema: z.object({
+    status: z.enum([
+      "IMPORTED",
+      "PREVIEW",
+      "LOCKED",
+      "NOTHING_FOUND",
+      "NOT_CONNECTED",
+    ]),
+    message: z.string(),
+    searched: z.string(),
+    emailsScanned: z.number(),
+    imported: z.number().optional(),
+    skippedDuplicates: z.number().optional(),
+    statements: z.array(
+      z.object({
+        fileName: z.string(),
+        bank: z.string(),
+        unlockedWith: z.string().optional(),
+        rowCount: z.number(),
+        totalDebits: z.string(),
+        totalCredits: z.string(),
+        earliest: z.string().optional(),
+        latest: z.string().optional(),
+        sample: z.array(
+          z.object({
+            date: z.string(),
+            description: z.string(),
+            amount: z.string(),
+            direction: z.string(),
+            category: z.string(),
+          })
+        ),
+      })
+    ),
+    unreadable: z.array(
+      z.object({ fileName: z.string(), reason: z.string() })
+    ),
+  }),
+})
+
+export const organizeSourcesDef = toolDefinition({
+  name: "organize_sources",
+  description:
+    "Read a Google Sheet, Google Doc or link the user shared and work out what is in it — clients, brands, recurring deliverables, per-item requirements and the assets each one needs. Call with apply=false first: describe what you found, what already exists in the workspace, what is missing, and ask before creating anything. Call again with apply=true once they say go.",
+  inputSchema: z.object({
+    message: z
+      .string()
+      .optional()
+      .describe("The user's message, if it contains the link or the brief itself"),
+    sourceUrls: z.array(z.string()).optional().describe("Explicit links to read"),
+    clientHint: z.string().optional().describe("Client name, when the user named one"),
+    apply: z
+      .boolean()
+      .default(false)
+      .describe("false returns the plan only; true creates the records"),
+  }),
+  outputSchema: z.object({
+    status: z.enum(["APPLIED", "PREVIEW"]),
+    plan: z.unknown(),
+    report: z.string().optional(),
+  }),
 })
 
 // ---------------------------------------------------------------------------

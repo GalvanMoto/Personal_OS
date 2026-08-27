@@ -9,9 +9,7 @@ import {
 } from "@tanstack/ai-react"
 import {
   BarChart3,
-  CheckIcon,
   CreditCard,
-  FileCheck,
   FileText,
   HelpCircle,
   ListTodo,
@@ -19,7 +17,6 @@ import {
   SendIcon,
   Sparkles,
   SquareIcon,
-  XIcon,
 } from "lucide-react"
 
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -31,7 +28,6 @@ import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import {
   confirmWithUserDef,
-  deleteTaskDef,
   focusTaskDef,
   sendEmailDef,
   updateTaskDef,
@@ -49,63 +45,100 @@ export function AssistantPanel({
   workspace: string
   onFocusTask?: (taskId: string) => void
 }) {
-  const [mounted, setMounted] = useState(false)
+  const [initialData, setInitialData] = useState<{
+    loaded: boolean
+    conversationId?: string
+    messages: any[]
+  }>({ loaded: false, messages: [] })
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    let cancelled = false
+    fetch(`/api/agent/${workspace}`)
+      .then((res) => (res.ok ? res.json() : { messages: [] }))
+      .then((data) => {
+        if (!cancelled) {
+          setInitialData({
+            loaded: true,
+            conversationId: data.conversationId,
+            messages: data.messages || [],
+          })
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setInitialData({ loaded: true, messages: [] })
+      })
 
-  if (!mounted) {
+    return () => {
+      cancelled = true
+    }
+  }, [workspace])
+
+  if (!initialData.loaded) {
     return (
-      <Card className="flex h-full min-h-0 flex-col">
+      <Card className="flex h-full min-h-0 flex-col border bg-card/60">
         <CardHeader className="py-3 px-4 flex flex-row items-center justify-between border-b">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <span>AI Chief-of-Staff</span>
+            <Spinner className="size-3 text-muted-foreground" />
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+        <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center p-4">
           <div className="py-6 flex flex-col items-center justify-center text-center space-y-4">
-            <div className="space-y-1">
-              <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2">
-                <Sparkles className="size-5" />
-              </div>
-              <h2 className="text-sm font-semibold text-foreground">AI Chief-of-Staff Cockpit</h2>
-              <p className="text-xs text-muted-foreground max-w-sm">
-                Interactive multi-agent orchestrator with live markdown, tables, charts, metrics, info cards, tick boxes, and questionnaires.
-              </p>
+            <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2">
+              <Sparkles className="size-5" />
             </div>
+            <h2 className="text-sm font-semibold text-foreground">AI Chief-of-Staff Cockpit</h2>
+            <p className="text-xs text-muted-foreground max-w-sm">
+              Connecting live database session & real-time agent multi-bus...
+            </p>
           </div>
         </CardContent>
       </Card>
     )
   }
 
-  return <AssistantChatInner workspace={workspace} onFocusTask={onFocusTask} />
+  return (
+    <AssistantChatInner
+      key={initialData.conversationId || "active"}
+      workspace={workspace}
+      initialMessages={initialData.messages}
+      onFocusTask={onFocusTask}
+      onNewThread={() => {
+        fetch(`/api/agent/${workspace}`, { method: "DELETE" })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            setInitialData({
+              loaded: true,
+              conversationId: data?.conversationId || String(Date.now()),
+              messages: [],
+            })
+          })
+          .catch(() => {
+            setInitialData({
+              loaded: true,
+              conversationId: String(Date.now()),
+              messages: [],
+            })
+          })
+      }}
+    />
+  )
 }
 
 function AssistantChatInner({
   workspace,
+  initialMessages,
   onFocusTask,
+  onNewThread,
 }: {
   workspace: string
+  initialMessages: any[]
   onFocusTask?: (taskId: string) => void
+  onNewThread?: () => void
 }) {
   const [draft, setDraft] = useState("")
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
-
-  const storageKey = `personal_os_chat_${workspace}`
-
-  // Load initial messages from local storage
-  const initialMessages = useMemo(() => {
-    if (typeof window === "undefined") return []
-    try {
-      const saved = localStorage.getItem(storageKey)
-      return saved ? JSON.parse(saved) : []
-    } catch {
-      return []
-    }
-  }, [storageKey])
 
   const [pending, setPending] = useState<{
     question: string
@@ -142,25 +175,12 @@ function AssistantChatInner({
         focusTask,
         confirmWithUser,
         updateTaskDef.client(),
-        deleteTaskDef.client(),
         sendEmailDef.client()
       ),
     })
   }, [workspace, initialMessages])
 
   const { messages, sendMessage, isLoading, error, stop } = useChat(chatOptions)
-
-  // Save messages to local storage
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    if (messages && messages.length > 0) {
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(messages))
-      } catch (err) {
-        console.error("Failed to save chat:", err)
-      }
-    }
-  }, [messages, storageKey])
 
   // Scroll to bottom when messages update
   useEffect(() => {
@@ -177,17 +197,6 @@ function AssistantChatInner({
     }
     setDraft("")
     void sendMessage(content)
-  }
-
-  function handleClearChat() {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.removeItem(storageKey)
-      } catch (err) {
-        console.error(err)
-      }
-      window.location.reload()
-    }
   }
 
   const starterWidgets = [
@@ -236,8 +245,8 @@ function AssistantChatInner({
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleClearChat}
-              title="Start a new conversation thread"
+              onClick={onNewThread}
+              title="Start a new conversation thread in database"
               className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
             >
               <Plus className="size-3.5" />
@@ -258,7 +267,7 @@ function AssistantChatInner({
                   </div>
                   <h2 className="text-sm font-semibold text-foreground">AI Chief-of-Staff Cockpit</h2>
                   <p className="text-xs text-muted-foreground max-w-sm">
-                    Interactive multi-agent orchestrator with live markdown, tables, charts, metrics, info cards, tick boxes, and questionnaires.
+                    Interactive multi-agent orchestrator backed by PostgreSQL & Redis. Real-time markdown, tables, charts, metrics, and questionnaires.
                   </p>
                 </div>
 
