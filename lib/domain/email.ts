@@ -14,28 +14,50 @@ import type { NormalizedEmail } from "@/lib/integrations/types"
  * task-request email happens later in the shared inbox pipeline, which is why
  * a TASK_REQUEST here still flows through the same extractor as pasted text.
  */
-export function classifyEmail(text: string): string {
+export function classifyEmail(text: string, fromEmail?: string): string {
   const t = text.toLowerCase()
+  const from = (fromEmail ?? "").toLowerCase()
 
-  if (/(invoice|tax invoice|payment received|receipt|order confirmation|statement of account|bill)/.test(t)) {
+  // 1. Filter bot, notification, and marketing senders
+  if (
+    /^(noreply|no-reply|donotreply|newsletter|marketing|promo|promotions|deals|offers|news|notifications|info|mailer-daemon|digest|updates|community)@/.test(
+      from
+    )
+  ) {
+    return "NOISE"
+  }
+
+  // 2. Filter promotional and newsletter content
+  if (
+    /(unsubscribe|opt-out|preferences|manage subscriptions|view in browser|newsletter|promo code|% off|limited time offer|flash sale|discount code|special offer|deals of the week|trending now)/.test(
+      t
+    )
+  ) {
+    return "NOISE"
+  }
+
+  // 3. Actionable categories
+  if (
+    /(invoice|tax invoice|payment received|receipt|order confirmation|statement of account|bill|payment confirmation)/.test(
+      t
+    )
+  ) {
     return "INVOICE"
   }
   if (/(subscription|your plan|renewal|membership|your payment method)/.test(t)) {
     return "SUBSCRIPTION"
   }
-  if (/(meeting|call|invite|schedule a|zoom|google meet|microsoft teams)/.test(t)) {
+  if (/(meeting|call|invite|schedule a|zoom|google meet|microsoft teams|calendar invitation)/.test(t)) {
     return "MEETING"
   }
   if (
-    /(please|could you|can you|need (this|me|it)|by (friday|monday|tuesday|wednesday|thursday|saturday|sunday|tomorrow|eod|eow|next week)|deadline|due|task|deliver|reel|edit|design|draft|review)/.test(
+    /(please|could you|can you|need (this|me|it)|by (friday|monday|tuesday|wednesday|thursday|saturday|sunday|tomorrow|eod|eow|next week)|deadline|due|task|deliver|reel|edit|design|draft|review|urgent|action required)/.test(
       t
     )
   ) {
     return "TASK_REQUEST"
   }
-  if (/(unsubscribe|newsletter|promo|offer|sale|% off|limited time)/.test(t)) {
-    return "NOISE"
-  }
+
   return "OTHER"
 }
 
@@ -131,7 +153,10 @@ export async function ingestEmail(
   })
   if (existingItem) return { created: false }
 
-  const category = classifyEmail(`${email.subject ?? ""}\n${email.body ?? ""}`)
+  const category = classifyEmail(`${email.subject ?? ""}\n${email.body ?? ""}`, email.fromEmail)
+  if (category === "NOISE") {
+    return { created: false }
+  }
 
   const row = await db.emailMessage.upsert({
     where: {

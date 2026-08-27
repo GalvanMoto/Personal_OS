@@ -248,7 +248,11 @@ async function gmailList(
   cursor?: string
 ): Promise<{ messages: NormalizedEmail[]; nextCursor?: string }> {
   const url = new URL(`${GMAIL_API}/messages`)
-  url.searchParams.set("maxResults", "50")
+  url.searchParams.set("maxResults", "30")
+  url.searchParams.set(
+    "q",
+    "category:primary -category:promotions -category:social -category:spam -category:forums -label:spam -label:trash"
+  )
   if (cursor) url.searchParams.set("pageToken", cursor)
 
   const res = await fetch(url, {
