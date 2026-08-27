@@ -39,6 +39,7 @@ import {
   updateTaskDef,
 } from "@/lib/ai/agent/definitions"
 import { RichContent } from "@/components/assistant/rich-content"
+import { ToolExecutionPill } from "./tool-execution-pill"
 import { cn } from "@/lib/utils"
 
 type ConfirmAnswer = "yes" | "no" | "dismissed"
@@ -279,18 +280,17 @@ export function AssistantPanel({
                     )
                   }
 
-                  // Tool execution indicator
+                  // Tool execution indicator (Animated IDE-Style)
                   if (part.type === "tool-call") {
+                    const toolPart = part as { name: string; state?: string; args?: unknown; result?: unknown }
                     return (
-                      <div
+                      <ToolExecutionPill
                         key={index}
-                        className="flex items-center gap-1.5 text-muted-foreground my-0.5"
-                      >
-                        <Badge variant="outline" className="font-mono text-[0.625rem]">
-                          {part.name}
-                        </Badge>
-                        <span className="text-[0.625rem]">{part.state}</span>
-                      </div>
+                        name={toolPart.name}
+                        state={toolPart.state}
+                        args={toolPart.args}
+                        result={toolPart.result}
+                      />
                     )
                   }
 

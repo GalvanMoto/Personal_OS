@@ -37,7 +37,7 @@ export default async function CalendarPage({
   const { workspace } = await params
   const { db, tenant } = await requireWorkspace(workspace)
 
-  const [events, tasksWithDeadlines] = await Promise.all([
+  const [events, tasksWithDeadlines, calInt] = await Promise.all([
     db.calendarEvent.findMany({
       where: { tenantId: tenant.id },
       include: { project: true },
@@ -54,7 +54,12 @@ export default async function CalendarPage({
       orderBy: { dueAt: "asc" },
       take: 40,
     }),
+    db.integration.findFirst({
+      where: { tenantId: tenant.id, provider: "GOOGLE_CALENDAR", status: "CONNECTED" },
+    }),
   ])
+
+  const isCalConnected = Boolean(calInt)
 
   const now = new Date()
   const todayEvents = events.filter((e) => {
@@ -66,30 +71,22 @@ export default async function CalendarPage({
     )
   })
 
-  const todayDeadlines = tasksWithDeadlines.filter((t) => {
-    if (!t.dueAt) return false
-    const due = new Date(t.dueAt)
-    return (
-      due.getDate() === now.getDate() &&
-      due.getMonth() === now.getMonth() &&
-      due.getFullYear() === now.getFullYear()
-    )
-  })
+  const upcomingMeetings = events.filter((e) => new Date(e.startsAt) >= now)
 
   const tiles = [
     {
       label: "Today's Schedule",
       value: todayEvents.length,
-      unit: "commitments",
-      note: `${todayDeadlines.length} task deadline${todayDeadlines.length === 1 ? "" : "s"} today`,
+      unit: "events",
+      note: `${upcomingMeetings.length} upcoming meetings queued`,
       icon: CalendarIcon,
     },
     {
-      label: "Upcoming Deadlines",
+      label: "Active Deadlines",
       value: tasksWithDeadlines.length,
-      unit: "deliverables",
-      note: "time-blocked across calendar",
-      icon: Layers,
+      unit: "due items",
+      note: "linked to active projects",
+      icon: Flame,
     },
     {
       label: "Available Focus Time",
@@ -100,9 +97,11 @@ export default async function CalendarPage({
     },
     {
       label: "Calendar Adapter",
-      value: "Google Cal",
-      unit: "connected",
-      note: "two-way meeting sync active",
+      value: isCalConnected ? "Google Cal" : "Not Connected",
+      unit: isCalConnected ? "connected" : "offline",
+      note: isCalConnected
+        ? (calInt?.accountRef ? `connected as ${calInt.accountRef}` : "two-way meeting sync active")
+        : "connect in Settings to enable 2-way sync",
       icon: RefreshCw,
     },
   ]
