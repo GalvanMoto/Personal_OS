@@ -1,4 +1,4 @@
-import { extractText as extractPdfText } from "unpdf"
+import { extractText as extractPdfText, getDocumentProxy } from "unpdf"
 
 import { canReadImage, readImage } from "@/lib/ai/vision"
 
@@ -45,7 +45,10 @@ export function canExtract(mimeType: string): boolean {
   )
 }
 
-async function extractPdf(data: Buffer): Promise<ExtractionOutcome> {
+async function extractPdf(
+  data: Buffer,
+  passwords?: string[]
+): Promise<ExtractionOutcome> {
   if (data.byteLength > MAX_PDF_BYTES) {
     return {
       supported: false,
@@ -53,6 +56,7 @@ async function extractPdf(data: Buffer): Promise<ExtractionOutcome> {
     }
   }
 
+  // 1. Try standard unencrypted extraction first
   try {
     const { text } = await extractPdfText(new Uint8Array(data), {
       mergePages: true,
@@ -70,11 +74,49 @@ async function extractPdf(data: Buffer): Promise<ExtractionOutcome> {
     }
 
     return { supported: true, text: trimmed.slice(0, MAX_TEXT_BYTES), via: "pdf" }
-  } catch (error) {
+  } catch (initialError) {
+    const errorMsg = initialError instanceof Error ? initialError.message : ""
+    const isPasswordProtected =
+      /password|encrypt/i.test(errorMsg) ||
+      (initialError && typeof initialError === "object" && "name" in initialError && (initialError as { name: string }).name === "PasswordException")
+
+    // 2. If password-protected and candidates are provided, try them in-memory
+    if (isPasswordProtected && passwords && passwords.length > 0) {
+      for (const pwd of passwords) {
+        try {
+          const proxy = await getDocumentProxy(new Uint8Array(data), { password: pwd })
+          const { text } = await extractPdfText(proxy, { mergePages: true })
+          const trimmed = text.trim()
+          if (trimmed) {
+            return {
+              supported: true,
+              text: trimmed.slice(0, MAX_TEXT_BYTES),
+              via: "pdf",
+            }
+          }
+        } catch {
+          // Continue testing next candidate
+        }
+      }
+      return {
+        supported: false,
+        reason:
+          "This PDF is password-protected and the stored vault passwords did not match. Please update your Statement Vault.",
+      }
+    }
+
+    if (isPasswordProtected) {
+      return {
+        supported: false,
+        reason:
+          "This PDF is password-protected. Add your bank details to the Statement Vault to unlock it automatically.",
+      }
+    }
+
     return {
       supported: false,
       reason: `Could not read that PDF: ${
-        error instanceof Error ? error.message : "unknown error"
+        initialError instanceof Error ? initialError.message : "unknown error"
       }`,
     }
   }
@@ -82,7 +124,8 @@ async function extractPdf(data: Buffer): Promise<ExtractionOutcome> {
 
 export async function extractText(
   data: Buffer,
-  mimeType: string
+  mimeType: string,
+  passwords?: string[]
 ): Promise<ExtractionOutcome> {
   if (isTextual(mimeType)) {
     // A huge log file adds nothing once the model has the gist.
@@ -94,7 +137,7 @@ export async function extractText(
   }
 
   if (mimeType === "application/pdf") {
-    return extractPdf(data)
+    return extractPdf(data, passwords)
   }
 
   if (canReadImage(mimeType)) {

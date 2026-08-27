@@ -117,7 +117,14 @@ export async function captureFile(
 
   const file = await storeUpload(db, ctx, { ...input, inboxItemId: item.id })
 
-  const outcome = await extractText(input.bytes, input.mimeType)
+  let passwords: string[] | undefined
+  if (input.mimeType === "application/pdf") {
+    const { getVaultMap, buildPasswordCandidates } = await import("@/lib/domain/vault")
+    const vault = await getVaultMap(db)
+    passwords = buildPasswordCandidates(vault)
+  }
+
+  const outcome = await extractText(input.bytes, input.mimeType, passwords)
 
   const updated = await db.inboxItem.update({
     where: { id: item.id },
