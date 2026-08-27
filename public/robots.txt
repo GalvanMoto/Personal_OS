@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /w/
+
+Sitemap: https://pos.techwithgalvan.in/sitemap.xml
