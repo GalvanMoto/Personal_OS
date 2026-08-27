@@ -1,0 +1,48 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute deployment commands over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          script_stop: true
+          script: |
+            echo "🚀 Starting deployment on server..."
+            cd /var/www/personal-os
+            
+            # Configure Git safe directory & authenticated fetch
+            git config --global --add safe.directory /var/www/personal-os
+            git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/GalvanMoto/Personal_OS.git
+            
+            # Pull latest changes from main
+            git fetch origin main
+            git reset --hard origin/main
+            
+            # Install dependencies & generate prisma client
+            npm install
+            npm run db:generate
+            
+            # Apply any pending database migrations
+            npx prisma migrate deploy
+            
+            # Build Next.js application
+            npm run build
+            
+            # Restart PM2 processes with zero downtime
+            pm2 reload personal-os || pm2 start npm --name "personal-os" -- run start -- -p 3004
+            pm2 reload personal-os-worker || pm2 start npm --name "personal-os-worker" -- run worker
+            pm2 save
+            
+            echo "✅ Deployment completed successfully!"
