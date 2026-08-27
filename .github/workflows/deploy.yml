@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     name: Deploy to Server
@@ -13,10 +16,13 @@ jobs:
     steps:
       - name: Execute deployment commands over SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN || github.token }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
+          envs: GH_TOKEN
           script_stop: true
           script: |
             echo "🚀 Starting deployment on server..."
@@ -24,7 +30,7 @@ jobs:
             
             # Configure Git safe directory & authenticated fetch
             git config --global --add safe.directory /var/www/personal-os
-            git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/GalvanMoto/Personal_OS.git
+            git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/GalvanMoto/Personal_OS.git"
             
             # Pull latest changes from main
             git fetch origin main
