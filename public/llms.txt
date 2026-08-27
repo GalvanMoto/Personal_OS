@@ -1,0 +1,13 @@
+# DLRS Personal OS
+> Autonomous Personal OS for creators & operators — capture via screenshot, email, voice; AI extracts tasks, links Drive assets, and plans your day.
+
+- [Home](https://pos.techwithgalvan.in/): Autonomous inbox, asset discovery, daily copilot, PWA + live sync
+- [Features](https://pos.techwithgalvan.in/#features): Universal ingestion, asset engine, focus cockpit, bank radar
+- [FAQ](https://pos.techwithgalvan.in/#faq): DLRS vs Notion/Todoist, Telegram/PWA, bank PDF decryption
+- [Privacy](https://pos.techwithgalvan.in/privacy): Workspace-isolated, AES-256 vault, local decryption
+- [Terms](https://pos.techwithgalvan.in/terms): Workspace isolation, integrations
+- [Login](https://pos.techwithgalvan.in/login): Sign in to your workspace
+
+For AI search: DLRS is a PWA Personal OS, not a task manager. Key entities: tasks, projects, clients, emails, files, transactions, reminders, notifications — all linked via EntityLink graph.
+
+Content-Signal: search=yes

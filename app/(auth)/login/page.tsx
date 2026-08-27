@@ -4,7 +4,7 @@ import { AuthShell } from "@/components/auth/auth-shell"
 import { SignInFooter, SignInForm } from "@/components/auth/sign-in-form"
 import { getCurrentUser } from "@/lib/auth/dal"
 
-export const metadata = { title: "Sign in · DLRS Personal OS" }
+export const metadata = { title: "Sign in · DLRS Personal OS", robots: { index: false, follow: false } }
 
 export default async function LoginPage() {
   if (await getCurrentUser()) redirect("/")

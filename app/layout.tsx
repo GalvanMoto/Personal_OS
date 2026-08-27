@@ -15,6 +15,41 @@ const fontMono = Geist_Mono({
 
 import { PushNotificationProvider } from "@/components/notifications/push-provider"
 import { Toaster } from "@/components/ui/toast"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  metadataBase: new URL("https://pos.techwithgalvan.in"),
+  title: {
+    default: "DLRS Personal OS — Your AI Chief-of-Staff",
+    template: "%s | DLRS",
+  },
+  description:
+    "Autonomous Personal OS for creators & operators. Capture via screenshot, email, or voice — AI extracts tasks, links Drive assets, and plans your day. PWA + Telegram + live sync, workspace-isolated.",
+  keywords: ["personal OS", "AI chief of staff", "task automation", "PWA", "productivity", "DLRS"],
+  authors: [{ name: "Galvan", url: "https://techwithgalvan.in" }],
+  creator: "Galvan",
+  publisher: "DLRS",
+  robots: { index: true, follow: true, "max-image-preview": "large" },
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    url: "https://pos.techwithgalvan.in",
+    siteName: "DLRS Personal OS",
+    title: "DLRS Personal OS — Your AI Chief-of-Staff",
+    description: "Capture → AI extracts → links assets → plans your day. The system that actually thinks for you.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "DLRS Personal OS" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "DLRS Personal OS",
+    description: "Autonomous inbox, asset discovery, daily copilot — PWA + live sync.",
+    images: ["/og-image.png"],
+    creator: "@techwithgalvan",
+  },
+  icons: { icon: "/favicon.ico", apple: "/apple-touch-icon.png" },
+  manifest: "/manifest.json",
+  alternates: { canonical: "https://pos.techwithgalvan.in" },
+}
 
 export default function RootLayout({
   children,
