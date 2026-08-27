@@ -40,9 +40,9 @@ jobs:
             # Build Next.js application
             npm run build
             
-            # Restart PM2 processes with zero downtime
-            pm2 reload personal-os || pm2 start npm --name "personal-os" -- run start -- -p 3004
-            pm2 reload personal-os-worker || pm2 start npm --name "personal-os-worker" -- run worker
+            # Restart PM2 processes with updated environment & fresh build memory
+            pm2 restart personal-os --update-env || pm2 start npm --name "personal-os" -- run start -- -p 3004
+            pm2 restart personal-os-worker --update-env || pm2 start npm --name "personal-os-worker" -- run worker
             pm2 save
             
             echo "✅ Deployment completed successfully!"
