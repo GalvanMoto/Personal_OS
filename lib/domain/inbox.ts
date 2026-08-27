@@ -12,6 +12,7 @@ import { createTask } from "@/lib/domain/tasks"
 import { logActivity } from "@/lib/events/activity"
 import { indexEntity } from "@/lib/search"
 import { emit } from "@/lib/events/bus"
+import { slugify } from "@/lib/slug"
 import type { InboxKind, SourceType } from "@/lib/generated/prisma/enums"
 
 /**
@@ -161,6 +162,8 @@ export async function applyProposal(
   }
 
   // --- Client -------------------------------------------------------------
+  // NEVER auto-create random clients/organizations from inferred email or inbox text!
+  // Only link if the client already exists in the graph or was explicitly typed by user.
   const organizationName =
     overrides.organizationName !== undefined
       ? overrides.organizationName
@@ -169,24 +172,15 @@ export async function applyProposal(
   let organizationId: string | undefined
 
   if (organizationName) {
-    const { organization } = await resolveOrganization(db, ctx, organizationName)
-    organizationId = organization.id
-
-    await recordInference(db, {
-      targetType: "ORGANIZATION",
-      targetId: organization.id,
-      field: "name",
-      value: organizationName,
-      // A name the user typed is certain; one the extractor guessed is not.
-      confidence:
-        overrides.organizationName !== undefined
-          ? 1
-          : (proposal.organization?.confidence ?? 0.5),
-      agent: "inbox",
-      sourceType: source.type,
-      sourceId: source.id,
-      evidence: proposal.organization?.evidence,
+    const existing = await db.organization.findFirst({
+      where: { slug: slugify(organizationName) },
     })
+    if (existing) {
+      organizationId = existing.id
+    } else if (overrides.organizationName) {
+      const { organization } = await resolveOrganization(db, ctx, organizationName)
+      organizationId = organization.id
+    }
   }
 
   // --- Project ------------------------------------------------------------
