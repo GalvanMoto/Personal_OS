@@ -68,81 +68,155 @@ type Block =
 
 const SPECIAL = new Set(["metrics", "chart", "info", "questionnaire"])
 
+function extractJsonBlock(text: string, startIndex: number): { json: string; endIndex: number } | null {
+  const startChar = text[startIndex]
+  if (startChar !== "{" && startChar !== "[") return null
+  const endChar = startChar === "{" ? "}" : "]"
+  
+  let depth = 0
+  let inString = false
+  let isEscaped = false
+
+  for (let i = startIndex; i < text.length; i++) {
+    const ch = text[i]
+
+    if (inString) {
+      if (ch === "\\" && !isEscaped) {
+        isEscaped = true
+      } else if (ch === '"' && !isEscaped) {
+        inString = false
+      } else {
+        isEscaped = false
+      }
+      continue
+    }
+
+    if (ch === '"') {
+      inString = true
+      isEscaped = false
+      continue
+    }
+
+    if (ch === startChar) {
+      depth++
+    } else if (ch === endChar) {
+      depth--
+      if (depth === 0) {
+        return { json: text.slice(startIndex, i + 1), endIndex: i + 1 }
+      }
+    }
+  }
+
+  return null
+}
+
 function parseBlocks(content?: string): Block[] {
   if (!content || typeof content !== "string") return []
   const blocks: Block[] = []
   
-  // Handles:
-  // 1. Standard / flexible code fences: ```(metrics|chart|info|questionnaire|json|\w*)\n?([\s\S]*?)```
-  // 2. Un-fenced raw prefixes: (metrics|chart|info|questionnaire)\s*([\[{][\s\S]*?[\]}])
-  // 3. Raw standalone JSON chart objects: {"type":"bar"|"line"|"area"|"pie", ...}
-  const re = /(?:```(?:json:)?(metrics|chart|info|questionnaire|\w*)\s*([\s\S]*?)(?:```|$))|(?:(?:^|\n)(metrics|chart|info|questionnaire)\s*(\[\s*\{[\s\S]*?\}\s*\]|\{\s*[\s\S]*?\})(?=\n\n|\n[A-Z*#-]|\s*$))|(?:(?:^|\n)\s*(\{\s*"type"\s*:\s*"(?:bar|line|area|pie)"[\s\S]*?\}\s*)(?=\n\n|\n[A-Z*#-]|\s*$))/gi
-  let last = 0
-  let match: RegExpExecArray | null
+  // 1. Process explicit markdown code fences: ```(lang)\n(content)```
+  const fenceRegex = /```(?:json:)?(metrics|chart|info|questionnaire|\w*)\s*([\s\S]*?)```/gi
+  let lastIndex = 0
+  let fenceMatch: RegExpExecArray | null
 
-  while ((match = re.exec(content)) !== null) {
-    if (match.index > last) {
-      const preceding = (content.slice(last, match.index) || "").trim()
-      if (preceding) {
-        blocks.push({ kind: "md", text: preceding })
-      }
+  // We will segment the content by code fences, and within non-fenced segments, check for un-fenced keyword blocks
+  while ((fenceMatch = fenceRegex.exec(content)) !== null) {
+    const preceding = content.slice(lastIndex, fenceMatch.index)
+    if (preceding) {
+      processUnfencedSegment(preceding, blocks)
     }
 
-    if (match[1] !== undefined) {
-      // Fenced block
-      const lang = (match[1] || "").toLowerCase()
-      const body = (match[2] || "").trim()
-      if (SPECIAL.has(lang)) {
-        blocks.push({
-          kind: lang as Exclude<Block["kind"], "md">,
-          json: body,
-        })
-      } else {
-        const parsed = safeParse<any>(body)
-        if (parsed && typeof parsed === "object") {
-          if (Array.isArray(parsed) && parsed.length > 0 && "label" in parsed[0] && "value" in parsed[0]) {
-            blocks.push({ kind: "metrics", json: body })
-          } else if ("type" in parsed && ["bar", "line", "area", "pie"].includes(parsed.type)) {
-            blocks.push({ kind: "chart", json: body })
-          } else {
-            blocks.push({ kind: "md", text: match[0] || "" })
-          }
+    const lang = (fenceMatch[1] || "").toLowerCase()
+    const body = (fenceMatch[2] || "").trim()
+
+    if (SPECIAL.has(lang)) {
+      blocks.push({ kind: lang as Exclude<Block["kind"], "md">, json: body })
+    } else {
+      const parsed = safeParse<any>(body)
+      if (parsed && typeof parsed === "object") {
+        if (Array.isArray(parsed) && parsed.length > 0 && "label" in parsed[0] && "value" in parsed[0]) {
+          blocks.push({ kind: "metrics", json: body })
+        } else if ("type" in parsed && ["bar", "line", "area", "pie"].includes(parsed.type)) {
+          blocks.push({ kind: "chart", json: body })
         } else {
-          blocks.push({ kind: "md", text: match[0] || "" })
+          blocks.push({ kind: "md", text: fenceMatch[0] })
         }
-      }
-    } else if (match[3]) {
-      // Un-fenced keyword block
-      const lang = (match[3] || "").toLowerCase()
-      const body = (match[4] || "").trim()
-      if (SPECIAL.has(lang)) {
-        blocks.push({
-          kind: lang as Exclude<Block["kind"], "md">,
-          json: body,
-        })
       } else {
-        blocks.push({ kind: "md", text: match[0] || "" })
+        blocks.push({ kind: "md", text: fenceMatch[0] })
       }
-    } else if (match[5]) {
-      // Raw standalone JSON chart object
-      const body = (match[5] || "").trim()
-      blocks.push({
-        kind: "chart",
-        json: body,
-      })
     }
 
-    last = re.lastIndex
+    lastIndex = fenceRegex.lastIndex
   }
 
-  if (last < content.length) {
-    const trailing = (content.slice(last) || "").trim()
+  if (lastIndex < content.length) {
+    const trailing = content.slice(lastIndex)
     if (trailing) {
-      blocks.push({ kind: "md", text: trailing })
+      processUnfencedSegment(trailing, blocks)
     }
   }
 
   return blocks.length > 0 ? blocks : [{ kind: "md", text: content }]
+}
+
+function processUnfencedSegment(segment: string, blocks: Block[]): void {
+  // Scans for:
+  // - Keyword prefixes: (chart|metrics|info|questionnaire)\s*([\{[])
+  // - Standalone JSON charts: (?:^|\n)\s*(\{\s*"type"\s*:\s*"(?:bar|line|area|pie)")
+  let cursor = 0
+
+  while (cursor < segment.length) {
+    const keywordMatch = /(?:^|\n|\s)(metrics|chart|info|questionnaire)\s*(?=[\[{])/gi
+    keywordMatch.lastIndex = cursor
+
+    const standaloneMatch = /(?:^|\n)\s*(?=\{\s*"type"\s*:\s*"(?:bar|line|area|pie)")/gi
+    standaloneMatch.lastIndex = cursor
+
+    const kw = keywordMatch.exec(segment)
+    const st = standaloneMatch.exec(segment)
+
+    let nextMatchIndex = -1
+    let kind: string | null = null
+    let jsonStartIndex = -1
+
+    if (kw && (!st || kw.index <= st.index)) {
+      nextMatchIndex = kw.index
+      kind = kw[1].toLowerCase()
+      jsonStartIndex = kw.index + kw[0].length
+    } else if (st) {
+      nextMatchIndex = st.index
+      kind = "chart"
+      jsonStartIndex = st.index + st[0].length
+    }
+
+    if (nextMatchIndex === -1 || jsonStartIndex === -1 || !kind) {
+      const remaining = segment.slice(cursor).trim()
+      if (remaining) blocks.push({ kind: "md", text: remaining })
+      break
+    }
+
+    // Found candidate block
+    const extracted = extractJsonBlock(segment, jsonStartIndex)
+    if (!extracted) {
+      // Not a valid balanced bracket JSON block; move cursor forward
+      cursor = jsonStartIndex + 1
+      continue
+    }
+
+    // Push any markdown text preceding this block
+    const preText = segment.slice(cursor, nextMatchIndex).trim()
+    if (preText) {
+      blocks.push({ kind: "md", text: preText })
+    }
+
+    // Push the parsed rich widget block
+    blocks.push({
+      kind: kind as Exclude<Block["kind"], "md">,
+      json: extracted.json.trim(),
+    })
+
+    cursor = extracted.endIndex
+  }
 }
 
 function safeParse<T>(json: string): T | null {
