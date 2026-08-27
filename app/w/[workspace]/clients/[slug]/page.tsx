@@ -54,7 +54,7 @@ export default async function ClientPage({
   const { organization, openTasks, transactions } = overview
 
   // Also fetch client notes and activity logs
-  const [notes, activityLogs] = await Promise.all([
+  const [notes, activityLogs, brands, commitments] = await Promise.all([
     db.note.findMany({
       where: { tenantId: tenant.id },
       orderBy: { createdAt: "desc" },
@@ -64,6 +64,22 @@ export default async function ClientPage({
       where: { tenantId: tenant.id },
       orderBy: { createdAt: "desc" },
       take: 15,
+    }),
+    db.brand.findMany({
+      where: { organizationId: found.id },
+      orderBy: { name: "asc" },
+    }),
+    db.recurringCommitment.findMany({
+      where: { organizationId: found.id },
+      include: {
+        brand: true,
+        occurrences: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          include: { tasks: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
     }),
   ])
 
@@ -81,42 +97,54 @@ export default async function ClientPage({
       icon: Wallet,
     },
     {
-      label: "Open deliverables",
-      value: openTasks.length,
-      unit: "tasks",
-      note: openTasks.length === 0 ? "all delivered" : "active in pipeline",
-      icon: Layers,
+      label: "Client Brands",
+      value: brands.length,
+      unit: "accounts",
+      note: brands.length === 0 ? "no sub-brands" : "managed brand accounts",
+      icon: Building2,
     },
     {
-      label: "Active initiatives",
-      value: organization.projects.length,
-      unit: "projects",
-      note: "linked to client account",
-      icon: FolderGit2,
+      label: "Active Retainers",
+      value: commitments.length,
+      unit: "commitments",
+      note: "ongoing operational SLAs",
+      icon: Layers,
     },
     {
       label: "Key contacts",
       value: organization.people.length,
       unit: "stakeholders",
-      note: "primary contacts on file",
+      note: "team and client reps",
       icon: Users2,
     },
   ]
 
   return (
-    <div className="flex flex-col gap-4 p-4 md:p-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto">
+      {/* Client Header */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <Link
-            href={`/w/${workspace}/clients`}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:underline"
-          >
-            <ArrowLeft className="size-3" /> Back to Clients
-          </Link>
-          <h1 className="mt-1 text-xl font-medium tracking-tight flex items-center gap-2">
-            {organization.name}
-          </h1>
+          <div className="flex items-center gap-2 mb-1">
+            <Link
+              href={`/w/${workspace}/clients`}
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+            >
+              <ArrowLeft className="size-3" /> Clients
+            </Link>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600 font-bold text-sm">
+              {organization.name.slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                {organization.name}
+                <Badge variant="outline" className="text-[0.625rem] font-medium">
+                  {organization.kind}
+                </Badge>
+              </h1>
+            </div>
+          </div>
           <p className="mt-0.5 text-xs text-muted-foreground flex items-center gap-2">
             <span>{organization.notes || "360-degree client operations & relationship hub"}</span>
             {organization.website ? (
@@ -172,11 +200,11 @@ export default async function ClientPage({
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid w-full grid-cols-6 h-8 text-[0.6875rem]">
           <TabsTrigger value="overview">Overview &amp; AI</TabsTrigger>
+          <TabsTrigger value="brands">Brands &amp; SLAs ({commitments.length})</TabsTrigger>
           <TabsTrigger value="tasks">Deliverables ({openTasks.length})</TabsTrigger>
           <TabsTrigger value="projects">Projects ({organization.projects.length})</TabsTrigger>
           <TabsTrigger value="contacts">Contacts ({organization.people.length})</TabsTrigger>
           <TabsTrigger value="finance">Ledger ({transactions.length})</TabsTrigger>
-          <TabsTrigger value="activity">Activity Timeline</TabsTrigger>
         </TabsList>
 
         {/* 1. OVERVIEW & AI */}
@@ -255,7 +283,119 @@ export default async function ClientPage({
           </div>
         </TabsContent>
 
-        {/* 2. DELIVERABLES & TASKS */}
+        {/* 2. BRANDS & RECURRING SLAS */}
+        <TabsContent value="brands" className="mt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold">Managed Brands &amp; Retainer Commitments</h3>
+              <p className="text-xs text-muted-foreground">
+                Client brands (e.g. WOW Indian, Restaurant B) and their weekly/monthly deliverable quotas.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link href={`/w/${workspace}/commitments`}>
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
+                  <Layers className="size-3" />
+                  <span>Commitments Hub</span>
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {/* Managed Brands List */}
+            <Card>
+              <CardHeader className="p-3.5 pb-2">
+                <CardTitle className="text-xs flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Building2 className="size-3.5 text-indigo-500" />
+                    Client Brands / Accounts
+                  </span>
+                  <Badge variant="outline">{brands.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3.5 pt-0">
+                {brands.length === 0 ? (
+                  <p className="py-6 text-center text-xs text-muted-foreground">
+                    No sub-brands registered under {organization.name}.
+                  </p>
+                ) : (
+                  <div className="divide-y text-xs">
+                    {brands.map((b) => (
+                      <div key={b.id} className="py-2.5 flex items-center justify-between">
+                        <div>
+                          <span className="font-semibold text-foreground">{b.name}</span>
+                          {b.industry ? (
+                            <p className="text-[0.625rem] text-muted-foreground">{b.industry}</p>
+                          ) : null}
+                        </div>
+                        {b.website ? (
+                          <a
+                            href={b.website.startsWith("http") ? b.website : `https://${b.website}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-primary hover:underline text-[0.625rem] flex items-center gap-0.5"
+                          >
+                            <ExternalLink className="size-2.5" /> Link
+                          </a>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recurring Commitments List */}
+            <Card>
+              <CardHeader className="p-3.5 pb-2">
+                <CardTitle className="text-xs flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Layers className="size-3.5 text-emerald-500" />
+                    Recurring Retainer SLAs
+                  </span>
+                  <Badge variant="outline">{commitments.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3.5 pt-0">
+                {commitments.length === 0 ? (
+                  <p className="py-6 text-center text-xs text-muted-foreground">
+                    No recurring commitments configured for this client.
+                  </p>
+                ) : (
+                  <div className="divide-y text-xs">
+                    {commitments.map((c) => {
+                      const occ = c.occurrences[0]
+                      const done = occ?.tasks.filter((t) => t.status === "DONE").length || 0
+                      const target = occ?.targetQuantity || c.quantity
+                      return (
+                        <div key={c.id} className="py-2.5 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-foreground">{c.title}</span>
+                            <Badge variant="secondary" className="text-[0.625rem]">
+                              {c.quantity} {c.deliverableType.toLowerCase()}s / {c.frequency.toLowerCase()}
+                            </Badge>
+                          </div>
+                          {c.brand && (
+                            <p className="text-[0.625rem] text-indigo-500 font-medium">
+                              Brand: {c.brand.name}
+                            </p>
+                          )}
+                          <div className="flex items-center justify-between text-[0.625rem] text-muted-foreground pt-0.5">
+                            <span>Cycle progress:</span>
+                            <span className="font-medium text-foreground">{done} / {target} completed</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* 3. DELIVERABLES & TASKS */}
         <TabsContent value="tasks" className="mt-4">
           <Card>
             <CardHeader className="pb-3">

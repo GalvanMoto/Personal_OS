@@ -46,6 +46,7 @@ export function buildNavigation(workspace: string): AppNavigationGroup[] {
         },
         { name: "Projects", href: at("/projects"), icon: Icons.FolderIcon },
         { name: "Clients", href: at("/clients"), icon: Icons.UsersIcon },
+        { name: "Commitments", href: at("/commitments"), icon: Icons.StackIcon },
       ],
     },
     {

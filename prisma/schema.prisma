@@ -99,6 +99,9 @@ model Tenant {
   contextPacks  ContextPack[]
   searchDocuments SearchDocument[]
   vaultSecrets  VaultSecret[]
+  brands        Brand[]
+  commitments   RecurringCommitment[]
+  commitmentOccurrences CommitmentOccurrence[]
 
   @@map("tenants")
 }
@@ -217,11 +220,111 @@ model Organization {
   tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   people       Person[]
   projects     Project[]
+  brands       Brand[]
+  commitments  RecurringCommitment[]
   transactions Transaction[]
 
   @@unique([tenantId, slug])
   @@index([tenantId, kind])
   @@map("organizations")
+}
+
+model Brand {
+  id             String                @id @default(cuid())
+  tenantId       String
+  organizationId String
+  name           String
+  slug           String
+  website        String?
+  industry       String?
+  color          String?
+  socialLinks    Json?
+  notes          String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  tenant       Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  commitments  RecurringCommitment[]
+
+  @@unique([tenantId, organizationId, slug])
+  @@index([tenantId, organizationId])
+  @@map("brands")
+}
+
+enum DeliverableType {
+  REEL
+  POST
+  SHORT
+  STORY
+  REPORT
+  DESIGN
+  NEWSLETTER
+  CUSTOM
+}
+
+enum CommitmentFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
+enum CommitmentStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+model RecurringCommitment {
+  id                String              @id @default(cuid())
+  tenantId          String
+  organizationId    String
+  brandId           String?
+  projectId         String?
+  title             String
+  description       String?
+  deliverableType   DeliverableType     @default(REEL)
+  quantity          Int                 @default(1)
+  unit              String              @default("deliverables")
+  frequency         CommitmentFrequency @default(WEEKLY)
+  dueDayOfWeek      Int                 @default(5)
+  estimatedMinutes  Int                 @default(45)
+  priority          TaskPriority        @default(HIGH)
+  status            CommitmentStatus    @default(ACTIVE)
+  autoGenerateTasks Boolean             @default(true)
+  autoRemind        Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  brand        Brand?                 @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  occurrences  CommitmentOccurrence[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, organizationId])
+  @@map("recurring_commitments")
+}
+
+model CommitmentOccurrence {
+  id                String       @id @default(cuid())
+  tenantId          String
+  commitmentId      String
+  cycleKey          String
+  periodStart       DateTime
+  periodEnd         DateTime
+  targetQuantity    Int
+  completedQuantity Int          @default(0)
+  createdAt         DateTime     @default(now())
+
+  tenant     Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  commitment RecurringCommitment @relation(fields: [commitmentId], references: [id], onDelete: Cascade)
+  tasks      Task[]
+
+  @@unique([tenantId, commitmentId, cycleKey])
+  @@map("commitment_occurrences")
 }
 
 model Person {
@@ -297,38 +400,41 @@ enum TaskPriority {
 }
 
 model Task {
-  id          String       @id @default(cuid())
-  tenantId    String
-  title       String
-  description String?
-  status      TaskStatus   @default(TODO)
-  priority    TaskPriority @default(MEDIUM)
-  projectId   String?
-  parentId    String?
+  id                     String                @id @default(cuid())
+  tenantId               String
+  title                  String
+  description            String?
+  status                 TaskStatus            @default(TODO)
+  priority               TaskPriority          @default(MEDIUM)
+  projectId              String?
+  parentId               String?
+  commitmentOccurrenceId String?
   /// Free-text reason the task is parked, set when status is WAITING/BLOCKED.
-  waitingOn   String?
-  dueAt       DateTime?
-  startedAt   DateTime?
-  completedAt DateTime?
-  estimateMin Int?
-  position    Int          @default(0)
+  waitingOn              String?
+  dueAt                  DateTime?
+  startedAt              DateTime?
+  completedAt            DateTime?
+  estimateMin            Int?
+  position               Int                   @default(0)
   /// Cached output of the planning agent's scoring pass (PRD §22).
-  score       Float?
-  createdBy   ActorType    @default(USER)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  score                  Float?
+  createdBy              ActorType             @default(USER)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
 
-  tenant   Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  project  Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  parent   Task?               @relation("TaskSubtasks", fields: [parentId], references: [id], onDelete: Cascade)
-  subtasks Task[]              @relation("TaskSubtasks")
-  checklist TaskChecklistItem[]
-  reminders Reminder[]
-  packs    ContextPack[]
+  tenant     Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project    Project?              @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  occurrence CommitmentOccurrence? @relation(fields: [commitmentOccurrenceId], references: [id], onDelete: SetNull)
+  parent     Task?                 @relation("TaskSubtasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subtasks   Task[]                @relation("TaskSubtasks")
+  checklist  TaskChecklistItem[]
+  reminders  Reminder[]
+  packs      ContextPack[]
 
   @@index([tenantId, status])
   @@index([tenantId, dueAt])
   @@index([tenantId, projectId])
+  @@index([tenantId, commitmentOccurrenceId])
   @@index([parentId])
   @@map("tasks")
 }
