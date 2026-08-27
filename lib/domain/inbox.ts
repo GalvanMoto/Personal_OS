@@ -2,6 +2,7 @@ import "server-only"
 
 import { resolveProvider } from "@/lib/ai/provider"
 import { extractionResultSchema, type ExtractionResult } from "@/lib/ai/types"
+import { publishRealtime } from "@/lib/realtime/bus"
 import type { TenantDb } from "@/lib/db/tenant"
 import type { DomainContext } from "@/lib/domain/context-types"
 import { resolveOrganization } from "@/lib/domain/organizations"
@@ -57,6 +58,9 @@ export async function capture(
     actorType: ctx.actorType ?? "USER",
     actorId: ctx.agent ?? ctx.userId,
   })
+
+  publishRealtime({ type: "inbox", tenantId: ctx.tenantId, payload: { id: item.id }, at: new Date().toISOString() }).catch(() => {})
+  publishRealtime({ type: "badge", tenantId: ctx.tenantId, payload: {}, at: new Date().toISOString() }).catch(() => {})
 
   return item
 }

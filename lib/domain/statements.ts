@@ -1,6 +1,6 @@
 import "server-only"
 
-import { parseAmount, money, type Money } from "./money"
+import { parseAmount } from "./money"
 import { categorize, type Category } from "./categorize"
 import type { RecordTransactionInput } from "./finance"
 import type { TransactionDirection } from "@/lib/generated/prisma/enums"

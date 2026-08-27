@@ -30,6 +30,7 @@ export type DriveListResult = {
   nextPageToken?: string
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function requireEnv(name: string): string {
   const value =
     process.env[name] ||
@@ -305,6 +306,7 @@ export async function listDriveFiles(
 
   const data = await res.json()
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     files: (data.files ?? []).map((f: any) => ({
       id: f.id,
       name: f.name,

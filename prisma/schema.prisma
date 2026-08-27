@@ -98,6 +98,7 @@ model Tenant {
   subscriptions Subscription[]
   contextPacks  ContextPack[]
   searchDocuments SearchDocument[]
+  vaultSecrets  VaultSecret[]
 
   @@map("tenants")
 }
@@ -969,6 +970,25 @@ model Subscription {
 // ---------------------------------------------------------------------------
 // Search (PRD §12)
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Vault — encrypted PII for statement passwords (PAN/DOB/Phone) — PRD §8
+// ---------------------------------------------------------------------------
+
+model VaultSecret {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  kind      String // PAN, DOB, PHONE, CUSTOM, BANK_TEMPLATE
+  label     String // e.g., "PAN", "HDFC"
+  cipher    String // AES-256-GCM via SECRET_ENCRYPTION_KEY
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, kind, label])
+  @@index([tenantId])
+  @@map("vault_secrets")
+}
 
 /// One row per searchable entity, so "everything related to GB Banquet" is a
 /// single ranked query instead of a fan-out across ten tables. The `tsv` column

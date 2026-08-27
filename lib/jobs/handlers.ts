@@ -9,6 +9,7 @@ import { syncSubscriptions, upcomingPayments } from "@/lib/domain/finance"
 import { formatMoney, money } from "@/lib/domain/money"
 import { dueReminders, markReminderSent } from "@/lib/domain/reminders"
 import { prisma } from "@/lib/db/client"
+import { publishRealtime } from "@/lib/realtime/bus"
 
 /// Handlers receive a tenant-scoped handle, so a job for one workspace cannot
 /// read another's data even if its payload is wrong.
@@ -23,7 +24,7 @@ export const jobHandlers: Record<string, JobHandler> = {
     const ready = await dueReminders(db)
 
     for (const reminder of ready) {
-      await db.notification.create({
+      const n = await db.notification.create({
         data: {
           level: "REMINDER",
           title: reminder.title,
@@ -31,6 +32,8 @@ export const jobHandlers: Record<string, JobHandler> = {
           href: reminder.taskId ? `/tasks/${reminder.taskId}` : null,
         } as never,
       })
+      publishRealtime({ type: "notification", tenantId: ctx.tenantId, payload: { id: n.id, level: n.level, title: n.title }, at: new Date().toISOString() }).catch(() => {})
+      publishRealtime({ type: "badge", tenantId: ctx.tenantId, payload: {}, at: new Date().toISOString() }).catch(() => {})
 
       await markReminderSent(db, ctx, reminder.id)
     }
@@ -47,7 +50,7 @@ export const jobHandlers: Record<string, JobHandler> = {
 
     const briefing = await buildBriefing(db, user?.name ?? "there")
 
-    await db.notification.create({
+    const n2 = await db.notification.create({
       data: {
         level: "INFO",
         title: briefing.headline,
@@ -57,6 +60,8 @@ export const jobHandlers: Record<string, JobHandler> = {
         href: "/today",
       } as never,
     })
+    publishRealtime({ type: "notification", tenantId: ctx.tenantId, payload: { id: n2.id, level: n2.level, title: n2.title }, at: new Date().toISOString() }).catch(() => {})
+    publishRealtime({ type: "badge", tenantId: ctx.tenantId, payload: {}, at: new Date().toISOString() }).catch(() => {})
 
     return { headline: briefing.headline }
   },
@@ -103,7 +108,7 @@ export const jobHandlers: Record<string, JobHandler> = {
     const soon = await upcomingPayments(db, 3)
 
     for (const payment of soon) {
-      await db.notification.create({
+      const n3 = await db.notification.create({
         data: {
           level: "REMINDER",
           title: `${payment.name} renews in ${payment.daysAway} day${
@@ -113,13 +118,15 @@ export const jobHandlers: Record<string, JobHandler> = {
           href: "/finance",
         } as never,
       })
+      publishRealtime({ type: "notification", tenantId: ctx.tenantId, payload: { id: n3.id, level: n3.level, title: n3.title }, at: new Date().toISOString() }).catch(() => {})
     }
+    if (soon.length) publishRealtime({ type: "badge", tenantId: ctx.tenantId, payload: {}, at: new Date().toISOString() }).catch(() => {})
 
     return { ...result, warned: soon.length }
   },
 
   /// Flags deadlines that are close but whose task has not been started.
-  "deadline.sweep": async (_payload, { db }) => {
+  "deadline.sweep": async (_payload, { db, ctx }) => {
     const soon = new Date(Date.now() + 24 * 60 * 60 * 1000)
 
     const atRisk = await db.task.findMany({
@@ -130,14 +137,16 @@ export const jobHandlers: Record<string, JobHandler> = {
     })
 
     for (const task of atRisk) {
-      await db.notification.create({
+      const n4 = await db.notification.create({
         data: {
           level: "IMPORTANT",
           title: `${task.title} is due soon and hasn't been started`,
           href: `/tasks/${task.id}`,
         } as never,
       })
+      publishRealtime({ type: "notification", tenantId: ctx.tenantId, payload: { id: n4.id, level: n4.level, title: n4.title }, at: new Date().toISOString() }).catch(() => {})
     }
+    if (atRisk.length) publishRealtime({ type: "badge", tenantId: ctx.tenantId, payload: {}, at: new Date().toISOString() }).catch(() => {})
 
     return { flagged: atRisk.length }
   },

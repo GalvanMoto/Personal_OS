@@ -44,6 +44,7 @@ export function agentAdapter(): AnyTextAdapter {
     const baseURL = `${endpoint}/openai/deployments/${deployment}`
 
     return createOpenaiChatCompletions(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       deployment as any,
       apiKey,
       {

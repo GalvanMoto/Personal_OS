@@ -7,6 +7,7 @@ import { compareByScore, scoreTask } from "@/lib/domain/scoring"
 import { logActivity } from "@/lib/events/activity"
 import { indexEntity, removeFromIndex } from "@/lib/search"
 import { emit } from "@/lib/events/bus"
+import { publishRealtime } from "@/lib/realtime/bus"
 import type {
   SourceType,
   TaskPriority,
@@ -105,6 +106,9 @@ export async function createTask(
     targetType: "TASK",
     targetId: task.id,
   })
+
+  publishRealtime({ type: "task", tenantId: ctx.tenantId, payload: { id: task.id, title: task.title }, at: new Date().toISOString() }).catch(() => {})
+  publishRealtime({ type: "badge", tenantId: ctx.tenantId, payload: {}, at: new Date().toISOString() }).catch(() => {})
 
   return task
 }

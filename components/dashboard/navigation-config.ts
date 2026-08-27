@@ -74,6 +74,7 @@ export function buildNavigation(workspace: string): AppNavigationGroup[] {
       collapsible: true,
       items: [
         { name: "Assistant", href: at("/assistant"), icon: Icons.SparkleIcon },
+        { name: "Memory", href: at("/memory"), icon: Icons.SparkleIcon },
         { name: "Agents Swarm", href: at("/agents"), icon: Icons.SparkleIcon },
         {
           name: "Activity",

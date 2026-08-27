@@ -1,6 +1,6 @@
 import DashboardLayout from "@/components/watermelon/medesk-dashboard/dashboard-layout"
 import { ShellProvider, type ShellData } from "@/components/dashboard/shell-context"
-import { RealtimeRefresh } from "@/components/realtime/realtime-refresh"
+import { LiveProvider } from "@/components/realtime/live-provider"
 import { getWorkspaces, requireWorkspace } from "@/lib/auth/dal"
 
 export const dynamic = "force-dynamic"
@@ -70,7 +70,7 @@ export default async function WorkspaceLayout({
 
   return (
     <ShellProvider value={shell}>
-      <RealtimeRefresh intervalMs={12_000} />
+      <LiveProvider workspace={tenant.slug} />
       <DashboardLayout>{children}</DashboardLayout>
     </ShellProvider>
   )

@@ -13,6 +13,7 @@ const fontMono = Geist_Mono({
 })
 
 import { PushNotificationProvider } from "@/components/notifications/push-provider"
+import { Toaster } from "@/components/ui/toast"
 
 export default function RootLayout({
   children,
@@ -31,9 +32,11 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider>
-          <TooltipProvider>
-            <PushNotificationProvider>{children}</PushNotificationProvider>
-          </TooltipProvider>
+          <Toaster>
+            <TooltipProvider>
+              <PushNotificationProvider>{children}</PushNotificationProvider>
+            </TooltipProvider>
+          </Toaster>
         </ThemeProvider>
       </body>
     </html>

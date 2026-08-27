@@ -5,7 +5,6 @@ import { z } from "zod"
 import { requireWorkspace } from "@/lib/auth/dal"
 import { createProject } from "@/lib/domain/projects"
 import { createOrganization } from "@/lib/domain/organizations"
-import { recordTransaction } from "@/lib/domain/finance"
 import { indexEntity } from "@/lib/search"
 
 const createProjectSchema = z.object({

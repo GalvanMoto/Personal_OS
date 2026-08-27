@@ -148,8 +148,8 @@ export default async function TaskDetailPage({
                   {task.description || "No verbatim instructions attached."}
                 </p>
               ) : (
-                instructions.map((inst, i) => (
-                  <div key={i} className="rounded-lg border bg-muted/20 p-3">
+                instructions.map((inst) => (
+                  <div key={`${inst.source}-${inst.capturedAt}-${inst.text.slice(0,20)}`} className="rounded-lg border bg-muted/20 p-3">
                     <p className="text-foreground italic leading-relaxed">
                       &ldquo;{inst.text}&rdquo;
                     </p>
@@ -232,8 +232,8 @@ export default async function TaskDetailPage({
               {assets.length === 0 ? (
                 <p className="text-muted-foreground">No asset dependencies discovered.</p>
               ) : (
-                assets.map((asset, i) => (
-                  <div key={i} className="flex items-center justify-between p-2 rounded border bg-muted/20">
+                assets.map((asset) => (
+                  <div key={asset.label} className="flex items-center justify-between p-2 rounded border bg-muted/20">
                     <span className="font-medium truncate">{asset.label}</span>
                     <Badge variant={asset.done ? "secondary" : "outline"} className="text-[0.625rem]">
                       {asset.done ? "Ready" : "Pending"}
@@ -275,8 +275,8 @@ export default async function TaskDetailPage({
               {sources.length === 0 ? (
                 <p className="text-muted-foreground">Directly created by user.</p>
               ) : (
-                sources.map((s, i) => (
-                  <div key={i} className="rounded border p-2 text-muted-foreground font-mono text-[0.625rem]">
+                sources.map((s) => (
+                  <div key={`${s.kind}-${s.label}`} className="rounded border p-2 text-muted-foreground font-mono text-[0.625rem]">
                     <span className="text-foreground font-medium">{s.kind}</span>: {s.label}
                   </div>
                 ))

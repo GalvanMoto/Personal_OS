@@ -151,7 +151,7 @@ export const AGENT_REGISTRY: Record<string, AgentDefinition> = {
 export function checkAgentPolicy(
   agentId: string,
   toolName: string,
-  risk: ToolRisk
+  _risk: ToolRisk
 ): { allowed: boolean; reason?: string } {
   const agent = AGENT_REGISTRY[agentId]
   if (!agent) {
