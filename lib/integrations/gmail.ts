@@ -61,14 +61,22 @@ export function getPublicRedirectUri(
   request: Request,
   path: string = "/api/integrations/gmail/callback"
 ): string {
+  const envBase = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL
+  const cleanPath = path.startsWith("/") ? path : `/${path}`
+
+  if (envBase) {
+    return `${envBase.replace(/\/$/, "")}${cleanPath}`
+  }
+
+  const forwardedProto = request.headers.get("x-forwarded-proto")
   const forwardedHost = request.headers.get("x-forwarded-host")
   const hostHeader = request.headers.get("host")
   const urlHost = new URL(request.url).host
 
-  const host = forwardedHost || hostHeader || urlHost
+  const rawHost = (forwardedHost || hostHeader || urlHost).split(",")[0].trim()
+  const host = rawHost.replace(/:80$/, "").replace(/:443$/, "")
   const isLocal = host.includes("localhost") || host.includes("127.0.0.1")
-  const proto = isLocal ? "http" : "https"
-  const cleanPath = path.startsWith("/") ? path : `/${path}`
+  const proto = forwardedProto || (isLocal ? "http" : "https")
 
   return `${proto}://${host}${cleanPath}`
 }
