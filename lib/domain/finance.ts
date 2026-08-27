@@ -44,11 +44,26 @@ export async function recordTransaction(
   ctx: DomainContext,
   input: RecordTransactionInput
 ) {
+  // 1. Exact external ID / bank reference deduplication
   if (input.externalRef) {
     const existing = await db.transaction.findFirst({
       where: { externalRef: input.externalRef },
     })
     if (existing) return { transaction: existing, created: false }
+  }
+
+  // 2. Deterministic fingerprint deduplication for overlapping statements (date + amount + direction + account + description)
+  const existingFingerprint = await db.transaction.findFirst({
+    where: {
+      occurredAt: input.occurredAt,
+      amountMinor: input.amountMinor,
+      direction: input.direction,
+      description: input.description.trim(),
+      accountId: input.accountId,
+    },
+  })
+  if (existingFingerprint) {
+    return { transaction: existingFingerprint, created: false }
   }
 
   const guess = input.category
@@ -140,8 +155,9 @@ export async function spendingSummary(
     select: { amountMinor: true, direction: true, category: true },
   })
 
-  const debits = transactions.filter((row) => row.direction === "DEBIT")
-  const credits = transactions.filter((row) => row.direction === "CREDIT")
+  // Exclude internal transfers and liability settlements from spent/earned calculations per financelogic.txt
+  const debits = transactions.filter((row) => row.direction === "DEBIT" && row.category !== "TRANSFER")
+  const credits = transactions.filter((row) => row.direction === "CREDIT" && row.category !== "TRANSFER")
 
   const spent = sumMinor(debits.map((row) => row.amountMinor))
   const earned = sumMinor(credits.map((row) => row.amountMinor))

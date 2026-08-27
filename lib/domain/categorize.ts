@@ -88,6 +88,11 @@ const RULES: Rule[] = [
       /\b(invoice|consulting|retainer|freelance|contractor|vendor payment|client payment|professional fee)\b/i,
   },
   {
+    category: "TRANSFER",
+    patterns:
+      /\b(amazon pay later|pay later repayment|credit card payment|card bill payment|bnpl repayment|autopay debit|loan emi|emi repayment|self transfer|funds transfer)\b/i,
+  },
+  {
     // Broadest of the payment rails — checked last so a UPI payment *to Swiggy*
     // is categorised as food rather than swallowed as a generic transfer.
     category: "TRANSFER",
