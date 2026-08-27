@@ -44,6 +44,12 @@ export default async function SettingsPage({
         </div>
       </div>
 
+      <div className="mb-3 flex justify-end">
+        <a href={`/w/${workspace}/settings/vault`} className="inline-flex items-center gap-1.5 rounded border bg-card px-3 py-1.5 text-xs hover:bg-muted">
+          <Lock className="size-3" /> Statement Vault — PAN/DOB/Phone
+        </a>
+      </div>
+
       {/* Main Settings Center Layout */}
       <SettingsCenter
         workspace={workspace}
