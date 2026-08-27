@@ -41,11 +41,29 @@ export function LiveProvider({ workspace }: { workspace: string }) {
             const p = (data.payload ?? data) as Record<string, unknown>
             const title = (p.title as string) || (data.title as string) || "New notification"
             const body = (p.body as string) || ""
-            // Toast (base-ui)
+            
+            // 1. In-app Toast
             try {
               toast.add({ title, description: body || undefined, type: "info" } as unknown as Parameters<typeof toast.add>[0])
             } catch {}
-            // App badge
+
+            // 2. Native OS Push / Device Notification
+            if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+              try {
+                if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+                  navigator.serviceWorker.controller.postMessage({
+                    type: "SHOW_NOTIFICATION",
+                    title,
+                    body,
+                    icon: "/icon-192.png",
+                  })
+                } else {
+                  new Notification(title, { body, icon: "/icon-192.png" })
+                }
+              } catch {}
+            }
+
+            // 3. App badge
             if ("setAppBadge" in navigator) {
               try { (navigator as unknown as { setAppBadge: (n?: number) => Promise<void> }).setAppBadge(1) } catch {}
             }

@@ -132,6 +132,15 @@ self.addEventListener("notificationclose", () => {
 
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
+  if (event.data && event.data.type === "SHOW_NOTIFICATION") {
+    self.registration.showNotification(event.data.title || "DLRS Personal OS", {
+      body: event.data.body || "",
+      icon: event.data.icon || "/icon-192.png",
+      badge: "/icon-192.png",
+      data: event.data.data || { url: "/" },
+      vibrate: [100, 50, 100],
+    });
+  }
   if (event.data && event.data.type === "SET_BADGE" && "setAppBadge" in navigator) {
     const n = event.data.count;
     try { if (n > 0) navigator.setAppBadge(n); else navigator.clearAppBadge(); } catch {}

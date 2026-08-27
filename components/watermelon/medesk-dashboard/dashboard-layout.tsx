@@ -1,9 +1,13 @@
+"use client";
+
 import type { CSSProperties, ReactNode } from "react";
 import { DashboardSidebar } from "./components/medesk/sidebar";
 import { DashboardTopbar } from "./components/medesk/topbar";
 import { DashboardNavigationProvider } from "./components/medesk/navigation";
 import { ThemeProvider } from "./components/medesk/theme-provider";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { MobileChatShell } from "@/components/mobile/mobile-chat-shell";
+import { useShell } from "@/components/dashboard/shell-context";
 import "./dashboard.css";
 
 type DashboardLayoutProps = {
@@ -11,29 +15,41 @@ type DashboardLayoutProps = {
 };
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  const shell = useShell();
+
   return (
     <ThemeProvider defaultTheme="system" storageKey="medesk-theme">
-      <DashboardNavigationProvider>
-        <SidebarProvider
-          defaultOpen
-          className="medesk-dashboard h-svh overflow-hidden no-scrollbar"
-          style={
-            {
-              "--sidebar-width": "17.25rem",
-              "--sidebar-width-icon": "5.125rem",
-            } as CSSProperties
-          }
-        >
-          <DashboardSidebar />
+      {/* Mobile: Full-Screen AI Chief-of-Staff Chat with Native Notifications */}
+      <div className="block md:hidden h-svh w-full overflow-hidden">
+        <MobileChatShell workspace={shell.workspace.slug}>
+          {children}
+        </MobileChatShell>
+      </div>
 
-          <main className="flex flex-1 flex-col overflow-hidden bg-sidebar p-0 md:p-2 md:pl-0">
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:rounded-xl">
-              <DashboardTopbar />
-              <div className="flex-1 overflow-y-auto">{children}</div>
-            </div>
-          </main>
-        </SidebarProvider>
-      </DashboardNavigationProvider>
+      {/* Desktop & Tablet: Full Workspace Dashboard & Sidebar */}
+      <div className="hidden md:block h-svh w-full overflow-hidden">
+        <DashboardNavigationProvider>
+          <SidebarProvider
+            defaultOpen
+            className="medesk-dashboard h-svh overflow-hidden no-scrollbar"
+            style={
+              {
+                "--sidebar-width": "17.25rem",
+                "--sidebar-width-icon": "5.125rem",
+              } as CSSProperties
+            }
+          >
+            <DashboardSidebar />
+
+            <main className="flex flex-1 flex-col overflow-hidden bg-sidebar p-0 md:p-2 md:pl-0">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:rounded-xl">
+                <DashboardTopbar />
+                <div className="flex-1 overflow-y-auto">{children}</div>
+              </div>
+            </main>
+          </SidebarProvider>
+        </DashboardNavigationProvider>
+      </div>
     </ThemeProvider>
   );
 }
