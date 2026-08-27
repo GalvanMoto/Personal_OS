@@ -2,7 +2,7 @@
   "name": "DLRS Personal OS",
   "short_name": "DLRS OS",
   "description": "Your AI Chief-of-Staff and Personal Operating System — capture, organize, and act.",
-  "start_url": "/w/studio/today",
+  "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "window-controls-overlay"],
@@ -42,35 +42,35 @@
       "name": "New Task",
       "short_name": "New Task",
       "description": "Create a task in your workspace",
-      "url": "/w/studio/tasks",
+      "url": "/dashboard",
       "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
     },
     {
       "name": "Quick Capture",
       "short_name": "Capture",
       "description": "Capture anything to your Universal Inbox",
-      "url": "/w/studio/inbox",
+      "url": "/dashboard",
       "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
     },
     {
       "name": "Ask Assistant",
       "short_name": "Assistant",
       "description": "Talk to your AI Chief-of-Staff",
-      "url": "/w/studio/assistant",
+      "url": "/dashboard",
       "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
     },
     {
       "name": "Today",
       "short_name": "Today",
       "description": "Your daily briefing and next best action",
-      "url": "/w/studio/today",
+      "url": "/dashboard",
       "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
     },
     {
       "name": "Inbox",
       "short_name": "Inbox",
       "description": "Review captured items awaiting processing",
-      "url": "/w/studio/inbox",
+      "url": "/dashboard",
       "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
     }
   ],

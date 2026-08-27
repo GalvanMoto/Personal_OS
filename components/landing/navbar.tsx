@@ -86,7 +86,7 @@ export function Navbar() {
         <div className="flex items-center gap-2.5">
           <ThemeToggle />
 
-          <Link href="/w/studio/assistant" className="hidden sm:block">
+          <Link href="/dashboard" className="hidden sm:block">
             <Button size="sm" className="h-8.5 px-4 text-xs font-semibold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-md shadow-indigo-500/20 gap-1.5 group">
               <span>Launch Cockpit</span>
               <ArrowRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -120,7 +120,7 @@ export function Navbar() {
                     FAQ
                   </a>
                   <div className="pt-4 border-t flex flex-col gap-2">
-                    <Link href="/w/studio/assistant" className="w-full">
+                    <Link href="/dashboard" className="w-full">
                       <Button className="w-full bg-primary text-primary-foreground font-semibold">
                         Launch Cockpit
                       </Button>

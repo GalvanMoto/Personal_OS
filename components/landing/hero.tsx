@@ -67,10 +67,10 @@ export function Hero() {
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center gap-3.5 pt-2 w-full sm:w-auto">
-            <Link href="/w/studio/assistant" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full sm:w-auto h-12 px-8 text-base font-semibold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-lg shadow-indigo-500/25 gap-2 group">
-                <span>Launch Studio Cockpit</span>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
+            <Link href="/dashboard" className="w-full sm:w-auto">
+              <Button size="lg" className="w-full h-11 px-7 font-semibold bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-lg shadow-indigo-500/25 gap-2 group text-sm">
+                <span>Launch Cockpit</span>
                 <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>

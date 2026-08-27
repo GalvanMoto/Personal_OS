@@ -1,6 +1,6 @@
 // DLRS Personal OS Service Worker — PWA: offline cache + push + badge + background sync
 const CACHE = "dlrs-v1";
-const CORE = ["/manifest.json", "/favicon.ico", "/w/studio/today"];
+const CORE = ["/manifest.json", "/favicon.ico", "/dashboard"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -31,7 +31,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE).then((c) => c.put(req, copy));
           return res;
         })
-        .catch(() => caches.match(req).then((hit) => hit || caches.match("/w/studio/today")))
+        .catch(() => caches.match(req).then((hit) => hit || caches.match("/dashboard")))
     );
     return;
   }
@@ -77,7 +77,7 @@ self.addEventListener("push", (event) => {
       body: p.body || "You have a new update from your AI Chief-of-Staff.",
       icon: p.icon || "/favicon.ico",
       badge: p.badge || "/favicon.ico",
-      data: { url: p.url || "/w/studio/today" },
+      data: { url: p.url || "/dashboard" },
       tag,
       renotify: true,
       requireInteraction: !!p.requireInteraction,
@@ -115,7 +115,7 @@ self.addEventListener("notificationclick", (event) => {
     return;
   }
 
-  const targetUrl = data.url || "/w/studio/today";
+  const targetUrl = data.url || "/dashboard";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
