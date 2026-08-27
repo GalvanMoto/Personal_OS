@@ -325,18 +325,25 @@ function cheapClassifyMeta(
 
 async function gmailList(
   accessToken: string,
-  cursor?: string
+  cursor?: string,
+  searchQuery?: string
 ): Promise<{ messages: NormalizedEmail[]; nextCursor?: string }> {
   const url = new URL(`${GMAIL_API}/messages`)
-  url.searchParams.set("maxResults", "15")
-  // Keep Gmail-side filters, but also do cheap client-side promo filter to save AI quota
-  url.searchParams.set(
-    "q",
-    "in:inbox category:primary -category:promotions -category:social -category:spam -category:forums -label:spam -label:trash"
-  )
-  if (cursor) url.searchParams.set("pageToken", cursor)
+  url.searchParams.set("maxResults", searchQuery ? "50" : "30")
 
-  const res = await fetch(url, {
+  // If user searched for something specific, search across ALL mail excluding only trash/spam
+  if (searchQuery && searchQuery.trim()) {
+    url.searchParams.set("q", `-label:spam -label:trash (${searchQuery.trim()})`)
+  } else {
+    // General sync: include all categories (primary, updates, promotions where bank alerts often land)
+    url.searchParams.set(
+      "q",
+      "-label:spam -label:trash -category:social -category:forums"
+    )
+  }
+  if (cursor && !searchQuery) url.searchParams.set("pageToken", cursor)
+
+  const res = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
   if (!res.ok) {
@@ -351,7 +358,18 @@ async function gmailList(
   const refs = data.messages ?? []
   if (refs.length === 0) return { messages: [], nextCursor: data.nextPageToken }
 
-  // Stage 1: cheap metadata for all 30 (no body) — ~1 quota unit vs 5 for full
+  // If user explicitly queried something, fetch ALL matching messages without cheap filtering
+  if (searchQuery && searchQuery.trim()) {
+    const fetched = await Promise.all(
+      refs.slice(0, 30).map((ref) => gmailGet(accessToken, ref.id).catch(() => null))
+    )
+    return {
+      messages: fetched.filter((m): m is NormalizedEmail => Boolean(m)),
+      nextCursor: data.nextPageToken,
+    }
+  }
+
+  // Otherwise, cheap filter for general background sync
   const metas = await Promise.all(refs.map((ref) => gmailGetMeta(accessToken, ref.id).catch(() => null)))
   const candidates: { id: string }[] = []
   for (let i = 0; i < refs.length; i++) {
@@ -359,14 +377,14 @@ async function gmailList(
     if (!meta) continue
     const cheap = cheapClassifyMeta({ headers: meta.headers, snippet: meta.snippet, internalDate: meta.internalDate }, meta.snippet)
     if (cheap.verdict === "CANDIDATE") candidates.push({ id: refs[i].id })
-    // NOISE promos are skipped entirely — no full fetch, no AI, no storage
   }
 
-  // Stage 2: fetch full body ONLY for candidates that passed cheap filter
-  // This is where AI quota is spent: at most ~30% of the batch in practice
-  const messages = await Promise.all(candidates.map((ref) => gmailGet(accessToken, ref.id)))
+  const fetched = await Promise.all(candidates.map((ref) => gmailGet(accessToken, ref.id).catch(() => null)))
 
-  return { messages, nextCursor: data.nextPageToken }
+  return {
+    messages: fetched.filter((m): m is NormalizedEmail => Boolean(m)),
+    nextCursor: data.nextPageToken,
+  }
 }
 
 export const gmailProvider: EmailProvider = {
@@ -375,3 +393,4 @@ export const gmailProvider: EmailProvider = {
 }
 
 export type { StoredTokens }
+

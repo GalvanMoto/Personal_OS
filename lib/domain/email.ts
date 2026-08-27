@@ -180,7 +180,8 @@ async function resolveSender(
 export async function ingestEmail(
   db: TenantDb,
   ctx: DomainContext,
-  email: NormalizedEmail
+  email: NormalizedEmail,
+  forceSave = false
 ): Promise<{ created: boolean }> {
   const existingItem = await db.inboxItem.findFirst({
     where: { sourceType: "GMAIL", sourceRef: email.externalId },
@@ -188,7 +189,7 @@ export async function ingestEmail(
   if (existingItem) return { created: false }
 
   const category = classifyEmail(email)
-  if (category === "PROMOTIONS") {
+  if (category === "PROMOTIONS" && !forceSave) {
     return { created: false }
   }
 
@@ -244,8 +245,6 @@ export async function ingestEmail(
     })
   }
 
-  // Emails are preserved in emailMessage for communication intelligence and subscription management.
-  // We do NOT automatically create tasks from emails.
   return { created: true }
 }
 
@@ -258,7 +257,8 @@ export async function ingestEmail(
 export async function syncIntegrationEmails(
   db: TenantDb,
   ctx: DomainContext,
-  integration: { id: string; provider: import("@/lib/generated/prisma/enums").IntegrationProvider; secretCipher: string | null }
+  integration: { id: string; provider: import("@/lib/generated/prisma/enums").IntegrationProvider; secretCipher: string | null },
+  searchQuery?: string
 ) {
   const provider = emailProviderFor(integration.provider)
   if (!provider) {
@@ -271,7 +271,8 @@ export async function syncIntegrationEmails(
   const accessToken = await getAccessToken(db, integrationRow)
   const { messages, nextCursor } = await provider.listMessages(
     accessToken,
-    integrationRow.syncCursor ?? undefined
+    searchQuery ? undefined : (integrationRow.syncCursor ?? undefined),
+    searchQuery
   )
 
   // AI-last: sort so the most actionable mail hits the extractor first within quota.
@@ -294,7 +295,7 @@ export async function syncIntegrationEmails(
     const fromDomain = (m.fromEmail?.split("@")[1] ?? "").toLowerCase()
     if (fromDomain && [...knownDomains].some((d) => fromDomain.includes(d) || d.includes(fromDomain))) s += 10
     const subj = (m.subject ?? "").toLowerCase()
-    if (/(please|could you|need|deadline|due|urgent|task|reel|edit|review)/.test(subj)) s += 5
+    if (/(please|could you|need|deadline|due|urgent|task|reel|edit|review|statement|invoice)/.test(subj)) s += 5
     if (m.snippet && m.snippet.length > 40) s += 1
     return s
   }
@@ -302,18 +303,20 @@ export async function syncIntegrationEmails(
 
   let ingested = 0
   for (const message of messages) {
-    const result = await ingestEmail(db, ctx, message)
+    const result = await ingestEmail(db, ctx, message, Boolean(searchQuery))
     if (result.created) ingested++
   }
 
-  await db.integration.update({
-    where: { id: integration.id },
-    data: {
-      lastSyncAt: new Date(),
-      syncCursor: nextCursor ?? null,
-      status: "CONNECTED",
-    } as never,
-  })
+  if (!searchQuery) {
+    await db.integration.update({
+      where: { id: integration.id },
+      data: {
+        lastSyncAt: new Date(),
+        syncCursor: nextCursor ?? null,
+        status: "CONNECTED",
+      } as never,
+    })
+  }
 
   return { fetched: messages.length, ingested }
 }

@@ -400,14 +400,21 @@ const tools: Tool<z.ZodType>[] = [
         },
       })
 
-      // If no matching rows, attempt a live sync from connected integrations and query again
+      // If no matching rows, attempt a live targeted sync directly from Gmail API and query again
       if (rows.length === 0) {
+        const liveSearchQuery = [
+          args.query,
+          args.from ? `from:${args.from}` : null,
+        ]
+          .filter(Boolean)
+          .join(" ")
+
         const integrations = await db.integration.findMany({
           where: { tenantId: ctx.tenantId, provider: "GMAIL", status: "CONNECTED" },
         })
         for (const integration of integrations) {
           try {
-            await syncIntegrationEmails(db, ctx, integration)
+            await syncIntegrationEmails(db, ctx, integration, liveSearchQuery || undefined)
           } catch (err) {
             console.warn(`[search_emails] auto-sync failed for ${integration.id}:`, err)
           }
@@ -461,12 +468,19 @@ const tools: Tool<z.ZodType>[] = [
         }
       }
 
+      const liveSearchQuery = [
+        args.query,
+        args.from ? `from:${args.from}` : null,
+      ]
+        .filter(Boolean)
+        .join(" ")
+
       let totalFetched = 0
       let totalIngested = 0
 
       for (const integration of integrations) {
         try {
-          const res = await syncIntegrationEmails(db, ctx, integration)
+          const res = await syncIntegrationEmails(db, ctx, integration, liveSearchQuery || undefined)
           totalFetched += res.fetched
           totalIngested += res.ingested
         } catch (err) {

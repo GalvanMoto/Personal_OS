@@ -29,7 +29,8 @@ export type NormalizedEmail = {
 export interface EmailProvider {
   listMessages(
     accessToken: string,
-    cursor?: string
+    cursor?: string,
+    query?: string
   ): Promise<{ messages: NormalizedEmail[]; nextCursor?: string }>
   getMessage(accessToken: string, externalId: string): Promise<NormalizedEmail>
 }
