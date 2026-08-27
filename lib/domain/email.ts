@@ -1,0 +1,252 @@
+import "server-only"
+
+import type { TenantDb } from "@/lib/db/tenant"
+import type { DomainContext } from "@/lib/domain/context-types"
+import { link, recordFact } from "@/lib/domain/provenance"
+import { enqueue } from "@/lib/jobs/queue"
+import { emailProviderFor, getAccessToken } from "@/lib/integrations"
+import type { NormalizedEmail } from "@/lib/integrations/types"
+
+/**
+ * Lightweight, deterministic email triage (PRD §16 email intelligence).
+ *
+ * The label is a display hint and a coarse filter; the real understanding of a
+ * task-request email happens later in the shared inbox pipeline, which is why
+ * a TASK_REQUEST here still flows through the same extractor as pasted text.
+ */
+export function classifyEmail(text: string): string {
+  const t = text.toLowerCase()
+
+  if (/(invoice|tax invoice|payment received|receipt|order confirmation|statement of account|bill)/.test(t)) {
+    return "INVOICE"
+  }
+  if (/(subscription|your plan|renewal|membership|your payment method)/.test(t)) {
+    return "SUBSCRIPTION"
+  }
+  if (/(meeting|call|invite|schedule a|zoom|google meet|microsoft teams)/.test(t)) {
+    return "MEETING"
+  }
+  if (
+    /(please|could you|can you|need (this|me|it)|by (friday|monday|tuesday|wednesday|thursday|saturday|sunday|tomorrow|eod|eow|next week)|deadline|due|task|deliver|reel|edit|design|draft|review)/.test(
+      t
+    )
+  ) {
+    return "TASK_REQUEST"
+  }
+  if (/(unsubscribe|newsletter|promo|offer|sale|% off|limited time)/.test(t)) {
+    return "NOISE"
+  }
+  return "OTHER"
+}
+
+function buildRaw(email: NormalizedEmail): string {
+  const lines = [
+    email.subject ? `Subject: ${email.subject}` : null,
+    email.fromName || email.fromEmail
+      ? `From: ${[email.fromName, email.fromEmail].filter(Boolean).join(" <")}${email.fromEmail ? ">" : ""}`
+      : null,
+    email.toEmails.length ? `To: ${email.toEmails.join(", ")}` : null,
+    "",
+    email.body ?? email.snippet ?? "",
+  ]
+  return lines.filter(Boolean).join("\n")
+}
+
+/**
+ * Entity resolution for a sender (PRD §36).
+ *
+ * Exact email match first (cheap, deterministic). If the address domain lines
+ * up with an existing client's website, the person is attached to that client —
+ * but we never invent a client from a domain, because a wrong merge is worse
+ * than a missing edge.
+ */
+async function resolveSender(
+  db: TenantDb,
+  ctx: DomainContext,
+  email: NormalizedEmail
+): Promise<{ personId: string } | null> {
+  const fromEmail = email.fromEmail
+  if (!fromEmail) return null
+
+  let person = await db.person.findFirst({ where: { email: fromEmail } })
+
+  if (!person) {
+    person = await db.person.create({
+      data: {
+        name: email.fromName ?? fromEmail,
+        email: fromEmail,
+      } as never,
+    })
+
+    await recordFact(db, {
+      targetType: "PERSON",
+      targetId: person.id,
+      field: "email",
+      value: fromEmail,
+      sourceType: "GMAIL",
+      sourceId: email.externalId,
+      evidence: email.subject,
+    })
+  }
+
+  const domain = fromEmail.split("@")[1]
+  if (domain && !person.organizationId) {
+    const org = await db.organization.findFirst({
+      where: { website: { contains: domain } },
+    })
+
+    if (org) {
+      await db.person.update({
+        where: { id: person.id },
+        data: { organizationId: org.id } as never,
+      })
+      await link(db, {
+        fromType: "PERSON",
+        fromId: person.id,
+        toType: "ORGANIZATION",
+        toId: org.id,
+        relation: "BELONGS_TO",
+        createdBy: "AGENT",
+      })
+    }
+  }
+
+  return { personId: person.id }
+}
+
+/**
+ * Stores one email and, when it carries work, feeds it into the universal
+ * inbox so the same extract→organize→task machinery handles it (PRD §35).
+ *
+ * Idempotent: a message is only turned into an inbox item the first time it is
+ * seen, so re-running a sync never duplicates tasks.
+ */
+export async function ingestEmail(
+  db: TenantDb,
+  ctx: DomainContext,
+  email: NormalizedEmail
+): Promise<{ created: boolean }> {
+  const existingItem = await db.inboxItem.findFirst({
+    where: { sourceType: "GMAIL", sourceRef: email.externalId },
+  })
+  if (existingItem) return { created: false }
+
+  const category = classifyEmail(`${email.subject ?? ""}\n${email.body ?? ""}`)
+
+  const row = await db.emailMessage.upsert({
+    where: {
+      tenantId_externalId: {
+        tenantId: ctx.tenantId,
+        externalId: email.externalId,
+      },
+    } as never,
+    create: {
+      externalId: email.externalId,
+      threadId: email.threadId,
+      subject: email.subject,
+      fromName: email.fromName,
+      fromEmail: email.fromEmail,
+      toEmails: email.toEmails,
+      snippet: email.snippet,
+      body: email.body,
+      receivedAt: email.receivedAt,
+      category,
+      isRead: false,
+    } as never,
+    update: {
+      subject: email.subject,
+      fromName: email.fromName,
+      fromEmail: email.fromEmail,
+      toEmails: email.toEmails,
+      snippet: email.snippet,
+      body: email.body,
+      category,
+    } as never,
+  })
+
+  const sender = await resolveSender(db, ctx, email)
+  if (sender) {
+    await link(db, {
+      fromType: "EMAIL",
+      fromId: row.id,
+      toType: "PERSON",
+      toId: sender.personId,
+      relation: "RELATED_TO",
+      createdBy: "AGENT",
+    })
+    await recordFact(db, {
+      targetType: "EMAIL",
+      targetId: row.id,
+      field: "fromEmail",
+      value: email.fromEmail,
+      sourceType: "GMAIL",
+      sourceId: email.externalId,
+      evidence: email.subject,
+    })
+  }
+
+  // Mail that looks like work enters the inbox → task pipeline. Other mail
+  // stays searchable but does not spawn noisy tasks.
+  if (category === "TASK_REQUEST") {
+    const item = await db.inboxItem.create({
+      data: {
+        kind: "EMAIL",
+        status: "PENDING",
+        title: (email.subject ?? email.fromEmail ?? "Email").slice(0, 200),
+        rawText: buildRaw(email),
+        sourceType: "GMAIL",
+        sourceRef: email.externalId,
+      } as never,
+    })
+
+    await enqueue(db, "inbox.process", {
+      inboxItemId: item.id,
+      autoApply: true,
+    })
+  }
+
+  return { created: true }
+}
+
+/**
+ * Pulls a batch of mail for a connected integration and ingests each message.
+ *
+ * Upserts make the pass safe to re-run; `syncCursor` carries Gmail's
+ * nextPageToken so a later, larger sync can resume rather than restart.
+ */
+export async function syncIntegrationEmails(
+  db: TenantDb,
+  ctx: DomainContext,
+  integration: { id: string; provider: import("@/lib/generated/prisma/enums").IntegrationProvider; secretCipher: string | null }
+) {
+  const provider = emailProviderFor(integration.provider)
+  if (!provider) {
+    throw new Error(`No email provider for ${integration.provider}.`)
+  }
+
+  const integrationRow = await db.integration.findUnique({ where: { id: integration.id } })
+  if (!integrationRow) throw new Error("Integration not found.")
+
+  const accessToken = await getAccessToken(db, integrationRow)
+  const { messages, nextCursor } = await provider.listMessages(
+    accessToken,
+    integrationRow.syncCursor ?? undefined
+  )
+
+  let ingested = 0
+  for (const message of messages) {
+    const result = await ingestEmail(db, ctx, message)
+    if (result.created) ingested++
+  }
+
+  await db.integration.update({
+    where: { id: integration.id },
+    data: {
+      lastSyncAt: new Date(),
+      syncCursor: nextCursor ?? null,
+      status: "CONNECTED",
+    } as never,
+  })
+
+  return { fetched: messages.length, ingested }
+}

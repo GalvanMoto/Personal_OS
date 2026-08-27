@@ -1,0 +1,1000 @@
+For the **Client module only**, I would make the creation experience detailed enough to hold the complete client relationship, but still avoid forcing you to fill 30 fields manually.
+
+The client record should become the **single source of truth for everything related to that client**: contacts, projects, tasks, emails, files, documents, meetings, payments, notes, and activity.
+
+# Client Module
+
+## 1. Client creation form
+
+The form should be divided into logical sections rather than one huge form.
+
+### Section A — Basic Information
+
+```text
+Client Type *
+Company
+Individual
+
+Client / Company Name *
+[____________________________]
+
+Display Name
+[____________________________]
+
+Client Code
+[Auto generated]
+
+Status
+[Lead ▼]
+
+Industry
+[Select industry ▼]
+
+Website
+[https://_____________________]
+
+Description
+[____________________________________________]
+[____________________________________________]
+```
+
+### Recommended fields
+
+```text
+Name *
+Display Name
+Client Type
+Status
+Industry
+Website
+Description
+```
+
+**Client Code** should normally be generated automatically, for example:
+
+```text
+CLT-000124
+```
+
+---
+
+# 2. Primary Contact
+
+Do not make email and phone just random fields on the client.
+
+Create a proper **Contact record associated with the client**.
+
+In the creation form:
+
+```text
+Primary Contact
+
+First Name *
+[________________]
+
+Last Name
+[________________]
+
+Job Title
+[________________]
+
+Email *
+[________________]
+
+Phone
+[________________]
+
+WhatsApp
+[________________]
+
+Preferred Contact Method
+[Email ▼]
+
+Timezone
+[Asia/Kolkata ▼]
+```
+
+Buttons:
+
+```text
+[+ Add Contact]
+```
+
+A client can then have:
+
+```text
+Client
+ ├── Primary Contact
+ ├── Billing Contact
+ ├── Marketing Contact
+ ├── Decision Maker
+ └── Other Contacts
+```
+
+---
+
+# 3. Contact roles
+
+Every contact should optionally have a role.
+
+```text
+Decision Maker
+Primary Contact
+Project Manager
+Marketing
+Finance / Billing
+Technical
+Owner / Founder
+Other
+```
+
+This becomes useful later when an agent needs to know:
+
+> Who should I contact about payment?
+
+versus:
+
+> Who handles the marketing project?
+
+---
+
+# 4. Contact details
+
+Each contact should eventually support:
+
+```text
+First Name
+Last Name
+Job Title
+Email
+Secondary Email
+Phone
+Mobile
+WhatsApp
+LinkedIn
+Other Social Profile
+Timezone
+Preferred Contact Method
+Notes
+```
+
+System fields:
+
+```text
+Created At
+Updated At
+Last Contacted
+Last Received From
+Contact Source
+```
+
+---
+
+# 5. Company Information
+
+For business clients, add:
+
+```text
+Company Name
+Legal Name
+Trading Name
+Website
+Industry
+Company Size
+Registration Number
+Tax / GST Number
+Country
+State
+City
+```
+
+Not all of these need to be mandatory.
+
+For your personal system, I would keep:
+
+```text
+Company Name *
+Website
+Industry
+Country
+Tax / GST Number
+```
+
+optional unless relevant.
+
+---
+
+# 6. Address
+
+Use structured address fields.
+
+```text
+Address Line 1
+Address Line 2
+City
+State / Province
+Postal Code
+Country
+```
+
+Allow address types:
+
+```text
+Business
+Billing
+Shipping
+Other
+```
+
+Don't use one giant `address` text field only.
+
+---
+
+# 7. Communication information
+
+Client communication settings:
+
+```text
+Preferred Contact Method
+Email
+Phone
+WhatsApp
+Other
+
+Preferred Communication Time
+[Morning ▼]
+
+Timezone
+[Australia/Sydney ▼]
+
+Language
+[English ▼]
+
+Response Expectation
+Same Day
+1–2 Days
+3–5 Days
+No Preference
+```
+
+These can later help your assistant decide when to recommend follow-ups.
+
+---
+
+# 8. Business / Relationship Information
+
+This is where the client becomes useful beyond contact information.
+
+```text
+Client Since
+[Date]
+
+Lead Source
+[Referral ▼]
+
+Relationship Type
+Client
+Prospect
+Partner
+Vendor
+Other
+
+Account Owner
+[User ▼]
+
+Priority
+Low
+Medium
+High
+Critical
+
+Tags
+[Marketing] [Australian] [Retainer]
+```
+
+---
+
+# 9. Financial / Billing Information
+
+Keep this optional but available.
+
+```text
+Billing Type
+Hourly
+Fixed Project
+Retainer
+Subscription
+Other
+
+Default Currency
+AUD
+
+Payment Terms
+Due on Receipt
+7 Days
+15 Days
+30 Days
+45 Days
+Custom
+
+Billing Email
+[________________________]
+
+Tax Number
+[________________________]
+
+Payment Notes
+[________________________]
+```
+
+You can later connect invoices/transactions without duplicating this information.
+
+---
+
+# 10. Client links
+
+This is especially useful for your workflow.
+
+```text
+Website
+Client Portal
+Google Drive
+Dropbox
+Notion
+Brand Folder
+Asset Folder
+Project Management Link
+Social Media
+Other Links
+```
+
+But don't make this a fixed list of 20 fields.
+
+Use a repeatable:
+
+```text
+Related Links
+
+[Type ▼] [URL] [Label]
+
+[+ Add Link]
+```
+
+Types:
+
+```text
+Website
+Drive
+Folder
+Brand Assets
+Social
+Portal
+Document
+Reference
+Other
+```
+
+---
+
+# 11. Client notes
+
+Creation form should allow:
+
+```text
+Internal Notes
+[__________________________________________]
+[__________________________________________]
+```
+
+Important distinction:
+
+**Internal notes are private and should never be sent to the client automatically.**
+
+---
+
+# 12. Client tags
+
+Use reusable global tags.
+
+Examples:
+
+```text
+Active
+Retainer
+High Value
+Priority
+SEO
+Social Media
+Australian
+Restaurant
+SaaS
+Freelance
+```
+
+The client can have multiple tags.
+
+---
+
+# 13. Client custom fields
+
+You will eventually have clients with information that doesn't fit the standard form.
+
+Don't keep adding database columns forever.
+
+Have:
+
+```text
+Custom Fields
+```
+
+Example:
+
+```text
+ABN
+Business Type
+Contract Renewal Date
+Preferred Platform
+Brand Color
+Content Approval Contact
+```
+
+Admin can create custom fields later.
+
+---
+
+# 14. Client source
+
+Every client should have provenance.
+
+```text
+Source
+Manual
+Email
+Inbox
+Import
+AI
+Integration
+```
+
+If AI discovers a client from an email:
+
+```text
+Source: Gmail
+Source Reference: email_xyz
+Confidence: 94%
+```
+
+This is important because your system is intended to create client records automatically.
+
+---
+
+# 15. AI information
+
+Don't ask the user to enter these.
+
+The system should derive:
+
+```text
+AI Summary
+Client Type
+Industry
+Relationship Health
+Communication Pattern
+Importance
+Likely Decision Maker
+Open Issues
+Current Priorities
+Recent Topics
+```
+
+Example:
+
+> **AI Summary:**
+> GB Banquet is an active hospitality client currently working on social media content and event marketing.
+
+---
+
+# 16. Creation form layout
+
+I would use a **large modal or full-screen creation workspace**, not a tiny modal.
+
+```text
+Create Client
+
+┌───────────────────────────────────────────────────────────────┐
+│ Basic Information                                             │
+│                                                               │
+│ Client Name *                Status                           │
+│ [GB Banquet              ]    [Active ▼]                      │
+│                                                               │
+│ Website                      Industry                         │
+│ [https://...             ]    [Hospitality ▼]                 │
+│                                                               │
+│ Description                                                    │
+│ [                                                           ] │
+├───────────────────────────────────────────────────────────────┤
+│ Primary Contact                                               │
+│                                                               │
+│ First Name *          Last Name                              │
+│ [                  ]  [                  ]                    │
+│                                                               │
+│ Email *                Phone                                  │
+│ [                  ]  [                  ]                    │
+│                                                               │
+│ [+ Add Contact]                                               │
+├───────────────────────────────────────────────────────────────┤
+│ Business & Relationship                                       │
+│                                                               │
+│ Industry        Client Since       Priority        Owner      │
+│ [Hospitality]   [26 Aug 2026]      [High]          [You]      │
+├───────────────────────────────────────────────────────────────┤
+│ Billing                                                        │
+│ Currency         Payment Terms       Billing Email            │
+│ [AUD]            [30 Days]           [.................]      │
+├───────────────────────────────────────────────────────────────┤
+│ Links                                                         │
+│ [+ Add Link]                                                  │
+├───────────────────────────────────────────────────────────────┤
+│ Tags                                                          │
+│ [Hospitality] [Social Media] [+ Add]                          │
+├───────────────────────────────────────────────────────────────┤
+│ Notes                                                         │
+│ [                                                           ] │
+├───────────────────────────────────────────────────────────────┤
+│ [Cancel]                                    [Create Client]   │
+└───────────────────────────────────────────────────────────────┘
+```
+
+---
+
+# 17. What should be required?
+
+I would deliberately keep required fields extremely small.
+
+### Required
+
+```text
+Client / Company Name
+Client Type
+```
+
+If you're creating a business client:
+
+```text
+Company Name
+```
+
+Everything else can be added later or discovered automatically.
+
+Don't force:
+
+```text
+Website
+Phone
+Industry
+Address
+Billing
+Contact
+```
+
+because that defeats the entire philosophy of your Personal OS.
+
+---
+
+# 18. Quick Client Creation
+
+You need a second, much faster creation path.
+
+Click:
+
+**+ Client**
+
+and show:
+
+```text
+Client name
+[____________________]
+
+Email
+[____________________]
+
+[Create]
+```
+
+That's it.
+
+Then the system can show:
+
+> Client created. Add more details later.
+
+The full profile can be completed by AI from connected email, files, Drive, etc.
+
+---
+
+# 19. AI Client Creation
+
+This is even more important for your system.
+
+You paste:
+
+> "GB Banquet Hall, Marsden Park. Website tanniaquazone? Actually that's another client. GB is a restaurant/event venue. Contact is Sarah, [sarah@example.com](mailto:sarah@example.com). Drive folder here..."
+
+System extracts:
+
+```text
+Client
+GB Banquet Hall
+
+Industry
+Hospitality / Events
+
+Contact
+Sarah
+
+Email
+sarah@example.com
+
+Location
+Marsden Park
+
+Drive
+[folder]
+
+Relationship
+Client
+```
+
+Then:
+
+```text
+AI found 6 pieces of information.
+
+[Review]
+[Create Client]
+```
+
+---
+
+# 20. Duplicate detection
+
+Before creating:
+
+```text
+Potential duplicate
+
+GB Banquet Hall
+
+Existing client:
+GB Banquet
+Website:
+gbbanquet.com
+
+Similarity:
+91%
+
+[Use Existing]
+[Create New]
+[Merge]
+```
+
+This is critical because AI + email ingestion will otherwise create duplicates.
+
+---
+
+# 21. Client profile after creation
+
+The actual client page should be much richer than the creation form.
+
+Header:
+
+```text
+GB Banquet
+Hospitality · Active
+
+gbbanquet.com
+
+[Edit] [Start Task] [Message] [...]
+```
+
+Then summary cards:
+
+```text
+Open Tasks      Active Projects
+8               3
+
+Last Contact    Outstanding
+Yesterday       1 Invoice
+```
+
+---
+
+# 22. Client page sections
+
+```text
+Overview
+Projects
+Tasks
+Contacts
+Emails
+Files
+Documents
+Calendar
+Invoices
+Transactions
+Notes
+Links
+Activity
+AI Insights
+```
+
+This gives you the full client relationship.
+
+---
+
+# 23. Client overview
+
+The system should automatically show:
+
+```text
+CLIENT OVERVIEW
+
+Relationship
+Active
+
+Current Focus
+Social media content
+
+Open Tasks
+8
+
+Projects
+3
+
+Waiting For
+2 client approvals
+
+Upcoming Deadline
+Aug 28
+
+Last Communication
+Yesterday
+
+Next Action
+Send reel for approval
+```
+
+This information should be calculated automatically.
+
+---
+
+# 24. Client activity timeline
+
+Everything related to the client should appear chronologically.
+
+```text
+Aug 26 · 10:20 AM
+Client emailed new reel requirements
+
+Aug 26 · 10:21 AM
+AI detected 3 tasks
+
+Aug 26 · 10:22 AM
+Task created
+
+Aug 26 · 10:23 AM
+Google Drive assets linked
+
+Aug 25 · 4:15 PM
+Client approved previous reel
+```
+
+This is extremely useful for your assistant.
+
+---
+
+# 25. Client relationships
+
+Your data model should look like:
+
+```text
+CLIENT
+ │
+ ├── CONTACTS
+ │
+ ├── PROJECTS
+ │    └── TASKS
+ │
+ ├── EMAILS
+ │
+ ├── FILES
+ │
+ ├── DOCUMENTS
+ │
+ ├── CALENDAR EVENTS
+ │
+ ├── INVOICES
+ │
+ ├── TRANSACTIONS
+ │
+ ├── NOTES
+ │
+ ├── LINKS
+ │
+ └── ACTIVITY
+```
+
+That allows the assistant to answer:
+
+> "What is happening with this client?"
+
+without you manually collecting the information.
+
+---
+
+# 26. Client-specific automation
+
+Once the client exists, you can have automatic rules such as:
+
+```text
+New email from client
+→ associate with client
+
+New Drive file in client folder
+→ associate with client
+
+New task mentioning client
+→ associate with client
+
+Calendar event with client contact
+→ associate with client
+
+Invoice from client
+→ associate with client
+```
+
+And:
+
+```text
+No reply for 3 days
+→ suggest follow-up
+
+Task due tomorrow
+→ notify
+
+Invoice overdue
+→ flag client
+
+No activity for 30 days
+→ mark relationship as inactive / needs attention
+```
+
+---
+
+# 27. Client-specific fields I would actually store
+
+Your core `clients` table should be relatively clean:
+
+```text
+id
+name
+display_name
+client_type
+status
+industry
+website
+description
+
+owner_id
+priority
+relationship_type
+lead_source
+client_since
+
+currency
+payment_terms
+billing_email
+
+timezone
+preferred_contact_method
+preferred_contact_time
+
+notes
+
+ai_summary
+ai_health
+ai_confidence
+
+created_at
+updated_at
+last_activity_at
+archived_at
+```
+
+Then related data goes into separate tables:
+
+```text
+contacts
+addresses
+client_links
+client_tags
+client_custom_fields
+client_relationships
+```
+
+Do **not** put every possible piece of client information into the `clients` table.
+
+---
+
+# 28. Client creation sources
+
+The same form should support:
+
+```text
+Manual
+Quick Create
+Inbox
+Email
+AI Assistant
+Import
+API
+```
+
+So when an agent discovers a client, it uses the same underlying creation service.
+
+For example:
+
+```text
+createClient({
+  name,
+  ...
+  source: "gmail",
+  sourceReference: emailId,
+  confidence: 0.94
+})
+```
+
+That keeps your system consistent.
+
+---
+
+# 29. Best creation workflow for your Personal OS
+
+I would ultimately make **three creation modes**:
+
+### Quick
+
+```text
+Name
+Email
+Create
+```
+
+### Full
+
+```text
+Basic
+Contact
+Business
+Billing
+Links
+Tags
+Notes
+```
+
+### AI
+
+```text
+Paste / upload anything
+        ↓
+AI extraction
+        ↓
+Duplicate check
+        ↓
+Review
+        ↓
+Create + connect everything
+```
+
+For **your Personal OS**, the AI mode should eventually become the primary mode.
+
+The user shouldn't be spending five minutes filling a client form. The client form is there for when structured manual editing is actually necessary.

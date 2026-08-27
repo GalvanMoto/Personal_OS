@@ -1,0 +1,1299 @@
+Yes. Now we should define the **exact data/details required for every entity** before you build the database and forms.
+
+The important principle for your Personal OS is:
+
+> **Manual fields should be minimal. AI should fill most fields automatically.**
+
+So for each entity I'll separate:
+
+**Required → Optional → AI-generated → Relationships → System fields**
+
+---
+
+# 1. Project
+
+A project is a larger piece of work that contains tasks, files, conversations, deadlines, etc.
+
+### Project fields
+
+```text
+Project
+├── Name *
+├── Description
+├── Status *
+├── Priority
+├── Client
+├── Owner
+├── Start Date
+├── Target Date
+├── Tags
+├── Category
+├── Budget
+├── Currency
+├── Project Type
+├── Goals
+├── Deliverables
+├── Notes
+├── External Links
+└── Files
+```
+
+### System / AI fields
+
+```text
+Project ID
+Created At
+Updated At
+Created By
+Source
+Source Reference
+AI Summary
+AI Health
+AI Confidence
+Last Activity
+Next Action
+Risk Level
+```
+
+### Project statuses
+
+```text
+Planning
+Active
+On Hold
+Waiting
+At Risk
+Completed
+Cancelled
+Archived
+```
+
+### AI should automatically determine
+
+```text
+Client
+Project category
+Priority
+Deadlines
+Related emails
+Related files
+Related documents
+Related calendar events
+Project health
+Missing information
+Next action
+```
+
+You should ideally only need to enter:
+
+> **Project name + whatever raw information you have.**
+
+---
+
+# 2. Task
+
+Tasks are the most important entity.
+
+### Core fields
+
+```text
+Task
+├── Title *
+├── Description
+├── Status *
+├── Priority
+├── Due Date
+├── Start Date
+├── Client
+├── Project
+├── Parent Task
+├── Assignee
+├── Estimated Time
+├── Tags
+├── Task Type
+├── Recurrence
+├── Notes
+└── External Link
+```
+
+### System fields
+
+```text
+Task ID
+Created At
+Updated At
+Completed At
+Created By
+Source
+Source Type
+Source Reference
+AI Generated
+AI Confidence
+Last Activity
+```
+
+### Relationships
+
+```text
+Task
+├── Project
+├── Client
+├── Person
+├── Emails
+├── Files
+├── Documents
+├── Calendar Events
+├── Notes
+├── Reminders
+├── Dependencies
+└── Subtasks
+```
+
+### Task status
+
+```text
+Inbox
+Not Started
+In Progress
+Waiting
+Blocked
+Completed
+Cancelled
+```
+
+### Task priority
+
+```text
+Critical
+High
+Medium
+Low
+```
+
+---
+
+# 3. Subtask
+
+Don't create a separate complex UI.
+
+A subtask is basically:
+
+```text
+Title
+Status
+Assignee
+Due Date
+Order
+Parent Task
+```
+
+The parent task should show:
+
+```text
+4 / 7 subtasks completed
+```
+
+---
+
+# 4. Client
+
+### Fields
+
+```text
+Client
+├── Name *
+├── Company
+├── Industry
+├── Email
+├── Phone
+├── Website
+├── Address
+├── Status
+├── Tags
+├── Notes
+├── Default Currency
+├── Payment Terms
+└── Important Links
+```
+
+### AI/system
+
+```text
+Client ID
+Created At
+Updated At
+Last Communication
+Last Activity
+Open Tasks
+Open Projects
+Outstanding Payments
+Relationship Health
+AI Summary
+```
+
+### Client status
+
+```text
+Lead
+Active
+On Hold
+Inactive
+Completed
+Archived
+```
+
+---
+
+# 5. Contact / Person
+
+Keep **Person** separate from Client.
+
+One client can have multiple people.
+
+```text
+Person
+├── First Name
+├── Last Name
+├── Email
+├── Phone
+├── Job Title
+├── Organization
+├── Role
+├── Notes
+└── Tags
+```
+
+AI can discover people from email/calendar.
+
+---
+
+# 6. Company / Organization
+
+Useful because your client and contact model will eventually need it.
+
+```text
+Organization
+├── Name
+├── Website
+├── Industry
+├── Email
+├── Phone
+├── Address
+├── Notes
+└── Tags
+```
+
+Relationship:
+
+```text
+Organization
+   ↓
+Contacts
+   ↓
+Client
+   ↓
+Projects
+```
+
+---
+
+# 7. Universal Inbox Item
+
+This should be incredibly flexible.
+
+### Fields
+
+```text
+Inbox Item
+├── Content
+├── Input Type
+├── Attachment
+├── URL
+├── Source
+├── Received At
+├── Status
+├── Priority
+└── Notes
+```
+
+### Input types
+
+```text
+Text
+Image
+Screenshot
+PDF
+Document
+Voice
+URL
+File
+Email
+```
+
+### Processing status
+
+```text
+New
+Processing
+Processed
+Needs Review
+Failed
+Archived
+```
+
+### AI extraction
+
+```text
+Detected Tasks
+Detected Project
+Detected Client
+Detected People
+Detected Dates
+Detected Links
+Detected Documents
+Detected Financial Data
+Detected Events
+Confidence
+```
+
+---
+
+# 8. Email
+
+You probably should **not recreate Gmail**.
+
+Store normalized email information.
+
+```text
+Email
+├── Provider
+├── External ID
+├── Thread ID
+├── Sender
+├── Recipients
+├── CC
+├── Subject
+├── Body
+├── Received At
+├── Sent At
+├── Read Status
+├── Important
+├── Labels
+├── Attachments
+└── URL
+```
+
+AI information:
+
+```text
+Email Type
+Intent
+Client
+Project
+Task
+Deadline
+Required Action
+Sentiment
+Priority
+Summary
+Needs Reply
+Follow-up Date
+```
+
+---
+
+# 9. Document
+
+```text
+Document
+├── Name
+├── Type
+├── Source
+├── Location
+├── URL
+├── File ID
+├── Client
+├── Project
+├── Tags
+├── Created Date
+└── Modified Date
+```
+
+AI:
+
+```text
+Summary
+Key Information
+Entities
+Dates
+Requirements
+Amounts
+Topics
+Related Tasks
+Related Projects
+```
+
+---
+
+# 10. File
+
+Files should have a lightweight metadata record.
+
+```text
+File
+├── Name
+├── Extension
+├── MIME Type
+├── Size
+├── Storage Provider
+├── External ID
+├── External URL
+├── Folder
+├── Client
+├── Project
+├── Tags
+├── Created At
+└── Modified At
+```
+
+AI:
+
+```text
+File Type
+Likely Purpose
+Related Project
+Related Task
+Related Client
+Duplicate Score
+Latest Version
+```
+
+---
+
+# 11. Note
+
+Keep notes extremely simple.
+
+```text
+Note
+├── Title
+├── Content
+├── Type
+├── Client
+├── Project
+├── Task
+├── Tags
+└── Created At
+```
+
+Types:
+
+```text
+General
+Meeting
+Decision
+Research
+Idea
+Instruction
+Reference
+```
+
+---
+
+# 12. Link / Bookmark
+
+This will be very useful for your workflows.
+
+```text
+Link
+├── URL *
+├── Title
+├── Description
+├── Domain
+├── Client
+├── Project
+├── Task
+├── Tags
+├── Source
+└── Created At
+```
+
+AI can automatically identify:
+
+```text
+Website
+Drive
+YouTube
+Instagram
+LinkedIn
+Reference
+Tool
+Document
+```
+
+---
+
+# 13. Calendar Event
+
+Don't duplicate Google Calendar's entire structure.
+
+```text
+Calendar Event
+├── External ID
+├── Title
+├── Description
+├── Start
+├── End
+├── Location
+├── Calendar
+├── Attendees
+├── Client
+├── Project
+├── Task
+├── Meeting URL
+└── Source
+```
+
+AI:
+
+```text
+Event Type
+Importance
+Related Project
+Preparation Tasks
+Follow-up Tasks
+```
+
+---
+
+# 14. Reminder
+
+A reminder should be independent of tasks.
+
+```text
+Reminder
+├── Title *
+├── Description
+├── Trigger At
+├── Recurrence
+├── Related Task
+├── Related Project
+├── Related Client
+├── Priority
+├── Notification Type
+├── Snooze Rules
+└── Status
+```
+
+Statuses:
+
+```text
+Scheduled
+Triggered
+Snoozed
+Completed
+Dismissed
+Cancelled
+```
+
+---
+
+# 15. Notification
+
+```text
+Notification
+├── Title
+├── Message
+├── Type
+├── Priority
+├── User
+├── Related Entity
+├── Trigger
+├── Created At
+├── Read At
+└── Dismissed At
+```
+
+Types:
+
+```text
+Reminder
+Deadline
+Agent
+Finance
+Email
+Calendar
+System
+Approval
+Warning
+```
+
+---
+
+# 16. Finance Account
+
+```text
+Account
+├── Name
+├── Institution
+├── Account Type
+├── Currency
+├── Last Four Digits
+├── Status
+└── Source
+```
+
+Don't store bank credentials here.
+
+Examples:
+
+```text
+Bank Account
+Credit Card
+Cash
+Wallet
+Investment
+Other
+```
+
+---
+
+# 17. Transaction
+
+### Core
+
+```text
+Transaction
+├── Account
+├── Amount
+├── Currency
+├── Date
+├── Description
+├── Merchant
+├── Type
+├── Category
+├── Subcategory
+├── Status
+├── Tags
+└── Notes
+```
+
+### AI/system
+
+```text
+Source
+External ID
+Import Batch
+AI Category
+AI Confidence
+Possible Duplicate
+Possible Transfer
+Recurring
+Business/Personal
+```
+
+---
+
+# 18. Expense
+
+You can actually avoid making **Expense** a completely separate entity initially.
+
+A transaction can have:
+
+```text
+transactionType = EXPENSE
+```
+
+Then expense views simply filter transactions.
+
+That prevents duplicate financial data.
+
+---
+
+# 19. Income
+
+Same concept.
+
+A transaction:
+
+```text
+transactionType = INCOME
+```
+
+can represent:
+
+```text
+Salary
+Freelance
+Interest
+Refund
+Other
+```
+
+Don't create three separate tables for all of these unless your financial requirements eventually demand it.
+
+---
+
+# 20. Subscription
+
+```text
+Subscription
+├── Name
+├── Provider
+├── Category
+├── Amount
+├── Currency
+├── Billing Cycle
+├── Next Billing Date
+├── Account
+├── Status
+├── Website
+├── Start Date
+├── Cancellation Date
+└── Notes
+```
+
+AI can detect subscriptions automatically from:
+
+```text
+Emails
+Transactions
+Invoices
+Receipts
+```
+
+---
+
+# 21. Invoice
+
+```text
+Invoice
+├── Number
+├── Client/Vendor
+├── Amount
+├── Currency
+├── Issue Date
+├── Due Date
+├── Status
+├── File
+├── Project
+├── Description
+└── Payment
+```
+
+Status:
+
+```text
+Draft
+Sent
+Due
+Partially Paid
+Paid
+Overdue
+Cancelled
+```
+
+---
+
+# 22. Receipt
+
+```text
+Receipt
+├── Merchant
+├── Amount
+├── Currency
+├── Date
+├── Tax
+├── Category
+├── Transaction
+├── File
+├── Account
+└── Notes
+```
+
+Most of this should come from AI extraction.
+
+---
+
+# 23. Automation
+
+This defines things the system does automatically.
+
+```text
+Automation
+├── Name
+├── Description
+├── Trigger
+├── Conditions
+├── Actions
+├── Agent
+├── Schedule
+├── Status
+└── Approval Requirement
+```
+
+Example:
+
+```text
+Trigger:
+New email
+
+Condition:
+Contains deadline
+
+Action:
+Create task
+
+Action:
+Create reminder
+```
+
+---
+
+# 24. Agent
+
+Your agent entity should have:
+
+```text
+Agent
+├── Name
+├── Description
+├── Type
+├── Status
+├── System Instructions
+├── Tools
+├── Permissions
+├── Allowed Sources
+├── Allowed Entities
+├── Risk Level
+├── Max Steps
+└── Approval Policy
+```
+
+---
+
+# 25. Tool
+
+```text
+Tool
+├── Name
+├── Description
+├── Category
+├── Input Schema
+├── Output Schema
+├── Required Permissions
+├── Risk Level
+├── Provider
+├── Allowed Agents
+└── Approval Required
+```
+
+---
+
+# 26. Integration
+
+This is the connection to external services.
+
+```text
+Integration
+├── Provider
+├── Account
+├── Status
+├── Scopes
+├── Last Sync
+├── Sync Status
+├── Error
+└── Settings
+```
+
+Examples:
+
+```text
+Gmail
+Google Drive
+Google Calendar
+```
+
+Later:
+
+```text
+Microsoft
+Dropbox
+Notion
+Slack
+etc.
+```
+
+---
+
+# 27. Activity / Audit
+
+Every important action becomes an activity record.
+
+```text
+Activity
+├── Actor
+├── Actor Type
+├── Action
+├── Entity
+├── Entity ID
+├── Source
+├── Agent
+├── Before
+├── After
+├── Reason
+├── Timestamp
+└── Result
+```
+
+Actor type:
+
+```text
+User
+Agent
+System
+Integration
+Automation
+```
+
+---
+
+# 28. Approval Request
+
+This is required for your agent architecture.
+
+```text
+Approval
+├── Agent
+├── Action
+├── Tool
+├── Risk Level
+├── Reason
+├── Proposed Changes
+├── Status
+├── Requested At
+├── Approved At
+├── Rejected At
+└── Approved By
+```
+
+---
+
+# 29. Tags
+
+Don't create separate tag tables for every module.
+
+Use universal tags.
+
+```text
+Tag
+├── Name
+├── Color
+└── Type
+```
+
+Then relationships:
+
+```text
+Task ↔ Tags
+Project ↔ Tags
+Client ↔ Tags
+File ↔ Tags
+Transaction ↔ Tags
+```
+
+---
+
+# 30. Relationships
+
+This is one of the most important tables/concepts.
+
+You need a way to say:
+
+```text
+Task → belongs_to → Project
+
+Project → belongs_to → Client
+
+Email → related_to → Task
+
+File → attached_to → Project
+
+Document → generated_task → Task
+
+Transaction → associated_with → Client
+```
+
+Conceptually:
+
+```text
+Relationship
+├── From Entity
+├── Relationship Type
+├── To Entity
+├── Source
+├── Confidence
+└── Created At
+```
+
+This is what makes your **Personal OS an information graph**.
+
+---
+
+# 31. AI Extraction Result
+
+For anything AI processes, keep the extraction separately.
+
+```text
+Extraction
+├── Source
+├── Source Type
+├── Model
+├── Prompt Version
+├── Extracted Data
+├── Confidence
+├── Status
+├── Reviewed
+└── Created At
+```
+
+This means you can debug:
+
+> "Why did the system create this task?"
+
+and trace it back to:
+
+```text
+Email
+→ Extraction
+→ Agent
+→ Task
+```
+
+---
+
+# 32. User Preferences
+
+This shouldn't be buried inside random settings.
+
+```text
+User Preferences
+├── Timezone
+├── Working Hours
+├── Work Days
+├── Default Reminder Time
+├── Notification Preferences
+├── Currency
+├── Date Format
+├── Week Start
+├── Default Task View
+├── Default Calendar View
+└── AI Preferences
+```
+
+And eventually:
+
+```text
+Preferred clients
+Important people
+Priority rules
+Notification behavior
+```
+
+---
+
+# 33. What the user actually fills manually
+
+This is where we keep your experience fast.
+
+For a manually created **Project**:
+
+```text
+Name
+Client
+Description
+```
+
+That's basically enough.
+
+For a manually created **Task**:
+
+```text
+Title
+Project
+Due Date
+```
+
+Everything else can be filled later.
+
+For a manually created **Client**:
+
+```text
+Name
+Company
+Email
+```
+
+For a transaction:
+
+> Ideally **nothing manually**.
+
+It should come from statement/email/import.
+
+---
+
+# 34. AI should populate the rest
+
+Example:
+
+You paste:
+
+> "Need 3 reels for GB Banquet by Friday. Photos are in Drive."
+
+You do **not** fill:
+
+```text
+Project
+Client
+Deadline
+Priority
+Tags
+Dependencies
+Source
+Files
+```
+
+The AI does it.
+
+Result:
+
+```text
+Project:
+GB Banquet
+
+Tasks:
+3 reel tasks
+
+Deadline:
+28 Aug 2026
+
+Client:
+GB Banquet
+
+Files:
+Drive folder detected
+
+Priority:
+High
+
+Source:
+Inbox capture
+```
+
+Then you simply review/accept.
+
+---
+
+# 35. The universal creation pattern
+
+Every entity creation should follow:
+
+```text
+CAPTURE
+   ↓
+EXTRACT
+   ↓
+MATCH
+   ↓
+PREVIEW
+   ↓
+CONFIRM
+   ↓
+CREATE
+   ↓
+LINK
+   ↓
+AUTOMATE
+```
+
+Example:
+
+```text
+Paste message
+      ↓
+AI extracts task
+      ↓
+Matches client
+      ↓
+Matches project
+      ↓
+Finds deadline
+      ↓
+Finds Drive files
+      ↓
+Shows preview
+      ↓
+User approves
+      ↓
+Task created
+      ↓
+Reminder created
+      ↓
+Context Pack generated
+```
+
+---
+
+# 36. My recommended core database entities
+
+Don't start with 50 tables.
+
+For V1, I'd make the real foundation:
+
+```text
+USERS
+CLIENTS
+CONTACTS
+ORGANIZATIONS
+
+PROJECTS
+TASKS
+TASK_DEPENDENCIES
+
+INBOX_ITEMS
+
+EMAILS
+FILES
+DOCUMENTS
+LINKS
+NOTES
+
+CALENDAR_EVENTS
+REMINDERS
+NOTIFICATIONS
+
+ACCOUNTS
+TRANSACTIONS
+SUBSCRIPTIONS
+INVOICES
+RECEIPTS
+
+TAGS
+RELATIONSHIPS
+
+INTEGRATIONS
+AGENTS
+TOOLS
+AGENT_RUNS
+AGENT_STEPS
+APPROVALS
+
+AUTOMATIONS
+EVENTS
+ACTIVITY_LOGS
+EXTRACTIONS
+```
+
+That is the **actual foundation** I would use before building your forms/pages.
+
+The next logical step is to turn this into a **complete database blueprint: every table, every field, field type, enum, relation, index, unique constraint, and which fields are AI-populated vs manually editable**.

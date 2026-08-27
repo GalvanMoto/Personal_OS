@@ -1,0 +1,1741 @@
+Yes. This is actually the **most important part of the entire Personal OS**.
+
+You are not really asking, “How do I add AI agents?”
+
+You are asking:
+
+> **How does an agent know what it can access, where it should fetch information from, why it needs it, what it is allowed to change, and how it should decide what to do?**
+
+That needs to be designed as an **Agent Operating Layer**.
+
+---
+
+# 1. The fundamental model
+
+Your agents should never have direct unrestricted access to everything.
+
+Instead:
+
+```text
+                    PERSONAL OS
+                         │
+                  AGENT ORCHESTRATOR
+                         │
+                ┌────────┴────────┐
+                │                 │
+             CONTEXT          PERMISSIONS
+                │                 │
+                └────────┬────────┘
+                         │
+                     AGENT PLAN
+                         │
+                    TOOL EXECUTION
+                         │
+                ┌────────┼────────┐
+                │        │        │
+              Gmail    Drive   Calendar
+                │        │        │
+             Database  Files   Finance
+```
+
+The agent doesn't say:
+
+> "I can access Gmail."
+
+Instead it says:
+
+> "I have permission to use `search_emails`, and I need email information because the current task references client requirements."
+
+That distinction is extremely important.
+
+---
+
+# 2. Every agent needs 6 things
+
+Every agent in your system should have a formal definition containing:
+
+```text
+Agent
+├── Identity
+├── Responsibilities
+├── Permissions
+├── Tools
+├── Data sources
+└── Decision rules
+```
+
+For example:
+
+### Email Agent
+
+```text
+Name
+Email Intelligence Agent
+
+Purpose
+Understand and process email.
+
+Can read
+Gmail messages
+Gmail threads
+Email attachments
+
+Can create
+Tasks
+Reminders
+Entities
+Relationships
+
+Can modify
+Email drafts
+
+Cannot
+Send email without approval
+Delete email
+Modify external data
+```
+
+That's an actual controlled agent.
+
+---
+
+# 3. "What can the agent access?"
+
+You need **Scopes**.
+
+Think OAuth-style permissions, but for your internal agents.
+
+Example:
+
+```text
+email.read
+email.search
+email.attachments.read
+
+drive.read
+drive.search
+drive.metadata
+
+calendar.read
+calendar.create
+calendar.update
+
+tasks.read
+tasks.create
+tasks.update
+
+finance.read
+finance.transactions.read
+finance.categories.write
+
+notifications.create
+```
+
+Then each agent receives only the scopes it needs.
+
+---
+
+# 4. Agent permission matrix
+
+This should exist centrally in your system.
+
+| Agent              | Read                          | Create                   | Update         | Delete | External Action         |
+| ------------------ | ----------------------------- | ------------------------ | -------------- | ------ | ----------------------- |
+| Inbox Agent        | Inbox, files                  | Tasks, entities          | —              | No     | No                      |
+| Task Agent         | Tasks, projects               | Tasks, reminders         | Tasks          | No     | No                      |
+| Project Agent      | Projects, tasks, files        | Projects                 | Projects/tasks | No     | No                      |
+| Email Agent        | Email                         | Tasks, reminders, drafts | Drafts         | No     | Send only with approval |
+| Drive Agent        | Drive/files                   | Index records            | Metadata       | No     | No                      |
+| Calendar Agent     | Calendar                      | Events/reminders         | Events         | No     | Yes with permission     |
+| Finance Agent      | Transactions                  | Categories               | Categories     | No     | No                      |
+| Planning Agent     | Almost all relevant read data | Plans/reminders          | Plans          | No     | No                      |
+| Notification Agent | Tasks/events/reminders        | Notifications            | Notifications  | No     | No                      |
+| Orchestrator       | Context metadata              | Plans                    | —              | No     | No                      |
+
+---
+
+# 5. Agent does not directly fetch from Gmail
+
+This is another major design principle.
+
+Don't let an LLM call Google's API however it wants.
+
+Instead:
+
+```text
+Agent
+  ↓
+Internal Tool
+  ↓
+Provider Adapter
+  ↓
+External API
+```
+
+For example:
+
+```text
+Email Agent
+    ↓
+search_emails()
+    ↓
+GmailAdapter
+    ↓
+Gmail API
+```
+
+This gives you control.
+
+---
+
+# 6. What is a Tool?
+
+A tool is a controlled operation an agent can invoke.
+
+For example:
+
+```text
+search_emails
+get_email
+get_email_thread
+search_drive
+get_drive_file
+search_calendar
+get_calendar_event
+
+search_tasks
+create_task
+update_task
+complete_task
+
+get_project
+get_project_context
+
+get_financial_transactions
+search_subscriptions
+
+create_reminder
+create_notification
+```
+
+The agent does not need to know how the database or Google API works.
+
+It only knows:
+
+> "I can call `search_emails`."
+
+---
+
+# 7. Every tool needs a contract
+
+Example:
+
+```ts
+search_emails({
+  query: string,
+  dateFrom?: Date,
+  dateTo?: Date,
+  sender?: string,
+  projectId?: string,
+  clientId?: string,
+  limit?: number
+})
+```
+
+And the tool returns normalized data:
+
+```ts
+{
+  messages: [
+    {
+      id: "...",
+      subject: "...",
+      sender: "...",
+      date: "...",
+      snippet: "...",
+      attachments: [...]
+    }
+  ]
+}
+```
+
+The agent doesn't care whether it came from Gmail or Outlook.
+
+---
+
+# 8. Integration abstraction
+
+This is how you avoid locking your whole system to Google.
+
+Internally define:
+
+```text
+EmailProvider
+DriveProvider
+CalendarProvider
+StorageProvider
+FinanceProvider
+```
+
+Then:
+
+```text
+EmailProvider
+├── GmailAdapter
+└── OutlookAdapter
+
+DriveProvider
+├── GoogleDriveAdapter
+└── OneDriveAdapter
+```
+
+Agent:
+
+```text
+search_emails()
+```
+
+Provider:
+
+```text
+Gmail
+```
+
+That abstraction is very important.
+
+---
+
+# 9. How does the agent know WHERE to fetch?
+
+You need a **Source Registry**.
+
+Your system should know:
+
+```text
+Source
+├── Gmail
+├── Google Drive
+├── Google Calendar
+├── PostgreSQL
+├── Uploaded Files
+├── Browser capture
+└── Other integrations
+```
+
+Each source describes:
+
+```text
+Name
+Type
+Capabilities
+Permissions
+Search capability
+Read capability
+Write capability
+Sync state
+Last sync
+```
+
+Example:
+
+```text
+Google Drive
+
+Capabilities:
+✓ Search
+✓ File metadata
+✓ File download
+✓ Document content
+✗ Delete
+
+Scope:
+drive.read
+
+Connected:
+Yes
+
+Last indexed:
+2 minutes ago
+```
+
+---
+
+# 10. The agent needs a source-selection strategy
+
+Suppose user says:
+
+> "Find the latest GB Banquet logo."
+
+The agent shouldn't randomly search everything.
+
+It should reason:
+
+```text
+Intent:
+Find file
+
+Entity:
+GB Banquet
+
+File type:
+Logo
+
+Likely sources:
+1. Google Drive
+2. Email attachments
+3. Uploaded files
+
+Required capability:
+File search
+```
+
+Then:
+
+```text
+search_drive("GB Banquet logo")
+```
+
+If no result:
+
+```text
+search_email_attachments(...)
+```
+
+If still nothing:
+
+```text
+search_uploaded_files(...)
+```
+
+That's **source fallback**.
+
+---
+
+# 11. Source priority
+
+You can configure priorities.
+
+For example:
+
+```text
+Project assets
+
+1. Project-linked Drive folder
+2. Client Drive folder
+3. Email attachments
+4. Uploaded files
+5. Global search
+```
+
+For client instructions:
+
+```text
+1. Recent client emails
+2. Project documents
+3. Meeting notes
+4. Uploaded screenshots
+5. General notes
+```
+
+For financial information:
+
+```text
+1. Imported bank statement
+2. Transaction database
+3. Email receipts
+4. Manually entered records
+```
+
+This makes the agent much more predictable.
+
+---
+
+# 12. "Why is the agent fetching this?"
+
+Every agent operation should have a **reason**.
+
+This should actually be stored.
+
+Example:
+
+```text
+Action:
+search_drive
+
+Reason:
+Task "Create GB reel" requires the latest brand logo.
+
+Source:
+Task Context Engine
+
+Expected result:
+Logo asset
+```
+
+This becomes part of your audit trail.
+
+---
+
+# 13. Agent execution trace
+
+Internally:
+
+```text
+User:
+"Prepare everything I need for the GB reel."
+
+        ↓
+
+Orchestrator
+
+Intent:
+Prepare task workspace
+
+        ↓
+
+Task Agent
+
+Need:
+Task details
+
+        ↓
+
+Project Agent
+
+Need:
+Project context
+
+        ↓
+
+Drive Agent
+
+Need:
+Project assets
+
+        ↓
+
+Email Agent
+
+Need:
+Latest client requirements
+
+        ↓
+
+Document Agent
+
+Need:
+Relevant brief
+
+        ↓
+
+Context Engine
+
+Merge everything
+
+        ↓
+
+Task Context Pack
+```
+
+That is what "agent manages everything" really means.
+
+---
+
+# 14. The agent should have a planning stage
+
+Don't directly execute actions from the user's sentence.
+
+Use:
+
+```text
+REQUEST
+   ↓
+UNDERSTAND
+   ↓
+PLAN
+   ↓
+VALIDATE
+   ↓
+EXECUTE
+   ↓
+VERIFY
+```
+
+Example:
+
+> "Prepare tomorrow's work for me."
+
+Agent plan:
+
+```text
+1. Get incomplete tasks.
+2. Find tasks due tomorrow.
+3. Get overdue tasks.
+4. Check calendar.
+5. Find blocked tasks.
+6. Check client dependencies.
+7. Determine available working time.
+8. Rank tasks.
+9. Prepare daily plan.
+10. Schedule reminders.
+```
+
+Then execute.
+
+---
+
+# 15. Orchestrator vs specialized agents
+
+You should not have 20 agents independently trying to solve everything.
+
+Use one **Orchestrator**.
+
+```text
+                    ORCHESTRATOR
+                         │
+        ┌────────────────┼─────────────────┐
+        │                │                 │
+     Planning          Work            Information
+        │                │                 │
+      Planner       Task Agent         Email Agent
+                    Project Agent      Drive Agent
+                    Client Agent       Document Agent
+                                      Calendar Agent
+                                      Finance Agent
+```
+
+The orchestrator decides:
+
+> Which agent should handle which part?
+
+---
+
+# 16. Agent registry
+
+Your application should literally maintain a registry.
+
+Example conceptual structure:
+
+```ts
+AgentDefinition {
+  id
+  name
+  description
+  purpose
+  capabilities[]
+  tools[]
+  readScopes[]
+  writeScopes[]
+  sensitiveScopes[]
+  allowedEntities[]
+  systemInstructions
+  decisionRules
+  maxSteps
+  requiresApprovalFor[]
+}
+```
+
+Then you can inspect the system and know exactly what every agent can do.
+
+---
+
+# 17. Tool registry
+
+Same for tools.
+
+```ts
+ToolDefinition {
+  id
+  name
+  description
+  category
+  inputSchema
+  outputSchema
+  requiredScopes[]
+  allowedAgents[]
+  riskLevel
+  requiresApproval
+  provider
+}
+```
+
+For example:
+
+```text
+Tool:
+send_email
+
+Risk:
+HIGH
+
+Required scope:
+email.send
+
+Approval:
+REQUIRED
+
+Allowed agents:
+Email Agent
+Orchestrator
+```
+
+---
+
+# 18. Risk levels
+
+Every tool should have a risk class.
+
+### LOW
+
+```text
+Search email
+Search Drive
+Read task
+Read calendar
+Summarize document
+Create internal note
+```
+
+### MEDIUM
+
+```text
+Create task
+Change deadline
+Create calendar event
+Create reminder
+Update project
+```
+
+### HIGH
+
+```text
+Send email
+Delete file
+Delete data
+Modify financial records
+Cancel subscription
+Make external changes
+```
+
+Then:
+
+```text
+LOW → automatic
+MEDIUM → configurable
+HIGH → approval
+```
+
+---
+
+# 19. Approval system
+
+Suppose agent wants to send:
+
+> "Hi Sarah, here is the final video..."
+
+Agent prepares the action:
+
+```text
+Action:
+send_email
+
+Recipient:
+Sarah
+
+Subject:
+Final video
+
+Body:
+...
+
+Reason:
+Task completed and client requested delivery.
+```
+
+UI:
+
+```text
+┌─────────────────────────────┐
+│ Agent wants to send email   │
+│                             │
+│ To: Sarah                   │
+│ Subject: Final video        │
+│                             │
+│ [Send]   [Edit]   [Cancel] │
+└─────────────────────────────┘
+```
+
+Only after approval does the tool execute.
+
+---
+
+# 20. What does the agent fetch vs what does it already know?
+
+This needs a **Context Layer**.
+
+Don't make the agent repeatedly fetch everything.
+
+Use:
+
+```text
+                    KNOWLEDGE
+                       │
+             ┌─────────┴─────────┐
+             │                   │
+         Persistent           Live Data
+          Context               │
+             │                  │
+         Database          Gmail / Drive
+         Entities          Calendar / APIs
+         Relationships
+         Preferences
+```
+
+When handling a task:
+
+```text
+Stored context
++
+Live source retrieval
+=
+Current context
+```
+
+---
+
+# 21. Context hierarchy
+
+The agent should fetch context in this order:
+
+```text
+1. Current conversation
+2. Current task
+3. Current project
+4. Current client
+5. Related entities
+6. Recent activity
+7. Relevant documents
+8. External sources
+9. Global search
+```
+
+This prevents unnecessary searching.
+
+---
+
+# 22. Example: "Start my Tanniaqua task"
+
+The agent sees:
+
+```text
+Current user
+   ↓
+Task
+"Create LinkedIn product post"
+   ↓
+Project
+Tanniaqua Zone
+   ↓
+Client
+Tanniaqua Zone
+```
+
+It already knows:
+
+```text
+Client
+Project
+Deadline
+Requirements
+Previous posts
+```
+
+Now it determines missing context:
+
+```text
+Need:
+Latest product information
+Product image
+Logo
+Website link
+Previous LinkedIn style
+```
+
+Then it searches the correct sources.
+
+---
+
+# 23. Agent "Why / What / Where" model
+
+This is exactly what you asked for.
+
+Every action should internally have:
+
+### WHAT
+
+What information/action is required?
+
+```text
+Need latest product image.
+```
+
+### WHY
+
+Why is it needed?
+
+```text
+Required to prepare the LinkedIn post.
+```
+
+### WHERE
+
+Where should the system get it?
+
+```text
+Primary:
+Tanniaqua Drive folder
+
+Fallback:
+Email attachments
+Uploaded files
+```
+
+### HOW
+
+How should it retrieve it?
+
+```text
+search_drive()
+```
+
+### RESULT
+
+What did it find?
+
+```text
+product-v2.png
+```
+
+### CONFIDENCE
+
+How certain is it?
+
+```text
+0.97
+```
+
+### ACTION
+
+What happens next?
+
+```text
+Attach to task context.
+```
+
+This should be a standard execution object.
+
+---
+
+# 24. Agent execution record
+
+I would store something conceptually like:
+
+```ts
+AgentExecution {
+  id
+  agentId
+  userRequest
+  goal
+
+  plan
+
+  steps: [{
+    step
+    tool
+    reason
+    source
+    input
+    output
+    confidence
+    status
+  }]
+
+  actions
+  approvals
+
+  startedAt
+  completedAt
+  result
+}
+```
+
+This gives you complete observability.
+
+---
+
+# 25. Example execution
+
+User:
+
+> "Get everything I need for the GB reel."
+
+The system internally records:
+
+```text
+Goal:
+Prepare GB reel context
+
+Step 1
+Agent:
+Task Agent
+
+Tool:
+get_task_context
+
+Why:
+Identify requirements.
+
+Result:
+GB Banquet Event Reel
+
+Step 2
+Agent:
+Drive Agent
+
+Tool:
+search_drive
+
+Why:
+Find required visual assets.
+
+Query:
+GB Banquet Event Reel
+
+Result:
+24 files
+
+Step 3
+Agent:
+Drive Agent
+
+Tool:
+search_drive
+
+Why:
+Find latest logo.
+
+Result:
+GB-logo-final.svg
+
+Step 4
+Agent:
+Email Agent
+
+Tool:
+search_emails
+
+Why:
+Find latest client instructions.
+
+Result:
+Email from client, Aug 25
+
+Step 5
+Agent:
+Document Agent
+
+Tool:
+read_document
+
+Why:
+Extract reel requirements.
+
+Result:
+3 reel requirements
+
+Step 6
+Context Agent
+
+Action:
+Build Context Pack
+```
+
+Then user sees:
+
+> **Everything is ready.**
+
+---
+
+# 26. Agent data freshness
+
+This is another thing you need.
+
+Not all data should be treated equally.
+
+Every source has freshness:
+
+```text
+Email
+Real-time / minutes
+
+Calendar
+Near real-time
+
+Drive
+Minutes
+
+Tasks
+Real-time
+
+Finance statement
+Depends on source
+```
+
+When necessary:
+
+> "Fetch current calendar."
+
+The agent knows it must perform a live API call rather than trusting cached data.
+
+---
+
+# 27. Sync vs live fetch
+
+Use both.
+
+### Sync
+
+Good for:
+
+```text
+Historical email
+Drive indexing
+Documents
+Old calendar events
+Transactions
+```
+
+### Live fetch
+
+Good for:
+
+```text
+Today's calendar
+New email
+Current task status
+Latest file
+Pending payment
+```
+
+Architecture:
+
+```text
+External API
+     │
+     ├── Background Sync
+     │       ↓
+     │     Database
+     │
+     └── Live Tool
+             ↓
+         Agent request
+```
+
+---
+
+# 28. Agent memory vs database
+
+Do not let the AI memory become your source of truth.
+
+### PostgreSQL = source of truth
+
+```text
+Tasks
+Projects
+Clients
+Transactions
+Events
+Permissions
+Relationships
+```
+
+### AI memory = contextual recall
+
+```text
+Previous conversations
+Important preferences
+Useful summaries
+Semantic relationships
+```
+
+This distinction is critical.
+
+---
+
+# 29. How the agent finds related data
+
+You need a **Relationship Engine**.
+
+Example:
+
+```text
+Task
+ ↓
+Project
+ ↓
+Client
+ ↓
+Drive Folder
+ ↓
+Emails
+ ↓
+Documents
+ ↓
+Calendar Events
+```
+
+So asking:
+
+> "Give me everything related to this task"
+
+doesn't require a giant search.
+
+The graph already provides most of it.
+
+---
+
+# 30. Relationship types
+
+Examples:
+
+```text
+belongs_to
+assigned_to
+created_by
+mentioned_in
+attached_to
+related_to
+depends_on
+blocked_by
+generated_from
+stored_in
+sent_by
+received_from
+scheduled_for
+paid_by
+associated_with
+```
+
+These relationships are extremely valuable for agent reasoning.
+
+---
+
+# 31. Source hierarchy
+
+I'd define this explicitly in your database/config.
+
+```text
+Source Registry
+
+Gmail
+  capabilities:
+  email.read
+  email.search
+  email.attachment.read
+
+Google Drive
+  capabilities:
+  file.read
+  file.search
+  file.metadata
+
+Google Calendar
+  capabilities:
+  calendar.read
+  calendar.create
+  calendar.update
+
+Internal DB
+  capabilities:
+  entity.read
+  entity.write
+```
+
+Then agents dynamically discover what they can use.
+
+---
+
+# 32. Agent tool selection
+
+The agent shouldn't receive every tool every time.
+
+Suppose user asks:
+
+> "What meetings do I have tomorrow?"
+
+Only expose:
+
+```text
+search_calendar
+get_calendar_event
+```
+
+Not:
+
+```text
+delete_file
+send_email
+modify_transaction
+```
+
+This is called **dynamic tool exposure** and is much safer.
+
+---
+
+# 33. Agent context window
+
+Don't dump your entire database into the model.
+
+Instead:
+
+```text
+User request
+     ↓
+Intent
+     ↓
+Relevant entities
+     ↓
+Relevant relationships
+     ↓
+Relevant records
+     ↓
+Relevant source retrieval
+     ↓
+Compact context
+     ↓
+Agent
+```
+
+The agent should get exactly what it needs.
+
+---
+
+# 34. Agent planning example
+
+User:
+
+> "Make sure I don't miss anything related to Client X this week."
+
+Orchestrator generates:
+
+```text
+PLAN
+
+1. Get Client X.
+2. Get active projects.
+3. Get all open tasks.
+4. Find deadlines this week.
+5. Search recent emails.
+6. Find unresolved client requests.
+7. Check calendar meetings.
+8. Find missing dependencies.
+9. Check invoices/payments.
+10. Produce risk summary.
+11. Create reminders for confirmed risks.
+```
+
+That is a genuine agent workflow.
+
+---
+
+# 35. Agents should be event-driven too
+
+Don't rely only on chat.
+
+Example:
+
+```text
+NEW EMAIL
+   ↓
+Email Agent
+   ↓
+Potential deadline detected
+   ↓
+Task Agent
+   ↓
+Task created
+   ↓
+Reminder Agent
+   ↓
+Reminder scheduled
+```
+
+Another:
+
+```text
+Deadline approaching
+   ↓
+Planning Agent
+   ↓
+Task still incomplete
+   ↓
+Notification Agent
+   ↓
+User notified
+```
+
+Another:
+
+```text
+Bank statement received
+   ↓
+Finance Agent
+   ↓
+Parse transactions
+   ↓
+Categorize
+   ↓
+Detect subscriptions
+   ↓
+Update finance
+```
+
+This is where your system becomes proactive.
+
+---
+
+# 36. Agent event bus
+
+Core events:
+
+```text
+EmailReceived
+EmailUpdated
+
+FileCreated
+FileUpdated
+
+DocumentProcessed
+
+TaskCreated
+TaskUpdated
+TaskCompleted
+TaskOverdue
+
+ProjectCreated
+ProjectUpdated
+
+CalendarEventCreated
+CalendarEventChanged
+
+TransactionImported
+SubscriptionDetected
+
+ReminderDue
+NotificationCreated
+```
+
+Agents subscribe to the events they understand.
+
+---
+
+# 37. "Manage my finance"
+
+That should not mean:
+
+> Finance Agent has access to your bank.
+
+It means:
+
+```text
+Finance Agent
+     │
+     ├── Read financial data
+     ├── Analyze transactions
+     ├── Categorize transactions
+     ├── Detect subscriptions
+     ├── Detect anomalies
+     └── Generate financial summaries
+```
+
+Actions like:
+
+```text
+Transfer money
+Make payment
+Cancel subscription
+```
+
+should never be automatically allowed by default.
+
+---
+
+# 38. "Manage my email"
+
+Same concept:
+
+```text
+Email Agent
+     │
+     ├── Read
+     ├── Search
+     ├── Summarize
+     ├── Extract tasks
+     ├── Extract deadlines
+     ├── Draft replies
+     └── Track follow-ups
+```
+
+Potentially:
+
+```text
+Send
+Archive
+Delete
+Label
+Forward
+```
+
+require separate permissions.
+
+---
+
+# 39. "Manage my Drive"
+
+```text
+Drive Agent
+    │
+    ├── Search
+    ├── Read
+    ├── Index
+    ├── Extract content
+    ├── Relate files
+    └── Recommend relevant files
+```
+
+Writing/deleting should be separate permissions.
+
+---
+
+# 40. "Manage my calendar"
+
+```text
+Calendar Agent
+    │
+    ├── Read
+    ├── Analyze
+    ├── Find conflicts
+    ├── Recommend times
+    ├── Create events
+    └── Reschedule
+```
+
+Again, authorization matters.
+
+---
+
+# 41. One more important component: Agent Policy Engine
+
+Between agent and tool:
+
+```text
+Agent
+ ↓
+Policy Engine
+ ↓
+Permission Check
+ ↓
+Risk Check
+ ↓
+Approval Check
+ ↓
+Tool
+```
+
+So even if an agent tries to do something it shouldn't:
+
+```text
+Agent → send_email
+          ↓
+Policy Engine
+          ↓
+Permission denied
+```
+
+The model itself is not your security boundary.
+
+**Your application is.**
+
+---
+
+# 42. The complete architecture
+
+This is the architecture I'd ultimately use:
+
+```text
+                              USER
+                               │
+                               ▼
+                       ┌──────────────┐
+                       │  Assistant   │
+                       └──────┬───────┘
+                              │
+                              ▼
+                    ┌───────────────────┐
+                    │   ORCHESTRATOR    │
+                    └─────────┬─────────┘
+                              │
+                  ┌───────────┼───────────┐
+                  ▼           ▼           ▼
+             CONTEXT       PLANNER      AGENTS
+             ENGINE                     │
+                  │           │          │
+                  └───────────┼──────────┘
+                              ▼
+                       ┌──────────────┐
+                       │ TOOL ROUTER  │
+                       └──────┬───────┘
+                              │
+                       ┌──────▼──────┐
+                       │ POLICY      │
+                       │ ENGINE      │
+                       └──────┬──────┘
+                              │
+                  ┌───────────┼────────────┐
+                  ▼           ▼            ▼
+              Gmail        Drive       Calendar
+                  │           │            │
+                  └───────────┼────────────┘
+                              ▼
+                        NORMALIZATION
+                              │
+                              ▼
+                         POSTGRESQL
+                              │
+                   ┌──────────┴──────────┐
+                   ▼                     ▼
+               EVENT BUS             SEARCH
+                   │                     │
+                   ▼                     ▼
+                WORKERS             CONTEXT
+                   │                 ENGINE
+                   └────────┬────────────┘
+                            ▼
+                         AGENTS
+```
+
+---
+
+# 43. The database objects for the agent layer
+
+Beyond your normal application tables, I'd create dedicated tables for:
+
+```text
+agents
+agent_tools
+agent_scopes
+agent_runs
+agent_steps
+agent_plans
+
+tools
+tool_permissions
+tool_executions
+
+integrations
+integration_accounts
+integration_scopes
+integration_syncs
+
+data_sources
+source_capabilities
+
+events
+event_subscriptions
+event_runs
+
+approvals
+approval_requests
+
+audit_logs
+```
+
+And then your domain tables:
+
+```text
+users
+clients
+projects
+tasks
+emails
+files
+documents
+calendar_events
+transactions
+subscriptions
+reminders
+notifications
+...
+```
+
+---
+
+# 44. What I would call this layer
+
+Don't call it simply:
+
+**AI Layer**
+
+That's too vague.
+
+I'd create an actual:
+
+## Agent Control Plane
+
+It contains:
+
+```text
+Agent Registry
+Tool Registry
+Permission System
+Policy Engine
+Source Registry
+Context Engine
+Planner
+Orchestrator
+Execution Engine
+Approval Engine
+Audit System
+Event Bus
+```
+
+Then your actual agents sit on top of it.
+
+---
+
+# 45. The most important rule for your project
+
+Remember this:
+
+> **Agents decide. Your application controls.**
+
+The LLM can decide:
+
+> "I think I need the latest client email."
+
+But only your application decides:
+
+```text
+Can this agent access email?
+Which mailbox?
+Which message?
+What query is allowed?
+Can it read attachments?
+Can it create a task?
+Can it send anything?
+Does it require approval?
+```
+
+That gives you a system that can genuinely manage **email + Drive + calendar + work + finance + files + reminders**, while still being safe and explainable.
+
+And this architecture also means that later, when you add another integration, you don't redesign the agents. You add the new **provider + capabilities + tools + permissions**, and the orchestrator can start using it.

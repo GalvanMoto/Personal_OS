@@ -1,0 +1,1387 @@
+For your **Task module**, I would make it the most intelligent operational entity in Personal OS. A task should not just have a title/status/due date. It should know **why it exists, where it came from, what it belongs to, what is needed to complete it, what you already did, what is blocking it, what should happen next, and what the system should automatically do about it.**
+
+# 1. Task creation
+
+You should have **three creation modes**:
+
+### Quick Create
+
+For a task you already know:
+
+```text
+Task title *
+[Create LinkedIn post]
+
+Project
+[Tanniaqua Zone]
+
+Due
+[Tomorrow]
+
+[Create Task]
+```
+
+### Full Create
+
+For detailed manual creation.
+
+### AI Create
+
+You dump:
+
+> "Client wants a LinkedIn post for the new product, use the new product image and website information, needs to go out Friday."
+
+AI turns it into the structured task.
+
+---
+
+# 2. Full Task Creation Form
+
+## Basic Information
+
+```text
+Task Title *
+[________________________________]
+
+Description
+[________________________________]
+[________________________________]
+
+Task Type
+[Client Work ▼]
+
+Status
+[Not Started ▼]
+
+Priority
+[Automatic ▼]
+```
+
+### Task types
+
+```text
+Client Work
+Development
+Design
+Content
+Marketing
+SEO
+Research
+Admin
+Communication
+Finance
+Personal
+Review
+Meeting
+Follow-up
+Other
+```
+
+---
+
+# 3. Project / Client
+
+```text
+Project
+[GB Banquet ▼]
+
+Client
+[GB Banquet ▼]
+
+Parent Task
+[Optional ▼]
+
+Milestone
+[Event Marketing ▼]
+```
+
+These should be automatically inferred whenever possible.
+
+For example, if you create:
+
+> "Create GB event reel"
+
+the system should recognize:
+
+```text
+Client → GB Banquet
+Project → GB Banquet Social Media
+```
+
+---
+
+# 4. Task owner / people
+
+```text
+Assigned To
+[Gautam ▼]
+
+Requested By
+[Sarah ▼]
+
+For Client
+[GB Banquet ▼]
+
+Collaborators
+[+ Add]
+```
+
+This allows the assistant to understand:
+
+> "Who asked me to do this?"
+
+and:
+
+> "Who am I waiting for?"
+
+---
+
+# 5. Dates
+
+This needs to use your universal date system.
+
+```text
+Start Date
+[26 Aug 2026]
+
+Due Date
+[28 Aug 2026]
+
+Time
+[Optional]
+
+Estimated Duration
+[90 min]
+
+Actual Duration
+[Auto]
+
+Completed At
+[Auto]
+```
+
+Support:
+
+```text
+No deadline
+Specific date
+Date + time
+Relative date
+```
+
+---
+
+# 6. Status
+
+I recommend:
+
+```text
+Inbox
+Not Started
+Planned
+In Progress
+Waiting
+Blocked
+Review
+Completed
+Cancelled
+Archived
+```
+
+### Important distinction
+
+**Waiting** means:
+
+> Someone else needs to respond/do something.
+
+**Blocked** means:
+
+> You cannot continue because a dependency/problem exists.
+
+Example:
+
+```text
+Waiting:
+Waiting for client logo.
+
+Blocked:
+Cannot export because editing software is failing.
+```
+
+---
+
+# 7. Priority
+
+Don't make the user manually decide everything.
+
+```text
+Priority Mode
+Automatic
+Manual
+Locked
+```
+
+Visible priority:
+
+```text
+Critical
+High
+Medium
+Low
+None
+```
+
+System score:
+
+```text
+Priority Score: 87
+```
+
+Reasons:
+
+```text
+Due tomorrow
+Client waiting
+Blocks another task
+High-value project
+```
+
+---
+
+# 8. Description vs Requirements
+
+I would keep these separate.
+
+### Description
+
+General explanation of the task.
+
+### Requirements
+
+Concrete requirements:
+
+```text
+Requirements
+
+☐ Use latest logo
+☐ Use 9 event photos
+☐ 30-second video
+☐ Add brand colors
+☐ Export MP4
+```
+
+This makes AI extraction much better.
+
+---
+
+# 9. Expected Outcome
+
+Add:
+
+```text
+Expected Outcome
+[________________________________]
+```
+
+Example:
+
+> Final MP4 reel ready for client approval.
+
+This helps the agent determine whether a task is actually complete.
+
+---
+
+# 10. Next Action
+
+Every task should have:
+
+```text
+Next Action
+[________________________________]
+```
+
+Example:
+
+> Download latest event photos from Drive.
+
+This can be AI-generated and updated as work progresses.
+
+---
+
+# 11. Dependencies
+
+A task needs dependency support.
+
+```text
+Depends On
+
+[Client sends photos]
+[Complete editing]
+```
+
+And:
+
+```text
+Blocks
+
+[Final delivery]
+[Client approval]
+```
+
+The system should calculate:
+
+```text
+Dependency Status
+Ready
+Waiting
+Blocked
+```
+
+---
+
+# 12. Waiting / Blocked details
+
+When status becomes Waiting:
+
+```text
+Waiting For
+[Sarah]
+
+Waiting For What?
+[Final product images]
+
+Expected Response
+[27 Aug]
+
+Follow-up Date
+[28 Aug]
+```
+
+When Blocked:
+
+```text
+Blocked Reason
+[________________________________]
+
+Blocked By
+[Task / Person / File / Decision]
+
+Resolution
+[________________________________]
+```
+
+---
+
+# 13. Task source
+
+Very important for your AI-based system.
+
+```text
+Source
+Manual
+Inbox
+Email
+Calendar
+Document
+Assistant
+Automation
+Imported
+```
+
+And:
+
+```text
+Source Reference
+[email-id / inbox-id / document-id]
+```
+
+Example:
+
+```text
+Created from:
+Gmail → "GB Banquet reel requirements"
+```
+
+Clicking it should open the original source.
+
+---
+
+# 14. AI extraction data
+
+Store what the AI discovered.
+
+```text
+AI Generated
+Yes
+
+AI Confidence
+94%
+
+Extracted From
+Client Email
+
+Extraction ID
+EXT-000934
+```
+
+And extracted elements:
+
+```text
+Detected Client
+Detected Project
+Detected Deadline
+Detected People
+Detected Files
+Detected Requirements
+```
+
+---
+
+# 15. Attachments / resources
+
+Task should show all related resources:
+
+```text
+Files
+Documents
+Links
+Emails
+Notes
+Calendar Events
+```
+
+You should be able to attach manually:
+
+```text
+[+ Add File]
+[+ Add Link]
+[+ Attach Email]
+```
+
+But AI should also automatically link relevant resources.
+
+---
+
+# 16. Task links
+
+Useful for your workflow:
+
+```text
+Reference Links
+
+Figma
+Google Drive
+Website
+Client Portal
+Document
+Other
+```
+
+Example:
+
+```text
+Product Page
+https://...
+
+Asset Folder
+https://drive.google.com/...
+```
+
+---
+
+# 17. Tags
+
+Universal tags:
+
+```text
+Content
+Urgent
+Client
+Video
+LinkedIn
+SEO
+Development
+Review
+```
+
+Multiple tags allowed.
+
+---
+
+# 18. Recurrence
+
+For recurring tasks:
+
+```text
+Repeat
+Never
+Daily
+Weekdays
+Weekly
+Biweekly
+Monthly
+Quarterly
+Yearly
+Custom
+```
+
+Custom:
+
+```text
+Every 2 weeks
+Every month on the 1st
+Every last Friday
+```
+
+Use recurrence rules internally rather than generating thousands of future tasks.
+
+---
+
+# 19. Reminder policy
+
+Instead of manually adding every reminder:
+
+```text
+Reminder Policy
+Automatic
+Custom
+None
+```
+
+Automatic example:
+
+```text
+7 days before
+3 days before
+1 day before
+Morning of due date
+Overdue escalation
+```
+
+The system should adapt this based on task priority.
+
+---
+
+# 20. Task effort
+
+Add:
+
+```text
+Estimated Time
+[90 minutes]
+
+Remaining Time
+[45 minutes]
+
+Actual Time
+[Auto]
+```
+
+This connects directly to your Work Log.
+
+If you've spent 50 minutes on a task estimated at 90 minutes, the system can estimate remaining work.
+
+---
+
+# 21. Work Sessions
+
+Task should contain:
+
+```text
+Work Sessions
+
+26 Aug
+10:32–11:14
+42m
+
+26 Aug
+14:10–14:48
+38m
+
+Total
+1h 20m
+```
+
+Button:
+
+```text
+[Start Work]
+```
+
+This starts a Work Session.
+
+---
+
+# 22. Work session behavior
+
+When you click:
+
+**Start Work**
+
+the system records:
+
+```text
+Started At
+Task
+Project
+User
+```
+
+During work:
+
+```text
+Focus Mode
+01:24:12
+```
+
+When stopping:
+
+```text
+What did you accomplish?
+[Optional]
+```
+
+AI can summarize the session from activity captured during that period.
+
+---
+
+# 23. Task Activity
+
+Separate from Work Log.
+
+Example:
+
+```text
+26 Aug 10:32
+Task started
+
+10:35
+Description updated
+
+10:50
+File attached
+
+11:15
+Status changed to In Progress
+
+11:40
+Reminder snoozed
+```
+
+Every meaningful event is recorded.
+
+---
+
+# 24. Task notes
+
+Allow notes without modifying the main description.
+
+```text
+Notes
+
+Client mentioned they prefer the shorter version.
+
+Remember to use latest logo.
+
+[+ Add Note]
+```
+
+Types:
+
+```text
+General
+Client
+Technical
+Decision
+Research
+Reminder
+```
+
+---
+
+# 25. Task checklist
+
+A task can contain smaller action items:
+
+```text
+Checklist
+
+☑ Download assets
+☑ Select photos
+☐ Edit
+☐ Add music
+☐ Export
+☐ Send to client
+```
+
+Progress:
+
+```text
+3 / 6 complete
+50%
+```
+
+AI can generate these from a client message.
+
+---
+
+# 26. Subtasks
+
+Use subtasks when an item deserves its own task lifecycle.
+
+Example:
+
+```text
+Main Task
+Create GB Event Reel
+
+Subtasks
+├── Download assets
+├── Edit video
+├── Add branding
+├── Export
+└── Send for approval
+```
+
+Checklist for tiny actions; subtasks for meaningful work.
+
+---
+
+# 27. Task relationships
+
+Your relationship engine should support:
+
+```text
+belongs_to → Project
+for_client → Client
+assigned_to → Person
+requested_by → Person
+depends_on → Task
+blocks → Task
+related_to → Email
+related_to → File
+related_to → Document
+scheduled_for → Calendar Event
+has_reminder → Reminder
+generated_from → Source
+```
+
+This makes the task deeply connected to the rest of Personal OS.
+
+---
+
+# 28. Automatic task behavior
+
+Tasks should automatically react to events.
+
+### New client email
+
+```text
+Email mentions existing task
+→ Attach email
+→ Update task context
+```
+
+### New relevant file
+
+```text
+Drive file appears
+→ Link file to task
+```
+
+### Deadline approaching
+
+```text
+Increase urgency
+→ Reminder
+```
+
+### Dependency completed
+
+```text
+Blocked task
+→ Re-evaluate
+→ Mark Ready
+```
+
+### Task completed
+
+```text
+Cancel future reminders
+Update project progress
+Update milestone
+Update client status
+Create activity
+```
+
+---
+
+# 29. Automatic priority logic
+
+Example:
+
+```text
+IF due_date <= 7 days
+    +10
+
+IF due_date <= 3 days
+    +20
+
+IF due_date <= 1 day
+    +30
+
+IF overdue
+    +40
+
+IF client_waiting
+    +20
+
+IF blocks_other_tasks
+    +15
+
+IF high_priority_client
+    +10
+
+IF project_at_risk
+    +15
+```
+
+Then normalize to:
+
+```text
+0–24   Low
+25–49  Medium
+50–74  High
+75+    Critical
+```
+
+The exact weights should be configurable later.
+
+---
+
+# 30. Automatic status behavior
+
+Example:
+
+```text
+Task created
+↓
+Inbox
+
+Added to plan
+↓
+Planned
+
+User starts work
+↓
+In Progress
+
+Dependency unresolved
+↓
+Blocked
+
+Someone else needs to respond
+↓
+Waiting
+
+All requirements completed
+↓
+Review
+
+Verified
+↓
+Completed
+```
+
+Do not let automation blindly override user changes. Store:
+
+```text
+status_mode
+manual override
+```
+
+---
+
+# 31. At-risk calculation
+
+A task can become:
+
+### Healthy
+
+Enough time remains.
+
+### At Risk
+
+Remaining estimated work > available time.
+
+### Critical
+
+Deadline is very close or already missed.
+
+Example:
+
+```text
+Due:
+Tomorrow 5 PM
+
+Remaining:
+4h
+
+Available working time:
+2h
+
+Status:
+At Risk
+```
+
+---
+
+# 32. Task intelligence
+
+The task should expose:
+
+```text
+AI Summary
+Next Action
+Risk
+Missing Information
+Suggested Priority
+Suggested Deadline
+Suggested Resources
+Potential Blockers
+```
+
+Example:
+
+> **Missing information:** Final logo not found.
+
+> **Next action:** Ask client for latest logo.
+
+> **Risk:** Due tomorrow with 3 hours estimated work remaining.
+
+---
+
+# 33. Task page layout
+
+I'd make the full task page/workspace:
+
+```text
+┌───────────────────────────────────────────────────────────────┐
+│ ← GB Banquet                                                  │
+│                                                               │
+│ Create Event Reel                      [Start Work] [...]     │
+│ High · In Progress · Due Aug 28                               │
+├───────────────────────────────────────────────────────────────┤
+│                                                               │
+│ Description                                                   │
+│ Requirements                                                 │
+│                                                               │
+│ Next Action                                                   │
+│ Download latest event photos                                 │
+│                                                               │
+│ Checklist                                                     │
+│ ☑ Download assets                                            │
+│ ☑ Select photos                                               │
+│ ☐ Edit                                                        │
+│ ☐ Export                                                      │
+│ ☐ Send                                                         │
+│                                                               │
+├──────────────────────────┬────────────────────────────────────┤
+│ Context                  │ Details                            │
+│                          │                                    │
+│ Project                  │ Priority                           │
+│ Client                   │ Due Date                           │
+│ Emails                   │ Estimated Time                     │
+│ Files                    │ Status                             │
+│ Documents                │ Assignee                           │
+│ Links                    │                                    │
+└──────────────────────────┴────────────────────────────────────┘
+```
+
+---
+
+# 34. Task tabs
+
+I'd use:
+
+```text
+Overview
+Work
+Checklist
+Context
+Files
+Emails
+Notes
+Activity
+Reminders
+```
+
+Not 20 tabs.
+
+Finance/calendar/etc. can appear in Context when relevant.
+
+---
+
+# 35. Right-side task drawer
+
+From any page, clicking a task should open a quick drawer:
+
+```text
+Task
+
+Create Event Reel
+
+High
+In Progress
+
+Due:
+28 Aug
+
+Project:
+GB Banquet
+
+Next:
+Download assets
+
+[Start Work]
+
+Subtasks
+3/6
+
+[Open Full Task]
+```
+
+This lets you manage tasks without constantly navigating.
+
+---
+
+# 36. Task filters
+
+Universal filters plus task-specific:
+
+```text
+Status
+Priority
+Due Date
+Client
+Project
+Assignee
+Milestone
+Task Type
+Source
+Tags
+```
+
+Smart:
+
+```text
+Due Today
+Overdue
+At Risk
+Waiting
+Blocked
+No Deadline
+No Activity
+Needs Review
+Missing Information
+```
+
+---
+
+# 37. Task bulk actions
+
+Very useful.
+
+Select multiple tasks:
+
+```text
+☐ Task 1
+☐ Task 2
+☐ Task 3
+```
+
+Actions:
+
+```text
+Set Priority
+Change Status
+Set Due Date
+Assign
+Move Project
+Add Tag
+Snooze
+Complete
+Archive
+```
+
+For destructive actions, confirmation.
+
+---
+
+# 38. Task automation panel
+
+Every task should have an optional:
+
+```text
+Automation
+```
+
+Example:
+
+```text
+When due date is 2 days away
+→ notify me
+
+When task becomes overdue
+→ notify me daily
+
+When waiting for client
+→ follow up after 3 days
+```
+
+But these can mostly come from global policies.
+
+---
+
+# 39. Task source trace
+
+One of the best features for your system.
+
+At the task:
+
+```text
+Created From
+
+Gmail
+Sarah — "GB Banquet Reel Requirements"
+Aug 25
+
+[View Source]
+```
+
+Then the system can show:
+
+```text
+Extracted:
+Deadline → Friday
+Requirement → 3 reels
+Asset → Drive folder
+```
+
+So you can verify exactly why the task exists.
+
+---
+
+# 40. Task completion flow
+
+Don't just click "Done."
+
+When completed:
+
+```text
+Mark Completed
+```
+
+System checks:
+
+```text
+Are required subtasks complete?
+Are required deliverables attached?
+Is there a pending dependency?
+```
+
+Then:
+
+```text
+✓ Task completed
+```
+
+And automatically:
+
+```text
+Cancel reminders
+Update project
+Update milestone
+Update work session
+Log completion
+Update client activity
+Recalculate project health
+```
+
+---
+
+# 41. Completion notes
+
+Optional:
+
+```text
+Completion Note
+[________________________________]
+
+Outcome
+[________________________________]
+```
+
+AI can automatically generate:
+
+> Completed the event reel using the latest client assets and exported the final MP4.
+
+---
+
+# 42. Task deletion
+
+Don't immediately delete.
+
+Use:
+
+```text
+Archive
+```
+
+for normal cleanup.
+
+Permanent deletion should require confirmation.
+
+And because this is a Personal OS:
+
+> Keep audit history even if the task is archived.
+
+---
+
+# 43. Exact task database structure
+
+I would make the core `tasks` record roughly:
+
+```text
+id
+title
+description
+
+status
+status_mode
+
+priority
+priority_mode
+priority_score
+
+task_type
+
+project_id
+client_id
+parent_task_id
+milestone_id
+
+assignee_id
+requested_by_id
+
+start_date
+due_date
+completed_at
+
+estimated_minutes
+remaining_minutes
+actual_minutes
+
+next_action
+
+expected_outcome
+
+blocked_reason
+waiting_for
+follow_up_date
+
+recurrence_rule
+
+reminder_policy
+
+source_type
+source_id
+
+ai_generated
+ai_confidence
+
+is_recurring
+is_archived
+
+created_at
+updated_at
+last_activity_at
+```
+
+Related tables:
+
+```text
+task_checklist_items
+task_dependencies
+task_assignees
+task_tags
+task_files
+task_links
+task_notes
+task_work_sessions
+task_reminders
+task_relationships
+task_activity
+task_automations
+```
+
+---
+
+# 44. What the user should actually have to enter
+
+For **your** system, manual task creation should ideally require only:
+
+```text
+Title
+Project
+Due Date
+```
+
+Everything else can be:
+
+```text
+AI inferred
+Automatically calculated
+Optional
+Inherited from project/client
+```
+
+And AI creation should ideally require **nothing structured**.
+
+You paste:
+
+> "Need to update the Tanniaqua product post before Friday. Use the new product photo from Drive and make sure the website link is included."
+
+The system creates:
+
+```text
+Task:
+Update Tanniaqua product post
+
+Project:
+Tanniaqua Zone
+
+Due:
+28 Aug
+
+Requirements:
+✓ New product photo
+✓ Website link
+
+Source:
+Client message
+
+Next Action:
+Find latest product photo
+
+Priority:
+High
+
+Reminder:
+Tomorrow morning
+
+Context:
+Drive + website + client history
+```
+
+That is the **task module** I would build for your Personal OS: the task is a living operational object connected to its source, client, project, files, emails, work sessions, reminders, dependencies, and AI context—not just a checkbox.

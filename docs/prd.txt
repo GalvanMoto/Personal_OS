@@ -1,0 +1,2806 @@
+Hey, I am facing so many problems regarding my daily task update and daily reminders. So what I want a system where I make a PWA, web progressive app, runs in my phone and my Mac, Windows, all of this with integrated Telegram bot and even other integrations with notification, notification sound, like this, to remind me that what tasks are left, due dates, and everything, like a chatbot, but a very good system which actually cares everything. Like my even read my mails, read my mails and extract information. If my every, like my bank balance statement comes, it fetches, it fetches and then puts the password and take that information that how much I spend it on and now not everything like that. Every minor detail of my takes it and process it in a way from which I can be very independent to organize everything. I don't want to manually input everything in the software because I am very irritated because, like so many softwares are there in which you can input so many things, like okay, like I can literally copy-paste the task given by a screenshot by the client or something where I have to give that thing or product or something like this, the task that someone gave me in detailed task around the document and links. I just ask AI and just it will give me or it will remind me and provide every document and everything, like that. Like, are you understanding the flow? Like I have to go, like let's say the situation that I have to take something into editing task, right. And I have a brand where I have to edit it. For that, I have to go and search for the links. So links where the brand logo is, where the data is, where the content is, and everything like that. So this makes a very hefty protocol for me to analyze it. So I want that users ask me, like not you, that system asks me every day what task are you working on, what task are pending, what task has a due date, and everything. Like I just paste a message in whatever the screenshot, just recapitulate and cron jobs or everything, like a full assistant. Just an assistant, my assistant, web application on my server with Telegram bot integration or something like that, or just chat integration in that, whatever. Okay, we leave Telegram integration, but just I want that the integration which gives me a proper engagement or something like that, from which I can manage my everything, expense, and everything, everything. I'll give you the API, Google API from my mail, like mail thing. Then I can give you the task API, calendar API, and other APIs to manage my all tasks and organize it in a proper way, from which I can be independent of organizing things, and from which I can easily organize my other things and I can focus on tasks and without any reminder and like payment subscriptions and all, I can easily bear about those things, like I don't worry about it.
+
+Yes. I completely understand what you're trying to build. And honestly, this is much bigger than a normal task-management app.
+
+What you want is basically a Personal Operating System / Personal Assistant that sits between you and all the scattered information in your life.
+
+The key idea is:
+
+You should not manage the system. The system should manage the information for you.
+
+You shouldn't have to open a task manager, create a project, enter a due date, attach a document, paste a link, create a reminder, etc.
+
+You give the system raw information, and it turns that into organized, actionable information.
+
+The system you're describing
+
+Think of it as:
+
+Your Personal Command Center
+
+You have one place where you can:
+
+paste a client message
+upload a screenshot
+forward an email
+send a voice message
+upload a PDF
+send a document
+paste a random link
+tell it "remind me about this"
+tell it "I'm working on this"
+tell it "I spent ₹2,400"
+ask "what do I need to do today?"
+ask "what am I waiting for?"
+ask "what's overdue?"
+ask "show me everything related to Client X"
+ask "where is the logo for this project?"
+ask "what did I spend this month?"
+ask "what subscriptions are coming up?"
+ask "what needs my attention?"
+
+And the system figures out the rest.
+
+The most important architectural decision
+
+Don't build this as:
+
+Task Manager + Calendar + Expense Manager + Notes + Email
+
+That will become another annoying productivity application.
+
+Instead build:
+
+Information → Intelligence → Actions
+
+Everything enters through an Inbox.
+
+For example:
+
+"Client says: Please edit the new restaurant reel by Friday. Use the new logo from Drive and add the menu items from this document."
+
+Your system should automatically understand:
+
+CLIENT
+↓
+Project: Restaurant Reel
+↓
+Task: Edit restaurant reel
+↓
+Due: Friday
+↓
+Assets required:
+    - New logo
+    - Menu document
+↓
+Source:
+    Client message
+↓
+Related files:
+    Google Drive
+↓
+Status:
+    Not Started
+↓
+Priority:
+    High
+
+You didn't create any of that manually.
+
+1. Universal Inbox
+
+This should be the heart of the application.
+
+Everything goes here.
+
+Input methods
+Text
+Screenshot
+Image
+PDF
+Document
+Email
+Voice
+URL
+Forwarded message
+Telegram message
+File upload
+Browser share
+
+For example, you screenshot a WhatsApp/client message and upload it.
+
+The system extracts:
+
+Client
+Project
+Task
+Requirements
+Deadline
+Links
+Files
+People
+Priority
+Dependencies
+Questions
+Expected output
+
+Then it asks only when something genuinely matters.
+
+For example:
+
+"I found a deadline of Friday. Should I treat that as 28 Aug 2026?"
+
+You say:
+
+Yes.
+
+Done.
+
+2. AI Task Extraction Engine
+
+This is where your system becomes different from Notion/Todoist/etc.
+
+Every incoming piece of information gets processed.
+
+Example
+
+You paste:
+
+"Bro please make 3 reels for GB Banquet. First one should be event highlights, second should show decoration and third should focus on the food. Need them before Saturday. Photos are in Drive."
+
+The system creates:
+
+Project
+
+GB Banquet
+
+Tasks
+1. Create event highlights reel
+2. Create decoration reel
+3. Create food-focused reel
+Deadline
+Saturday
+Dependency
+Need event photos from Google Drive
+Asset search
+
+The system searches connected sources for:
+
+GB
+Banquet
+Event
+Photos
+Decoration
+Food
+Logo
+
+And gives you:
+
+Everything you need for this task
+
+Logo
+Photos
+Brand assets
+Previous reels
+Content references
+Client instructions
+Google Drive folder
+Previous conversations
+Related documents
+
+That is the part you are really asking for.
+
+3. "Work on this task" mode
+
+This is extremely important.
+
+You should be able to click:
+
+Start Task
+
+And the system creates a workspace for that task.
+
+For example:
+
+GB Banquet — Event Reel
+
+It automatically brings together:
+
+Task requirements
+↓
+Client instructions
+↓
+Deadline
+↓
+Brand information
+↓
+Logo
+↓
+Google Drive assets
+↓
+Previous related work
+↓
+Reference videos
+↓
+Related emails
+↓
+Notes
+↓
+Subtasks
+
+So instead of:
+
+"Where did they send the logo?"
+
+you ask:
+
+"Show me everything I need for this reel."
+
+And the system does the searching.
+
+4. Personal Daily Assistant
+
+Every morning the system should proactively talk to you.
+
+Something like:
+
+Good morning Gautam. Here's what needs your attention today.
+
+🔴 Due today
+GB Banquet — Event Reel
+Client XYZ — Website changes
+Happy Rewards — Review video
+🟠 Due soon
+Tanniaqua Zone — LinkedIn post
+Client ABC — SEO report
+🟡 Waiting for someone
+GB Banquet — Waiting for photos
+Client XYZ — Waiting for approval
+🟢 Completed
+3 tasks completed yesterday
+
+Then:
+
+What are you working on first?
+
+You reply:
+
+"GB reel"
+
+Now it knows your current focus.
+
+5. Throughout the day
+
+The assistant should maintain a current context.
+
+For example:
+
+CURRENTLY WORKING ON
+
+GB Banquet
+Event Reel
+
+Started: 10:32 AM
+
+Remaining:
+• Select photos
+• Edit reel
+• Add music
+• Export
+• Send to client
+
+If you haven't touched it for several hours:
+
+"You started the GB Banquet reel this morning. Do you want to continue it or move to another task?"
+
+This is where it starts feeling like an actual assistant rather than software.
+
+6. End-of-day assistant
+
+At the end of the day:
+
+Daily Wrap-up
+
+Completed
+─────────
+✓ GB reel
+✓ Happy Rewards video
+✓ Tanniaqua LinkedIn post
+
+Still pending
+─────────────
+• Client XYZ website changes
+• GB second reel
+
+Waiting
+───────
+• Client approval
+
+Tomorrow
+────────
+• Finish XYZ website
+• Create GB decoration reel
+
+And then:
+
+"Anything you want me to carry forward?"
+
+You don't need to maintain a separate daily log.
+
+7. Email intelligence
+
+This is another major component.
+
+Connect:
+
+Gmail
+Outlook
+potentially other mail providers later
+
+But don't simply dump emails into the task system.
+
+Create an Email Intelligence Engine.
+
+It detects:
+
+Client emails
+Invoices
+Receipts
+Subscriptions
+Payment confirmations
+Deadlines
+Meeting requests
+Task assignments
+Approvals
+Documents
+Notifications
+Personal emails
+
+For example:
+
+Email received from Client
+
+System detects:
+
+New task
+Client: XYZ
+Task: Update website pricing section
+Deadline: Thursday
+Attachment: pricing.pdf
+Priority: High
+
+Then creates the task automatically.
+
+8. Bank / financial intelligence
+
+This can also fit into the same system.
+
+But I'd keep it as a separate Financial Intelligence module.
+
+Your email receives:
+
+SBI Statement — August 2026
+
+The system detects:
+
+Bank
+Statement period
+Account
+Transactions
+Opening balance
+Closing balance
+Credits
+Debits
+
+Then categorizes:
+
+Food
+Travel
+Shopping
+Software
+Subscriptions
+Bills
+Business
+Freelance
+Salary
+Transfers
+ATM
+Unknown
+
+Then:
+
+You spent ₹18,420 this month.
+
+And:
+
+Food          ₹4,200
+Shopping      ₹3,100
+Software      ₹2,400
+Travel        ₹2,100
+Bills         ₹3,000
+Other         ₹3,620
+
+But I would not store bank passwords directly inside your application database.
+
+Instead:
+
+Password / credential
+        ↓
+Secure credential vault
+        ↓
+Reference/token
+        ↓
+Bank statement processor
+
+And preferably process attachments locally/on your own server wherever practical.
+
+9. Subscription intelligence
+
+This can become extremely useful.
+
+From emails + transactions:
+
+Netflix
+Adobe
+Google
+AWS
+ChatGPT
+Domains
+Hosting
+Software
+SaaS
+
+The system detects:
+
+Subscription
+Amount
+Billing frequency
+Next expected payment
+Payment method
+
+Then:
+
+Upcoming payments
+
+Adobe
+₹1,675
+2 Sep
+
+Domain
+₹1,299
+8 Sep
+
+Hosting
+₹799
+12 Sep
+
+And remind you before the charge.
+
+10. Calendar intelligence
+
+Connect Google Calendar.
+
+But again, don't make it just a calendar viewer.
+
+The assistant should understand:
+
+Meetings
+Deadlines
+Travel
+Appointments
+Personal events
+Work blocks
+
+For example:
+
+"You have a client call at 4 PM. You still have two unfinished tasks from this client."
+
+That's much more useful than:
+
+"Reminder: meeting at 4 PM."
+
+11. Document intelligence
+
+This is another major part.
+
+Your system should maintain a relationship graph.
+
+For example:
+
+CLIENT
+   ↓
+PROJECT
+   ↓
+TASK
+   ↓
+DOCUMENTS
+   ↓
+FILES
+   ↓
+EMAILS
+   ↓
+MEETINGS
+   ↓
+PAYMENTS
+   ↓
+NOTES
+
+So when you open:
+
+Client: GB Banquet
+
+You see:
+
+Overview
+
+Projects
+Tasks
+Emails
+Files
+Documents
+Payments
+Meetings
+Notes
+Brand Assets
+Previous Work
+Pending Items
+12. Search should be extremely intelligent
+
+You shouldn't need to remember where something is.
+
+Ask:
+
+"Where is GB Banquet's latest logo?"
+
+System searches:
+
+Google Drive
+Emails
+Uploaded files
+Previous tasks
+Notes
+Projects
+
+and answers:
+
+Found it.
+
+Then gives you the file.
+
+Or:
+
+"Find the document where the client gave the reel requirements."
+
+Or:
+
+"What did the client say about the food reel?"
+
+Or:
+
+"Show me everything related to Tanniaqua Zone."
+
+That's essentially personal search + personal memory.
+
+13. The chatbot
+
+The chatbot becomes the interface to everything.
+
+You can say:
+
+"What should I do now?"
+
+It evaluates:
+
+Deadlines
+Priority
+Current task
+Available time
+Overdue tasks
+Waiting tasks
+Calendar
+Client priority
+
+and answers.
+
+You can say:
+
+"I'm done with the GB reel."
+
+It updates the task.
+
+You can say:
+
+"Move the second reel to tomorrow."
+
+It changes the deadline.
+
+You can say:
+
+"Remind me about this every morning until I finish it."
+
+It creates the reminder.
+
+You can say:
+
+"What am I waiting for?"
+
+It searches all projects and returns blocked tasks.
+
+14. Notification system
+
+This needs to be much smarter than normal notifications.
+
+Instead of:
+
+🔔 Task due
+
+Use:
+
+GB Banquet reel is due tomorrow.
+
+You still need to select the final photos and export the video.
+
+That's contextual.
+
+Notification channels:
+
+PWA Push
+Telegram
+Desktop notification
+Browser notification
+Sound
+Email
+Mac notification
+Mobile notification
+
+Telegram can actually be a great secondary interface.
+
+For example:
+
+Assistant
+
+You have 3 important tasks remaining today.
+
+You:
+
+Show me.
+
+Assistant:
+
+GB Reel — due today
+Client XYZ — due tomorrow
+Happy Rewards — waiting for approval
+
+You:
+
+Start GB Reel
+
+Assistant:
+
+Opening your GB Reel workspace.
+
+15. PWA architecture
+
+Your idea of PWA is exactly right.
+
+You can make it installable on:
+
+Mac
+Windows
+iPhone
+Android
+iPad
+
+without building separate applications initially.
+
+Frontend
+
+Since you're already comfortable with this:
+
+Next.js
+TypeScript
+Tailwind
+shadcn/ui
+PWA
+Tiptap
+dnd-kit
+
+I would keep the UI extremely clean.
+
+16. Backend
+
+I'd structure it more like a platform than a normal CRUD app.
+
+Next.js
+    │
+    ├── Web App
+    │
+    ├── API
+    │
+    └── Assistant
+           │
+           ▼
+       Orchestrator
+           │
+     ┌─────┼─────────┐
+     ▼     ▼         ▼
+   Tasks  Email    Finance
+     │     │         │
+     └─────┼─────────┘
+           ▼
+       Intelligence
+           │
+           ▼
+        Postgres
+
+And background processing:
+
+Job Queue
+    │
+    ├── Email ingestion
+    ├── File processing
+    ├── OCR
+    ├── Statement parsing
+    ├── Task extraction
+    ├── Reminder engine
+    ├── Subscription detection
+    ├── Calendar sync
+    └── Daily briefing
+17. Your database should revolve around entities
+
+Not just tasks.
+
+Something like:
+
+users
+
+contacts
+organizations
+clients
+
+projects
+tasks
+subtasks
+
+messages
+emails
+attachments
+documents
+links
+
+events
+calendar_events
+
+expenses
+transactions
+accounts
+subscriptions
+
+reminders
+notifications
+
+notes
+conversations
+
+integrations
+integration_accounts
+
+automation_rules
+jobs
+job_runs
+
+activity_log
+
+But the important part is relationships.
+
+For example:
+
+Client
+ ↓
+Project
+ ↓
+Task
+ ↓
+Email
+ ↓
+Attachment
+ ↓
+Document
+ ↓
+Expense
+18. The most important database concept: Source
+
+Every piece of information should remember where it came from.
+
+For example:
+
+Task:
+"Create 3 reels"
+
+Source:
+Gmail
+Email ID: xyz
+
+Extracted:
+2026-08-26
+
+Confidence:
+94%
+
+Another:
+
+Due date:
+28 August
+
+Source:
+Client email
+
+This gives you an audit trail.
+
+So if the assistant makes a mistake, you can ask:
+
+"Why did you give me this deadline?"
+
+And it can show the original source.
+
+19. Don't let AI directly change everything
+
+This is very important.
+
+Use a permission/action system.
+
+For example:
+
+Safe automatic actions
+Create task
+Extract deadline
+Categorize email
+Create reminder
+Attach document
+Index file
+Create note
+Require confirmation
+Send email
+Delete file
+Move important task
+Mark payment
+Change financial information
+Cancel subscription
+Send client message
+
+So the assistant doesn't accidentally do something destructive.
+
+20. AI shouldn't be everywhere
+
+This is also important for cost and reliability.
+
+Use normal deterministic code for:
+
+Dates
+Reminders
+Recurring tasks
+Notifications
+Calendar events
+Transactions
+Totals
+Database operations
+Permissions
+Sync
+
+Use AI for:
+
+Understanding messages
+Extracting tasks
+Summarizing
+Classifying
+Finding relationships
+Interpreting screenshots
+Natural-language queries
+Planning
+Contextual recommendations
+
+That will make the system much more reliable.
+
+21. The killer feature: Context Packs
+
+This is what I think could make your system genuinely useful.
+
+When you open a task:
+
+"Edit Tanniaqua Zone Product Video"
+
+The system automatically builds:
+
+Task Context
+Task
+Edit product video
+
+Client
+Tanniaqua Zone
+
+Deadline
+Friday
+
+Instructions
+...
+
+Brand
+Tanniaqua Zone
+
+Logo
+[Open]
+
+Product images
+[Open folder]
+
+Product information
+[Document]
+
+Previous videos
+[Links]
+
+Client conversation
+[Open]
+
+Related email
+[Open]
+
+Reference video
+[Open]
+
+Checklist
+☐ Download assets
+☐ Edit
+☐ Add branding
+☐ Export
+☐ Send for approval
+
+This is the thing you are actually missing in your current workflow.
+
+You don't need another task manager.
+
+You need context assembled automatically around the task.
+
+22. Daily "What should I do?" engine
+
+Every task gets a score:
+
+Priority
++
+Deadline
++
+Client importance
++
+Estimated effort
++
+Dependency
++
+Current context
++
+Overdue status
+
+Then the system can calculate:
+
+Next Best Action
+
+For example:
+
+Do GB Reel now.
+
+Why?
+
+Due today
+Client waiting
+Assets available
+45 minutes estimated
+No dependencies
+
+That's much more powerful than a static task list.
+
+23. The system should have modes
+
+I would build these main sections:
+
+Today
+Inbox
+Tasks
+Projects
+Clients
+Calendar
+Finance
+Documents
+Assistant
+Activity
+Settings
+
+But the Assistant should be available everywhere.
+
+For example:
+
+⌘ K
+
+opens:
+
+What do you want to do?
+
+Then:
+
+"Show me everything related to GB."
+
+or:
+
+"Add this to my tasks."
+
+or:
+
+"What should I work on?"
+
+24. Your Inbox becomes the most important screen
+
+Something like:
+
+┌─────────────────────────────────────┐
+│ What do you want to capture?        │
+│                                     │
+│ Paste anything...                   │
+│                                     │
+│ [Upload] [Screenshot] [Voice]       │
+└─────────────────────────────────────┘
+
+AI detected:
+
+Client: GB Banquet
+Project: Event Marketing
+Tasks: 3
+Deadline: Saturday
+Assets: Google Drive
+Priority: High
+
+[Create & Organize]
+
+That means you dump information into the system rather than organizing it yourself.
+
+25. Your personal information graph
+
+Eventually the system becomes:
+
+                 YOU
+                  │
+       ┌──────────┼──────────┐
+       │          │          │
+     WORK       MONEY     PERSONAL
+       │          │          │
+   Clients     Banks      Events
+   Projects    Expenses   Reminders
+   Tasks       Bills      Notes
+   Emails      Subs       Calendar
+   Files
+
+And the assistant sits above everything.
+
+You don't need to remember where information lives.
+
+You just ask.
+
+26. How I would build this with you
+
+Don't try to build everything at once.
+
+I'd build it in phases.
+
+Phase 1 — Personal Core
+PWA
+Authentication
+Inbox
+Tasks
+Projects
+Clients
+Assistant
+Reminders
+Notifications
+Daily briefing
+Phase 2 — Context Engine
+Files
+Documents
+Links
+Task context
+Client context
+Global search
+Relationship engine
+Phase 3 — Google ecosystem
+Gmail
+Google Drive
+Google Calendar
+Google Contacts
+Phase 4 — Financial Intelligence
+Bank emails
+Statements
+Transaction extraction
+Categorization
+Expenses
+Subscriptions
+Financial dashboard
+Phase 5 — Communication
+Telegram
+Push notifications
+Voice input
+Desktop notifications
+Phase 6 — Automation
+Cron
+Job queue
+Recurring workflows
+Daily briefing
+Deadline monitoring
+Subscription monitoring
+Follow-up monitoring
+Phase 7 — Proactive Assistant
+
+Eventually:
+
+"You have 4 things that need attention."
+
+"This client hasn't replied for 3 days."
+
+"You have a deadline tomorrow but the required assets haven't been found."
+
+"Your subscription payment is tomorrow."
+
+"You spent 28% more on software this month."
+
+"You finished your current task. The next best task is XYZ."
+
+That's the end goal.
+
+And one more thing: don't call it a "task manager"
+
+I'd think of it as a:
+
+Personal Operating System
+
+because its job isn't simply:
+
+"Remember my tasks."
+
+Its job is:
+
+Capture → Understand → Organize → Connect → Remind → Prepare → Act
+
+You throw messy information at it.
+
+It turns that mess into:
+
+"Here's what matters, here's what you need, here's what you should do next."
+
+And yes — your PWA + Postgres + Next.js/TypeScript + background workers + Gmail/Drive/Calendar APIs + Telegram + notification engine is a very good foundation for this.
+
+The first version I would build is not the financial/bank part. I'd first make the Inbox → AI extraction → Task → Project → Context Pack → Daily Assistant → Reminder loop extremely good. Once that loop works, email, Drive, finance, Telegram and everything else can plug into the same intelligence layer instead of becoming separate modules.
+
+Now I have so many questions regarding this, that how can I do this? How to do this and all. So give me a proper project description, that is PRD flow, architecture and all. I'm a full-stack developer, as you know, as you have the history of mine. So I think you will be pretty sure what I needed and why I need it and where I need. I need agents to manage my everything, like finance, email, drive, my things, and other things, like which is whatever is necessary, and we have to neglect Telegram. Just remove Telegram right now because I want everything should be there in that perfectly managed thing. So next thing is, what if I set it up in project, shared in project in my workspace? I have to wipe code all this. So give me project description, and we will talk on further.
+
+Absolutely. And yes, I have enough context about your stack and the kinds of systems you build to frame this as an actual production-grade personal operating system, not a generic productivity SaaS.
+
+The important thing is that we should not start with pages and CRUD tables. We should start with the operating model: what the system knows, how information enters, how agents reason over it, what actions they can take, what requires approval, and how everything stays connected.
+
+Below is the project definition I would use as the foundation for the codebase.
+
+Project: Personal OS
+Working concept
+
+Personal OS is a self-hosted, AI-assisted personal operating system that continuously captures, understands, organizes, connects, and acts on information across a user's work, personal tasks, communication, documents, finances, calendar, and digital assets.
+
+The system is designed around one principle:
+
+The user should provide information, not maintain the system.
+
+Instead of manually creating tasks, projects, reminders, notes, expenses, deadlines, and attachments, the user can dump raw information into the system. AI agents interpret that information, identify entities and relationships, create structured records, retrieve relevant context, and proactively surface what requires attention.
+
+It should behave more like a personal chief-of-staff than a task manager.
+
+1. Core problem
+
+Modern personal workflows are fragmented.
+
+A single real-world task can involve:
+
+Client message
+     ↓
+Email
+     ↓
+Task
+     ↓
+Project
+     ↓
+Google Drive
+     ↓
+Documents
+     ↓
+Calendar
+     ↓
+Deadline
+     ↓
+Payment
+     ↓
+Reminder
+     ↓
+Final delivery
+
+The user currently has to manually connect these pieces.
+
+Personal OS removes that burden.
+
+The user should be able to say:
+
+"Here is what the client sent me."
+
+and the system should determine:
+
+Who?
+What?
+Why?
+When?
+Which project?
+Which task?
+Which files?
+Which documents?
+Which people?
+Which deadlines?
+What should happen next?
+2. Product vision
+
+Personal OS should become the user's single operational layer over their digital life.
+
+It should know:
+
+Work
+
+Clients
+Projects
+Tasks
+Deliverables
+Deadlines
+Messages
+Documents
+Files
+Meetings
+Approvals
+Follow-ups
+
+Communication
+
+Emails
+Attachments
+Correspondence
+Requests
+Promises
+Responses
+People
+Organizations
+
+Finance
+
+Accounts
+Transactions
+Income
+Expenses
+Subscriptions
+Invoices
+Receipts
+Recurring payments
+Financial documents
+
+Planning
+
+Calendar
+Appointments
+Deadlines
+Time blocks
+Recurring events
+Travel
+Personal reminders
+
+Knowledge
+
+Notes
+Documents
+Links
+Files
+Previous work
+References
+Decisions
+Important information
+
+3. Product philosophy
+
+The application follows five principles.
+
+1. Capture everything
+
+Information should enter the system with minimal friction.
+
+2. Understand automatically
+
+The system converts unstructured information into structured entities.
+
+3. Connect everything
+
+Tasks, emails, files, clients, projects, calendar events and financial records should be related.
+
+4. Act proactively
+
+The system shouldn't wait for the user to ask what is happening.
+
+5. Keep humans in control
+
+AI can recommend and organize, but sensitive actions require explicit approval.
+
+4. Primary interaction model
+
+The system has three levels.
+
+Level 1 — Capture
+
+The user gives the system raw information:
+
+Text
+Screenshot
+Image
+PDF
+Document
+Email
+Voice
+URL
+File
+Clipboard
+
+Example:
+
+"Client wants three reels by Friday. Use the new branding from Drive."
+
+Level 2 — Intelligence
+
+Agents interpret the input.
+
+Client → XYZ
+Project → Social Media
+Tasks → 3 reels
+Deadline → Friday
+Asset requirement → branding assets
+Source → client message
+Priority → high
+Level 3 — Action
+
+The system:
+
+Creates tasks
+Connects project
+Finds assets
+Creates deadline
+Schedules reminders
+Updates dashboard
+Adds context
+Monitors progress
+5. Main modules
+
+The application should initially have these domains.
+
+┌───────────────────────────────┐
+│           PERSONAL OS         │
+├───────────────────────────────┤
+│                               │
+│ Inbox                         │
+│ Assistant                     │
+│ Today                         │
+│ Tasks                         │
+│ Projects                      │
+│ Clients                       │
+│ Calendar                      │
+│ Email                         │
+│ Files                         │
+│ Documents                     │
+│ Finance                       │
+│ Notifications                 │
+│ Automations                   │
+│ Activity                      │
+│ Settings                      │
+│                               │
+└───────────────────────────────┘
+
+But these are views over one unified information system, not completely separate applications.
+
+6. The most important component: Universal Inbox
+
+Everything starts here.
+
+The Inbox accepts:
+
+Text
+Images
+Screenshots
+PDFs
+Files
+URLs
+Voice
+Forwarded messages
+Manual input
+Imported data
+
+Example:
+
+User uploads screenshot
+
+        ↓
+
+Ingestion Layer
+
+        ↓
+
+Content extraction
+
+        ↓
+
+AI understanding
+
+        ↓
+
+Entity extraction
+
+        ↓
+
+Relationship detection
+
+        ↓
+
+Action proposal
+
+        ↓
+
+User approval if necessary
+
+        ↓
+
+Persistent records
+7. Entity model
+
+The system shouldn't fundamentally think in terms of "tasks."
+
+It should think in terms of entities and relationships.
+
+Core entities:
+
+User
+Person
+Organization
+Client
+Project
+Task
+Subtask
+Message
+Email
+Document
+File
+Link
+Note
+CalendarEvent
+Reminder
+Expense
+Transaction
+Account
+Subscription
+Invoice
+Receipt
+Conversation
+Automation
+Notification
+Integration
+
+These entities connect to each other.
+
+Example:
+
+Client
+ │
+ ├── Projects
+ │      │
+ │      ├── Tasks
+ │      │      │
+ │      │      ├── Files
+ │      │      ├── Emails
+ │      │      └── Documents
+ │      │
+ │      └── Calendar Events
+ │
+ ├── Messages
+ └── Transactions
+8. Source-of-truth and provenance
+
+Every important piece of information must have provenance.
+
+For example:
+
+Task:
+Create new promotional reel
+
+Source:
+Gmail
+
+Source Message:
+abc123
+
+Extracted:
+2026-08-26
+
+Confidence:
+0.94
+
+Created by:
+Email Intelligence Agent
+
+Likewise:
+
+Deadline:
+August 28, 2026
+
+Source:
+Client email
+
+Evidence:
+Message xyz
+
+This solves one of the biggest AI problems:
+
+"Why did the system think this?"
+
+The assistant should always be able to answer.
+
+9. Context Engine
+
+This is one of the core differentiators.
+
+Every entity gets a dynamic context.
+
+For example:
+
+Task
+
+Create GB Banquet Event Reel
+
+The Context Engine assembles:
+
+Task instructions
+Client
+Project
+Deadline
+Client emails
+Relevant messages
+Drive folders
+Brand assets
+Logos
+Reference documents
+Previous related work
+Calendar information
+Related tasks
+Dependencies
+Previous decisions
+
+The user doesn't need to search for these.
+
+The system does the searching.
+
+10. Context Pack
+
+When the user starts a task, the system generates a Context Pack.
+
+Example:
+
+GB Banquet
+Event Reel
+
+────────────────────
+
+Objective
+Create event highlight reel.
+
+Deadline
+28 August 2026
+
+Client
+GB Banquet
+
+Requirements
+• Event highlights
+• 9 photos
+• 3 second opening image
+• Remaining images 2 seconds
+
+Assets
+• Logo
+• Event photos
+• Previous reel
+• Brand assets
+
+Related documents
+...
+
+Related communications
+...
+
+Pending questions
+...
+
+Checklist
+...
+
+This becomes the user's working environment.
+
+11. Assistant
+
+The Assistant is the universal interface.
+
+It should understand natural language commands like:
+
+What should I do now?
+
+What is overdue?
+
+Show everything related to GB Banquet.
+
+Find the latest logo.
+
+What did the client ask for?
+
+What am I waiting for?
+
+Create a reminder for this.
+
+Move this to tomorrow.
+
+Mark this complete.
+
+What bills are coming up?
+
+How much did I spend this month?
+
+What emails need a reply?
+
+Which tasks are blocked?
+
+The Assistant should operate against the user's entire information graph.
+
+12. Agent architecture
+
+This is where I would differ from simply adding one "AI chatbot."
+
+You should have specialized agents coordinated by an orchestrator.
+
+Core agents
+Orchestrator Agent
+
+├── Inbox Agent
+├── Task Agent
+├── Project Agent
+├── Email Agent
+├── Calendar Agent
+├── Drive/File Agent
+├── Document Agent
+├── Finance Agent
+├── Reminder Agent
+├── Search/Research Agent
+├── Notification Agent
+└── Personal Planning Agent
+
+The Orchestrator decides which agent should handle a request.
+
+13. Inbox Agent
+
+Responsible for:
+
+Input classification
+Content extraction
+Entity extraction
+Intent detection
+Task identification
+Deadline extraction
+People detection
+Project detection
+Document detection
+Relationship detection
+
+Input:
+
+"Please send the updated version to Sarah tomorrow."
+
+Output:
+
+Person → Sarah
+Task → Send updated version
+Deadline → tomorrow
+Action → reminder
+14. Task Agent
+
+Responsible for:
+
+Create task
+Update task
+Split task
+Prioritize task
+Estimate task
+Schedule task
+Detect overdue tasks
+Detect blocked tasks
+Detect dependencies
+Recommend next task
+15. Project Agent
+
+Responsible for:
+
+Project detection
+Project creation
+Project organization
+Project health
+Task relationships
+Deadline tracking
+Client association
+Project summaries
+Project context
+16. Email Agent
+
+Email Agent should continuously process incoming mail.
+
+It should identify:
+
+Task request
+Deadline
+Question
+Approval request
+Invoice
+Receipt
+Subscription
+Meeting invitation
+Important document
+Client communication
+Personal correspondence
+Spam/noise
+
+For each relevant email:
+
+Email
+ ↓
+Classification
+ ↓
+Extraction
+ ↓
+Entity matching
+ ↓
+Relationship creation
+ ↓
+Action proposal
+17. Drive/File Agent
+
+The Drive Agent indexes connected storage.
+
+It should understand:
+
+Filename
+Folder
+File type
+Metadata
+Document contents
+Images
+Brand assets
+Project relationships
+Client relationships
+
+Then you can ask:
+
+"Find the latest Tanniaqua logo."
+
+or:
+
+"Find the document containing the new product specifications."
+
+The system shouldn't care whether the file is buried five folders deep.
+
+18. Document Intelligence Agent
+
+For PDFs, Word documents, spreadsheets, screenshots, etc.
+
+Responsibilities:
+
+Parsing
+Extraction
+Summarization
+Entity detection
+Dates
+Numbers
+Requirements
+Tables
+References
+Relationships
+
+A 15-page client brief should automatically become searchable knowledge.
+
+19. Calendar Agent
+
+Responsible for:
+
+Events
+Deadlines
+Meetings
+Scheduling
+Conflicts
+Time allocation
+Upcoming commitments
+
+It should also understand relationships.
+
+Example:
+
+Meeting:
+Client call at 4 PM
+
+Related project:
+Website Redesign
+
+Outstanding tasks:
+3
+
+Outstanding client response:
+1
+20. Finance Agent
+
+This should be isolated because it handles sensitive information.
+
+Responsibilities:
+
+Bank statements
+Transactions
+Income
+Expenses
+Subscriptions
+Invoices
+Receipts
+Recurring payments
+Cash-flow tracking
+Financial summaries
+
+The Finance Agent should not blindly trust AI for arithmetic.
+
+Use deterministic processing for:
+
+Totals
+Balances
+Dates
+Transaction calculations
+Recurring patterns
+Categorization rules
+
+AI helps with interpretation and categorization.
+
+21. Reminder Agent
+
+This is not just a cron job.
+
+It should understand context.
+
+Bad reminder:
+
+Task due tomorrow.
+
+Good reminder:
+
+GB Banquet reel is due tomorrow. You have finished the edit but still need to export and send it.
+
+The Reminder Agent determines:
+
+When
+What
+Why
+Importance
+Current status
+Delivery channel
+Whether to suppress the reminder
+22. Notification Engine
+
+Initially:
+
+PWA Push
+Browser notification
+Desktop notification
+Mobile notification
+In-app notification
+Sound
+
+Later integrations can be added without changing the core domain.
+
+Notification levels:
+
+Info
+Reminder
+Important
+Urgent
+Approval required
+
+The system should prevent notification spam.
+
+23. Personal Planning Agent
+
+This is the agent that makes the application feel intelligent.
+
+It analyzes:
+
+Tasks
+Deadlines
+Calendar
+Current workload
+Priority
+Blocked items
+Available time
+Historical work patterns
+
+Then answers:
+
+What should I work on now?
+
+with an actual recommendation.
+
+24. Proactive Intelligence
+
+The system should continuously look for things the user might miss.
+
+Examples:
+
+You have a deadline tomorrow but the required file hasn't been found.
+
+This client hasn't replied for three days.
+
+You have two overlapping meetings.
+
+A subscription payment is coming tomorrow.
+
+A task has been overdue for four days.
+
+You haven't worked on a high-priority task since Monday.
+
+An email contains a new client requirement that isn't reflected in the project.
+
+This is where agentic behavior matters.
+
+25. Agent permissions
+
+Agents should not have unrestricted access.
+
+Define action classes.
+
+Read
+Read email
+Read calendar
+Read Drive
+Read documents
+Read finance data
+Write
+Create task
+Update task
+Create reminder
+Create note
+Create event
+Sensitive
+Send email
+Delete file
+Delete email
+Modify financial records
+Cancel subscription
+Make payment
+
+Sensitive operations require confirmation.
+
+26. Agent execution model
+
+I would use:
+
+User Request
+      ↓
+Intent Parser
+      ↓
+Orchestrator
+      ↓
+Plan
+      ↓
+Agent Selection
+      ↓
+Tool Calls
+      ↓
+Validation
+      ↓
+Approval if required
+      ↓
+Execution
+      ↓
+Audit Log
+      ↓
+Response
+
+The agent should never directly mutate the database arbitrarily.
+
+All meaningful mutations should go through domain actions/tools.
+
+27. Internal tool layer
+
+Agents interact with controlled tools such as:
+
+create_task()
+update_task()
+search_tasks()
+
+search_email()
+get_email()
+create_draft()
+
+search_drive()
+get_file()
+search_document()
+
+create_calendar_event()
+update_calendar_event()
+
+create_reminder()
+
+get_transactions()
+categorize_transaction()
+
+search_entities()
+get_project_context()
+get_task_context()
+
+This creates a safe boundary between AI and your application.
+
+28. Architecture
+
+I would start with a modular monolith, not microservices.
+
+Something like:
+
+                    ┌─────────────────────┐
+                    │      PWA / Web      │
+                    │   Next.js + React   │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │      Application    │
+                    │       Layer         │
+                    └──────────┬──────────┘
+                               │
+                ┌──────────────┼──────────────┐
+                ▼              ▼              ▼
+          Domain Layer    AI/Agent Layer   Integration
+                │              │              │
+                │              │              ├── Gmail
+                │              │              ├── Drive
+                │              │              ├── Calendar
+                │              │              └── Finance
+                │              │
+                ▼              ▼
+            PostgreSQL      AI Gateway
+                │
+                ▼
+           Background Jobs
+                │
+                ▼
+          Queue / Scheduler
+
+This will be easier for you to develop, deploy and maintain.
+
+29. Suggested stack
+
+Based on your existing experience, I'd use:
+
+Frontend
+Next.js
+TypeScript
+React
+Tailwind CSS
+shadcn/ui
+Tiptap
+dnd-kit
+PWA
+Backend
+Next.js
+TypeScript
+Node.js
+
+I wouldn't introduce a separate Python backend initially unless a particular processing workload genuinely benefits from it.
+
+You already have enough experience with both ecosystems that Python workers can be introduced later for specialized processing.
+
+Database
+PostgreSQL
+Prisma
+Background processing
+Redis
+BullMQ
+
+or a PostgreSQL-backed queue if you want to minimize infrastructure initially.
+
+Storage
+S3-compatible object storage
+
+For example:
+
+AWS S3
+Cloudflare R2
+MinIO
+Search
+
+Initially:
+
+PostgreSQL Full Text Search
+pg_trgm
+
+Then add vector search through:
+
+pgvector
+
+You don't need Elasticsearch on day one.
+
+30. AI architecture
+
+Don't hard-code one provider throughout the application.
+
+Create an AI abstraction:
+
+AIProvider
+   ├── chat()
+   ├── structuredOutput()
+   ├── embeddings()
+   ├── vision()
+   └── transcription()
+
+Then:
+
+OpenAI
+Anthropic
+Local Model
+Other provider
+
+can be swapped underneath.
+
+31. Memory architecture
+
+The system needs multiple kinds of memory.
+
+Entity memory
+
+Facts about:
+
+People
+Clients
+Projects
+Accounts
+Task memory
+Status
+History
+Dependencies
+Deadlines
+Conversation memory
+User conversations
+Assistant conversations
+Decisions
+Knowledge memory
+Documents
+Files
+Notes
+Extracted information
+Operational memory
+What has already been processed
+What has already been notified
+What actions were performed
+32. Important distinction: facts vs AI guesses
+
+Store:
+
+FACT
+
+separately from:
+
+INFERENCE
+
+Example:
+
+FACT:
+Client deadline = 28 Aug
+
+SOURCE:
+Email abc123
+
+versus:
+
+INFERENCE:
+Client likely wants high priority
+
+SOURCE:
+Agent reasoning
+CONFIDENCE:
+0.81
+
+This is extremely important for long-term reliability.
+
+33. Event-driven architecture
+
+Most of the application should communicate through domain events.
+
+Examples:
+
+EmailReceived
+FileUploaded
+TaskCreated
+TaskCompleted
+DeadlineApproaching
+TransactionImported
+SubscriptionDetected
+CalendarEventCreated
+DocumentProcessed
+
+Then agents/workers react.
+
+Example:
+
+EmailReceived
+      ↓
+Email Agent
+      ↓
+TaskDetected
+      ↓
+Task Agent
+      ↓
+TaskCreated
+      ↓
+Reminder Agent
+      ↓
+ReminderScheduled
+
+This is a much better foundation than putting everything into one giant request handler.
+
+34. Scheduler
+
+You'll need a persistent scheduler for:
+
+Reminders
+Daily briefing
+Overdue detection
+Email polling
+Drive synchronization
+Subscription checks
+Follow-up checks
+Recurring tasks
+
+The scheduler should create jobs.
+
+Workers execute jobs.
+
+Never make cron directly perform complex work.
+
+35. Synchronization model
+
+For integrations:
+
+External Service
+       ↓
+Sync Worker
+       ↓
+Raw Import
+       ↓
+Normalization
+       ↓
+Entity Resolution
+       ↓
+Domain Records
+       ↓
+Event
+       ↓
+Agents
+
+For example Gmail:
+
+Gmail
+ ↓
+Raw Email
+ ↓
+Normalize
+ ↓
+Identify sender
+ ↓
+Match client
+ ↓
+Extract task
+ ↓
+Create relation
+36. Entity resolution
+
+This is one of the hardest and most important systems.
+
+Suppose Gmail says:
+
+John <john@abc.com>
+
+Drive contains:
+
+ABC Company
+
+Calendar contains:
+
+John - ABC
+
+The system needs to determine:
+
+John
+    ↓
+Person
+    ↓
+ABC Company
+    ↓
+Client
+
+Otherwise your database becomes duplicated garbage.
+
+37. User interface
+
+I'd keep the application intentionally simple.
+
+Sidebar
+Today
+
+Inbox
+Assistant
+
+Tasks
+Projects
+Clients
+
+Calendar
+Email
+Files
+Finance
+
+Automations
+Activity
+
+Settings
+Global Assistant
+
+Persistent:
+
+⌘ K
+
+or a floating assistant.
+
+38. Today page
+
+This should become your home screen.
+
+Good morning
+
+Tuesday, August 26
+
+────────────────────────
+
+Needs Attention
+
+3 tasks overdue
+2 tasks due today
+
+────────────────────────
+
+Today's Plan
+
+1. GB Event Reel
+2. Client XYZ website
+3. Happy Rewards video
+
+────────────────────────
+
+Waiting For
+
+2 client responses
+
+────────────────────────
+
+Upcoming
+
+₹1,299 subscription
+Tomorrow — Client meeting
+Friday — GB deadline
+
+The page is generated from live data.
+
+39. Inbox page
+
+The user drops information here.
+
+┌──────────────────────────────┐
+│ Drop anything here...        │
+│                              │
+│ Text                         │
+│ Screenshots                  │
+│ Files                        │
+│ PDFs                         │
+│ URLs                         │
+│ Voice                        │
+└──────────────────────────────┘
+
+Then:
+
+Detected:
+Client
+Project
+3 Tasks
+1 Deadline
+2 Files
+40. Project page
+
+A project should have:
+
+Overview
+Tasks
+Timeline
+Files
+Documents
+Emails
+Calendar
+Activity
+Notes
+Decisions
+People
+Finance
+
+Not merely a list of tasks.
+
+41. Client page
+
+A client should contain:
+
+Overview
+Projects
+Contacts
+Emails
+Files
+Documents
+Meetings
+Tasks
+Payments
+Activity
+Notes
+
+So when you open a client, you get the entire relationship.
+
+42. Finance page
+
+Separate sections:
+
+Overview
+Accounts
+Transactions
+Expenses
+Income
+Subscriptions
+Invoices
+Receipts
+Reports
+
+Again, this is powered by the same entity graph.
+
+43. Activity page
+
+Everything important should be auditable.
+
+Example:
+
+10:42 AM
+Email Agent detected new task
+
+10:42 AM
+Task created
+
+10:43 AM
+Deadline extracted
+
+10:43 AM
+Reminder scheduled
+
+11:05 AM
+User marked task in progress
+
+This becomes invaluable for debugging agents.
+
+44. Security model
+
+Because this system will contain:
+
+Email
+Documents
+Financial information
+Calendar
+Personal information
+
+security cannot be an afterthought.
+
+Minimum:
+
+Authentication
+Session management
+RBAC
+Encryption at rest
+Encryption in transit
+Secrets vault
+Audit logs
+Integration token isolation
+Agent permission scopes
+Sensitive-action confirmation
+
+Never put third-party credentials into ordinary application tables as plaintext.
+
+45. Integration architecture
+
+Do not make Gmail-specific logic spread across the application.
+
+Create:
+
+Integration
+   ↓
+Provider Adapter
+   ↓
+Normalized Interface
+
+Example:
+
+GmailAdapter
+OutlookAdapter
+GoogleDriveAdapter
+GoogleCalendarAdapter
+
+Internally the application sees:
+
+EmailProvider
+FileProvider
+CalendarProvider
+
+That makes future integrations easy.
+
+46. What "agent manages everything" actually means
+
+The agents should not be uncontrolled autonomous AI.
+
+Think:
+
+                    ORCHESTRATOR
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+       Observe         Reason          Act
+          │              │              │
+          ▼              ▼              ▼
+     Integrations     Context       Domain Tools
+
+Every action should have:
+
+Intent
+Reason
+Inputs
+Tool
+Result
+Confidence
+Approval
+Audit
+47. MVP boundary
+
+Do not build all of this immediately.
+
+Your first production-worthy release should be:
+
+PWA
+Authentication
+
+Universal Inbox
+AI extraction
+
+Tasks
+Projects
+Clients
+
+Assistant
+
+Context Engine
+Context Packs
+
+Reminders
+Notifications
+
+Daily Briefing
+
+Postgres
+Background Jobs
+Agent Orchestrator
+
+Then connect:
+
+Gmail
+Google Drive
+Google Calendar
+
+After that:
+
+Finance
+Subscriptions
+Advanced automation
+
+This gives you a useful system early without creating a giant unfinished platform.
+
+48. Recommended project structure
+
+Since you're going to start this as a real codebase, I would organize it around domains rather than UI pages.
+
+personal-os/
+│
+├── app/
+│   ├── (dashboard)/
+│   ├── assistant/
+│   ├── inbox/
+│   ├── tasks/
+│   ├── projects/
+│   ├── clients/
+│   ├── calendar/
+│   ├── email/
+│   ├── files/
+│   ├── finance/
+│   └── settings/
+│
+├── components/
+│
+├── domains/
+│   ├── tasks/
+│   ├── projects/
+│   ├── clients/
+│   ├── inbox/
+│   ├── email/
+│   ├── files/
+│   ├── calendar/
+│   ├── finance/
+│   ├── notifications/
+│   └── automations/
+│
+├── agents/
+│   ├── orchestrator/
+│   ├── inbox/
+│   ├── task/
+│   ├── project/
+│   ├── email/
+│   ├── drive/
+│   ├── document/
+│   ├── calendar/
+│   ├── finance/
+│   ├── reminder/
+│   └── planning/
+│
+├── integrations/
+│   ├── gmail/
+│   ├── google-drive/
+│   ├── google-calendar/
+│   └── ...
+│
+├── jobs/
+│   ├── email-sync/
+│   ├── drive-sync/
+│   ├── document-processing/
+│   ├── reminders/
+│   └── daily-briefing/
+│
+├── lib/
+│   ├── ai/
+│   ├── db/
+│   ├── search/
+│   ├── storage/
+│   ├── security/
+│   └── events/
+│
+├── prisma/
+│   └── schema.prisma
+│
+└── workers/
+
+The exact structure can evolve, but the domain boundaries should remain strong.
+
+49. The core loop
+
+Everything ultimately comes back to this:
+
+        CAPTURE
+           ↓
+       UNDERSTAND
+           ↓
+       NORMALIZE
+           ↓
+      IDENTIFY ENTITIES
+           ↓
+       RESOLVE LINKS
+           ↓
+        STORE FACTS
+           ↓
+     BUILD CONTEXT
+           ↓
+       PLAN / ACT
+           ↓
+       REMIND / NOTIFY
+           ↓
+         LEARN
+
+That is the actual product.
+
+Not:
+
+"AI task manager."
+
+It's:
+
+A personal information and action operating system.
+
+50. What I would consider the project's north-star test
+
+At some point you should be able to wake up and type:
+
+"What do I need to know today?"
+
+and the system can understand:
+
+What happened yesterday
+What needs attention
+What is overdue
+What is due today
+What is due soon
+What you're waiting for
+Who you need to reply to
+What meetings are coming
+What files you need
+What payments are coming
+What subscriptions are due
+What financial changes happened
+What the next best action is
+
+And when you ask:
+
+"Okay, let's do the GB reel."
+
+the system should already know:
+
+The client
+The project
+The task
+The deadline
+The requirements
+The files
+The logo
+The previous work
+The relevant emails
+The deliverable format
+The pending checklist
+
+That is the product we should build.
+
+One architectural decision I strongly recommend
+
+Since you're going to share the project into your workspace and start wiping/building the code, don't start by generating the entire application UI.
+
+First establish these six foundations:
+
+1. Domain model
+2. Event model
+3. Agent/tool contracts
+4. Integration abstraction
+5. Background job architecture
+6. Context + provenance model
+
+Once those are correct, the UI becomes comparatively straightforward.
+
+The next thing I would define is the actual Prisma/Postgres schema + complete agent/tool contract + event bus + folder structure + MVP implementation phases, because that will become the blueprint you can hand directly to your coding agent before it touches the codebase.
+
+Voice chat ended
+1s
+vidIQ

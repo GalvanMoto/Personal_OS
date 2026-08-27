@@ -1,0 +1,76 @@
+{
+  "name": "DLRS Personal OS",
+  "short_name": "DLRS OS",
+  "description": "Your AI Chief-of-Staff and Personal Operating System — capture, organize, and act.",
+  "start_url": "/w/studio/today",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay"],
+  "orientation": "portrait-primary",
+  "background_color": "#09090b",
+  "theme_color": "#4f46e5",
+  "categories": ["productivity", "business", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Task",
+      "short_name": "New Task",
+      "description": "Create a task in your workspace",
+      "url": "/w/studio/tasks",
+      "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
+    },
+    {
+      "name": "Quick Capture",
+      "short_name": "Capture",
+      "description": "Capture anything to your Universal Inbox",
+      "url": "/w/studio/inbox",
+      "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
+    },
+    {
+      "name": "Ask Assistant",
+      "short_name": "Assistant",
+      "description": "Talk to your AI Chief-of-Staff",
+      "url": "/w/studio/assistant",
+      "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
+    },
+    {
+      "name": "Today",
+      "short_name": "Today",
+      "description": "Your daily briefing and next best action",
+      "url": "/w/studio/today",
+      "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
+    },
+    {
+      "name": "Inbox",
+      "short_name": "Inbox",
+      "description": "Review captured items awaiting processing",
+      "url": "/w/studio/inbox",
+      "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [],
+  "handle_links": "preferred",
+  "launch_handler": { "client_mode": ["navigate-existing", "auto"] },
+  "edge_side_panel": { "preferred_width": 400 },
+  "protocol_handlers": []
+}

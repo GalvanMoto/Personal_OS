@@ -1,0 +1,1657 @@
+For the **Files & Assets module**, I would treat it as the **central digital asset and document layer** of Personal OS.
+
+It should not simply be a Google Drive clone. Its purpose is to answer:
+
+> **What files do I have, what are they, where did they come from, who/what are they related to, which version is current, and where should the agent use them?**
+
+And because your Inbox is ingesting emails and attachments, files arriving through Inbox should automatically become part of this system.
+
+---
+
+# 1. Files & Assets module
+
+Separate the concepts:
+
+### File
+
+A physical/digital object.
+
+```text
+PDF
+PNG
+JPG
+MP4
+DOCX
+XLSX
+ZIP
+etc.
+```
+
+### Asset
+
+A file that has operational meaning.
+
+Examples:
+
+```text
+Logo
+Product image
+Brand guideline
+Video footage
+Thumbnail
+Design
+Client document
+Reference image
+Contract
+Invoice
+Statement
+```
+
+So:
+
+```text
+File = technical object
+Asset = meaningful business/work object
+```
+
+A file can become an asset through classification.
+
+---
+
+# 2. File creation / upload information
+
+When manually uploading:
+
+```text id="wq2h8s"
+File *
+Upload File
+
+Name
+[Auto]
+
+Description
+[Optional]
+
+Project
+[Optional]
+
+Client
+[Optional]
+
+Category
+[Optional]
+
+Tags
+[Optional]
+
+Asset Type
+[Optional]
+
+Notes
+[Optional]
+```
+
+But most of these should be automatically populated.
+
+---
+
+# 3. File core metadata
+
+Every file should maintain:
+
+```text id="e7u0do"
+File ID
+File Name
+Original File Name
+Extension
+MIME Type
+File Size
+Checksum / Hash
+Storage Provider
+Storage Key
+External ID
+External URL
+```
+
+System:
+
+```text id="6w9w2p"
+Created At
+Updated At
+Uploaded At
+Last Accessed At
+Last Modified At
+```
+
+---
+
+# 4. Source information
+
+This is essential for your Personal OS.
+
+```text id="82s4cw"
+Source
+
+Uploaded
+Gmail
+Google Drive
+Inbox
+Generated
+Imported
+Assistant
+Other Integration
+```
+
+And:
+
+```text id="rr22g7"
+Source ID
+Source URL
+Source Account
+Imported At
+```
+
+Example:
+
+```text id="ndj0x5"
+Source:
+Gmail
+
+Email:
+EMAIL-12982
+
+Attachment:
+logo-final.png
+```
+
+---
+
+# 5. File classification
+
+Every file gets automatically classified.
+
+```text id="7e6w6v"
+Document
+Image
+Video
+Audio
+Spreadsheet
+Presentation
+Archive
+Code
+Other
+```
+
+Then semantic classification:
+
+```text id="ny6jzt"
+Contract
+Invoice
+Receipt
+Bank Statement
+Investment Statement
+Logo
+Brand Asset
+Product Image
+Marketing Asset
+Project Document
+Client Brief
+Reference
+Report
+Tax Document
+Personal Document
+```
+
+This gives the agents much better search capabilities.
+
+---
+
+# 6. Asset types
+
+For your work, I'd support:
+
+```text id="9x1mt3"
+Logo
+Branding
+Product Image
+Product Video
+Raw Footage
+Final Video
+Thumbnail
+Graphic
+Design
+Template
+Font Reference
+Screenshot
+Reference
+Document
+Presentation
+Spreadsheet
+Report
+Contract
+Invoice
+Receipt
+Other
+```
+
+Don't make all of these mandatory.
+
+---
+
+# 7. Relationships
+
+Files should be attachable to almost everything.
+
+```text id="qj1a2x"
+File
+├── Client
+├── Project
+├── Task
+├── Contact
+├── Email
+├── Document
+├── Calendar Event
+├── Transaction
+├── Invoice
+├── Subscription
+└── Note
+```
+
+Example:
+
+```text id="7k6y5x"
+logo.svg
+    ↓
+Client: GB Banquet
+    ↓
+Project: Social Media
+    ↓
+Task: Event Reel
+```
+
+---
+
+# 8. File tags
+
+Use global tags.
+
+```text id="3orj5k"
+Brand
+Final
+Draft
+Approved
+Reference
+Urgent
+Client
+Internal
+Archive
+Marketing
+Product
+```
+
+Tags shouldn't replace proper classification.
+
+---
+
+# 9. Folder / collection relationship
+
+Don't make folder hierarchy your only organization method.
+
+A file can be:
+
+```text id="yvq7j8"
+Google Drive:
+Clients / GB / Assets
+```
+
+while Personal OS knows:
+
+```text id="2q1w8x"
+Client:
+GB
+
+Projects:
+3
+
+Tasks:
+7
+```
+
+So folders are a **source location**, not the fundamental organization model.
+
+---
+
+# 10. Virtual collections
+
+Personal OS can create intelligent collections without moving files.
+
+Examples:
+
+```text id="2ksrg7"
+GB Banquet Assets
+Latest Logos
+Active Project Files
+Client Documents
+Important Financial Documents
+Recently Used
+Files Needed for Tasks
+```
+
+A file can belong to multiple collections without duplication.
+
+---
+
+# 11. Versioning
+
+This is critical for assets.
+
+Example:
+
+```text id="4xfp6n"
+GB-logo-v1.svg
+GB-logo-v2.svg
+GB-logo-final.svg
+```
+
+Personal OS should detect likely versions.
+
+Store:
+
+```text id="h7b2lk"
+Version Group
+Version Number
+Is Current
+Previous Version
+Created At
+```
+
+Then expose:
+
+> **Current version**
+
+rather than forcing you to guess which file is latest.
+
+---
+
+# 12. Version detection
+
+AI can identify likely versions based on:
+
+```text id="wtckxm"
+Filename
+Modified date
+Content similarity
+Dimensions
+Metadata
+Source
+User approval
+```
+
+But don't automatically delete old versions.
+
+Keep history.
+
+---
+
+# 13. Asset status
+
+For work assets:
+
+```text id="6v7xeq"
+Draft
+In Review
+Approved
+Final
+Archived
+Rejected
+```
+
+Example:
+
+```text id="gk4s6m"
+GB-logo.svg
+Status: Approved
+Current: Yes
+```
+
+This becomes very useful when an agent needs the correct asset.
+
+---
+
+# 14. File lifecycle
+
+A file should move through:
+
+```text id="9k0f9b"
+Discovered
+↓
+Imported
+↓
+Indexed
+↓
+Classified
+↓
+Linked
+↓
+Available
+↓
+Archived
+```
+
+If processing fails:
+
+```text id="2qj90v"
+Processing Failed
+```
+
+---
+
+# 15. AI processing
+
+For each relevant file, AI can generate:
+
+```text id="5r4j3b"
+Summary
+Description
+Document Type
+Asset Type
+Entities
+Project
+Client
+Topics
+Important Dates
+Amounts
+Requirements
+Related Tasks
+```
+
+For images:
+
+```text id="r5uz8n"
+Image Description
+Objects
+Text
+Brand
+Product
+Visual Type
+```
+
+For PDFs:
+
+```text id="6m0w6g"
+Summary
+Pages
+Sections
+Dates
+Amounts
+Names
+Requirements
+```
+
+---
+
+# 16. Content extraction
+
+Files should have machine-readable content when possible.
+
+```text id="w0zjs8"
+PDF
+→ extracted text
+
+DOCX
+→ extracted text
+
+XLSX
+→ sheets / cells
+
+PPTX
+→ slides / text
+
+Image
+→ visual understanding / extracted text
+```
+
+Store extraction separately from the original file.
+
+---
+
+# 17. Searchable content
+
+Your search engine should search:
+
+```text id="0kxbuw"
+Filename
+Description
+Tags
+Extracted text
+AI summary
+Entities
+Client
+Project
+Task
+Document type
+Source
+```
+
+So:
+
+> "Find the file with the new Tanniaqua product pricing."
+
+can search content, not just filename.
+
+---
+
+# 18. Semantic search
+
+With `pgvector`, a file/document can have embeddings.
+
+Then:
+
+> "Find the document where the client discussed pricing changes."
+
+can find the relevant document even if the word "pricing" isn't in the filename.
+
+---
+
+# 19. Duplicate detection
+
+Very important for your system.
+
+Compare:
+
+```text id="08n2jl"
+Hash
+File size
+Filename
+Content similarity
+Image similarity
+Document metadata
+```
+
+Example:
+
+```text id="z9p1tq"
+Possible duplicate
+
+logo-final.png
+
+Existing:
+logo-final-2.png
+
+Similarity:
+99.8%
+
+[Use Existing]
+[Keep Both]
+```
+
+---
+
+# 20. File integrity
+
+For important files store a checksum:
+
+```text id="c7q5x4"
+SHA-256
+```
+
+This allows you to know whether two files are actually identical.
+
+For financial/legal documents, this becomes especially useful.
+
+---
+
+# 21. Important documents
+
+The system should automatically detect important documents.
+
+Categories:
+
+```text id="f2x8zh"
+Bank Statements
+Investment Statements
+Tax Documents
+Invoices
+Receipts
+Contracts
+Insurance
+Legal
+Government
+Employment
+Property
+Business
+```
+
+These should be routed into the relevant domain while retaining the original source.
+
+---
+
+# 22. Financial document relationship
+
+Example:
+
+```text id="c0y94b"
+SBI Statement.pdf
+        ↓
+Financial Document
+        ↓
+Finance Agent
+        ↓
+42 Transactions
+```
+
+Relationship:
+
+```text id="10r5v1"
+Transaction
+← extracted_from →
+Financial Document
+```
+
+Never lose that link.
+
+---
+
+# 23. Client asset library
+
+Each client should have an asset library automatically.
+
+Example:
+
+```text id="7m75fy"
+GB Banquet
+
+Assets
+
+Branding
+├── Logo
+├── Brand Guidelines
+└── Fonts
+
+Products
+├── Product Images
+└── Product Videos
+
+Marketing
+├── Previous Reels
+├── Photos
+└── Templates
+```
+
+But this should be generated from relationships and classification, not require manual folder maintenance.
+
+---
+
+# 24. Project asset library
+
+Each project similarly gets:
+
+```text id="c9qp0b"
+Project
+├── Requirements
+├── Design
+├── Source Files
+├── References
+├── Deliverables
+├── Client Files
+└── Final Files
+```
+
+Again, the underlying files can remain in Google Drive.
+
+Personal OS stores references and metadata.
+
+---
+
+# 25. Task-required assets
+
+This is a major feature for your workflow.
+
+A task can have:
+
+```text id="6u4l6n"
+Required Resources
+
+Logo
+✓ Found
+
+Product Image
+✓ Found
+
+Client Brief
+✓ Found
+
+Reference Video
+✗ Missing
+```
+
+Then the assistant can say:
+
+> Your task is missing the reference video.
+
+That is far more useful than a generic file browser.
+
+---
+
+# 26. Asset readiness
+
+Each task/project can have an asset readiness calculation:
+
+```text id="m3z0s7"
+Asset Readiness
+80%
+
+Required:
+5
+
+Available:
+4
+
+Missing:
+1
+```
+
+This can feed the project's risk score.
+
+---
+
+# 27. "Find everything needed"
+
+For a task:
+
+> "Find everything I need."
+
+The Asset/Context system searches:
+
+```text id="uq2z1g"
+Project
+Client
+Task requirements
+Emails
+Drive
+Documents
+Previous work
+```
+
+And produces:
+
+```text id="jhe8hr"
+Required Assets
+
+✓ Logo
+✓ Brand guideline
+✓ Product image
+✓ Client brief
+✗ Reference video
+```
+
+---
+
+# 28. File permissions
+
+Every file needs access metadata.
+
+```text id="ulq48j"
+Visibility
+
+Private
+Client
+Project
+Shared
+Restricted
+```
+
+But external provider permissions remain controlled by the provider.
+
+Personal OS should not pretend it can override Google Drive permissions.
+
+---
+
+# 29. Sensitive files
+
+Sensitivity:
+
+```text id="5h8drt"
+Public
+Internal
+Personal
+Sensitive
+Highly Sensitive
+```
+
+Examples:
+
+```text id="iy3h5z"
+Brand logo
+→ Internal
+
+Client contract
+→ Sensitive
+
+Bank statement
+→ Highly Sensitive
+
+Tax document
+→ Highly Sensitive
+```
+
+This feeds the Agent Policy Engine.
+
+---
+
+# 30. Agent access
+
+An agent should request:
+
+```text id="q6p6au"
+File Access
+
+Purpose:
+Find logo for current task
+
+Access:
+Read
+
+Scope:
+GB Banquet project
+
+Duration:
+Current execution
+```
+
+Then the policy system decides whether it can proceed.
+
+For normal project assets, this can be automatic.
+
+For highly sensitive files, tighter controls.
+
+---
+
+# 31. Agent should never blindly search every file
+
+Context-aware source selection:
+
+```text id="v3xv0g"
+Task:
+Create GB reel
+
+↓
+Search project-linked files first
+
+↓
+Search client files
+
+↓
+Search recent emails
+
+↓
+Search global asset library
+
+↓
+Ask user only if unresolved
+```
+
+This is faster and safer.
+
+---
+
+# 32. File preview information
+
+Regardless of actual UI, the backend should support metadata such as:
+
+```text id="2plpob"
+Preview Available
+Thumbnail
+Preview Type
+Page Count
+Video Duration
+Image Dimensions
+File Size
+```
+
+So your application can give agents and users useful information before downloading large files.
+
+---
+
+# 33. Storage architecture
+
+Separate metadata from actual files.
+
+```text id="1n5y8q"
+PostgreSQL
+    ↓
+File metadata
+Relationships
+Classification
+Permissions
+Provenance
+
+Object Storage / External Provider
+    ↓
+Actual file
+```
+
+For Google Drive:
+
+```text id="e2x5e8"
+Google Drive
+↓
+External file ID
+↓
+Personal OS metadata
+```
+
+For uploads:
+
+```text id="7m6j5h"
+PWA
+↓
+Object Storage
+↓
+Personal OS file record
+```
+
+---
+
+# 34. Don't duplicate Google Drive unnecessarily
+
+For externally stored files, initially store:
+
+```text id="k8p8tk"
+Provider
+External ID
+URL
+Metadata
+Relationships
+Search index
+AI information
+```
+
+Download/cache only when required.
+
+This reduces storage requirements.
+
+---
+
+# 35. File caching
+
+For frequently used files:
+
+```text id="h2q0jf"
+External File
+↓
+Download requested
+↓
+Temporary cache
+↓
+Process
+↓
+Delete cache according to retention policy
+```
+
+For important documents, you may optionally retain a secured copy.
+
+---
+
+# 36. File activity
+
+Track:
+
+```text id="0ryz9o"
+Uploaded
+Viewed
+Downloaded
+Attached
+Linked
+Renamed
+Updated
+Archived
+Processed
+Shared
+```
+
+And:
+
+```text id="j8r7qy"
+Actor:
+User
+Agent
+System
+Integration
+```
+
+---
+
+# 37. Asset usage tracking
+
+Very useful for your creative workflow.
+
+Example:
+
+```text id="7d1i6w"
+logo.svg
+
+Used in:
+GB Event Reel
+GB LinkedIn Post
+GB Website Update
+```
+
+So you can ask:
+
+> Where have we used this logo?
+
+---
+
+# 38. File dependency
+
+Files can be dependencies:
+
+```text id="q6n3oc"
+Task
+Create product video
+
+Depends on:
+Product image
+Brand logo
+Product specification document
+```
+
+If one is missing:
+
+```text id="4v1hdo"
+Task readiness = blocked
+```
+
+---
+
+# 39. "Latest" detection
+
+The assistant should understand:
+
+> "Use the latest logo."
+
+It should evaluate:
+
+```text id="x9zr6z"
+Version
+Modified date
+Approved status
+Source
+Context
+```
+
+Then select the best candidate.
+
+Prefer:
+
+```text Approved
++
+Current
++
+Latest
+```
+
+over simply the newest filename.
+
+---
+
+# 40. File naming intelligence
+
+Don't automatically rename external files.
+
+Instead, infer:
+
+```text id="n2r4ym"
+Normalized Name
+Asset Type
+Project
+Client
+Version
+```
+
+Example:
+
+```text id="c3i3vf"
+Original:
+IMG_8837.png
+
+Detected:
+GB Banquet
+Event Photo
+Aug 2026
+```
+
+You now have useful metadata without modifying the source file.
+
+---
+
+# 41. Assets can have lifecycle states
+
+For creative projects:
+
+```text id="fs4zo4"
+Raw
+Working
+Draft
+Review
+Approved
+Final
+Archived
+```
+
+This can be manually changed or AI-suggested.
+
+---
+
+# 42. File categories vs assets
+
+Important architecture:
+
+```text id="jmds6n"
+FILE
+│
+├── Technical Metadata
+│
+└── CLASSIFICATION
+       │
+       ├── Document
+       ├── Asset
+       │    ├── Logo
+       │    ├── Image
+       │    ├── Video
+       │    └── Design
+       │
+       └── Financial Document
+            ├── Statement
+            ├── Invoice
+            └── Receipt
+```
+
+Don't create separate storage systems for each category.
+
+---
+
+# 43. Files + Inbox
+
+Your Inbox should create or update file records.
+
+Example:
+
+```text id="xg0v8q"
+Email
+   ↓
+Attachment
+   ↓
+File
+   ↓
+Classification
+   ↓
+Client / Project
+   ↓
+Asset / Document
+```
+
+So the same file doesn't remain trapped inside an email.
+
+---
+
+# 44. Files + Email
+
+Store:
+
+```text id="5d7myx"
+Received From
+Email ID
+Thread ID
+Attachment Position
+```
+
+Then:
+
+> "Show me files Sarah sent for the GB project."
+
+becomes easy.
+
+---
+
+# 45. Files + Projects
+
+Project can maintain:
+
+```text id="h7cuc9"
+Required Assets
+Available Assets
+Missing Assets
+Recently Added
+Final Assets
+```
+
+And project-level file search.
+
+---
+
+# 46. Files + Tasks
+
+Task can maintain:
+
+```text id="h0z7bp"
+Required Files
+Attached Files
+Referenced Files
+Missing Files
+Generated Files
+```
+
+This directly supports your "just give me everything I need" workflow.
+
+---
+
+# 47. Files + Clients
+
+Client can maintain:
+
+```text id="0lp6yj"
+Client Files
+Brand Assets
+Contracts
+Financial Documents
+Project Files
+Shared Documents
+```
+
+Again, these are relationships, not duplicate physical files.
+
+---
+
+# 48. Files + Finance
+
+Financial documents:
+
+```text id="1b6u8o"
+Bank Statements
+Investment Statements
+Invoices
+Receipts
+Tax Documents
+```
+
+should be discoverable from Finance while the original file remains in the File/Document layer.
+
+---
+
+# 49. File filters
+
+Universal filters:
+
+```text id="f6f8yd"
+Search
+Date
+Client
+Project
+Tags
+Source
+Owner
+```
+
+File-specific:
+
+```text id="d2gt4f"
+File Type
+Asset Type
+File Size
+Storage Provider
+Status
+Version
+```
+
+Smart:
+
+```text id="30y6q7"
+Recently Modified
+Recently Used
+Latest Version
+Missing Project
+Duplicate
+Unused
+Required by Active Task
+Important
+Sensitive
+```
+
+---
+
+# 50. File database
+
+Core `files`:
+
+```text id="2x6u7v"
+id
+name
+original_name
+
+extension
+mime_type
+size
+checksum
+
+storage_provider
+storage_key
+external_id
+external_url
+
+source_type
+source_id
+
+visibility
+sensitivity
+
+created_at
+updated_at
+uploaded_at
+last_accessed_at
+```
+
+---
+
+# 51. Asset database
+
+I would make asset metadata separate:
+
+```text id="nq6gup"
+assets
+
+id
+file_id
+
+asset_type
+status
+version_group_id
+version_number
+
+description
+ai_summary
+ai_confidence
+
+client_id
+project_id
+
+created_at
+updated_at
+```
+
+Not every file is an asset.
+
+---
+
+# 52. Document database
+
+Documents can similarly reference files:
+
+```text id="kq7h64"
+documents
+
+id
+file_id
+
+document_type
+issuer
+document_date
+period_start
+period_end
+
+ai_summary
+extraction_status
+ai_confidence
+sensitivity
+```
+
+Then:
+
+```text id="4nqi0w"
+File
+├── Asset
+or
+└── Document
+```
+
+Depending on classification.
+
+---
+
+# 53. File relationships
+
+Generic relationship system:
+
+```text id="spm2ex"
+file
+→ belongs_to
+→ project
+
+file
+→ attached_to
+→ task
+
+file
+→ sent_in
+→ email
+
+file
+→ represents
+→ brand_asset
+
+file
+→ extracted_from
+→ inbox_item
+```
+
+This gives your agents the graph they need.
+
+---
+
+# 54. Automatic file routing
+
+When a new file arrives:
+
+```text id="3ujd1k"
+Detect file
+    ↓
+Classify
+    ↓
+Identify entities
+    ↓
+Find duplicates
+    ↓
+Determine sensitivity
+    ↓
+Determine document/asset type
+    ↓
+Link to Client
+    ↓
+Link to Project
+    ↓
+Link to Task
+    ↓
+Index
+```
+
+The user does not need to organize it manually.
+
+---
+
+# 55. Asset readiness for the whole system
+
+This can become a major Personal OS feature.
+
+Example:
+
+```text id="yjs0uf"
+GB Banquet Project
+
+Asset Readiness: 91%
+
+✓ Logo
+✓ Brand Guidelines
+✓ Event Photos
+✓ Product Information
+✓ Client Brief
+✗ Final Reference Video
+```
+
+Your Planning Agent can see this and avoid scheduling work that cannot yet be completed.
+
+---
+
+# 56. "Find latest"
+
+Agent flow:
+
+```text id="ykxv7f"
+User:
+"Find latest GB logo."
+
+        ↓
+
+Resolve Client
+        ↓
+
+Search client assets
+        ↓
+
+Filter asset_type = logo
+        ↓
+
+Filter status = approved
+        ↓
+
+Compare versions
+        ↓
+
+Select current version
+        ↓
+
+Return file
+```
+
+No need for broad global search unless the focused search fails.
+
+---
+
+# 57. "Find everything required"
+
+Agent flow:
+
+```text id="9dsq5v"
+Task
+↓
+Requirements
+↓
+Required Assets
+↓
+Search Project
+↓
+Search Client
+↓
+Search Email
+↓
+Search Drive
+↓
+Search Documents
+↓
+Validate
+↓
+Return ready/missing resources
+```
+
+This should be a core tool:
+
+```text id="x8e9qq"
+get_task_resources(taskId)
+```
+
+---
+
+# 58. Files should be agent-readable, not agent-owned
+
+The agent can:
+
+```text id="g4pt8x"
+Search
+Read
+Analyze
+Link
+Recommend
+```
+
+but the file system itself remains controlled by:
+
+```text id="8wt4ac"
+Storage Layer
+Permission Layer
+Policy Engine
+```
+
+The agent doesn't get arbitrary filesystem access.
+
+---
+
+# 59. Important security behavior
+
+For highly sensitive documents:
+
+```text id="q4w9jm"
+Bank Statement
+↓
+Sensitivity = HIGH
+↓
+Finance Agent = Allowed
+General Task Agent = Not allowed
+```
+
+For client files:
+
+```text id="em7m19"
+Client-specific scope
+```
+
+The agent should only access files relevant to its current authorization/context.
+
+---
+
+# 60. Final Files & Assets model
+
+Your entire system becomes:
+
+```text id="5oqv74"
+                         FILES
+                           │
+            ┌──────────────┼───────────────┐
+            │              │               │
+          ASSETS       DOCUMENTS        RAW FILES
+            │              │               │
+       Logos            Contracts        Uploads
+       Images           Statements       Archives
+       Videos           Invoices
+       Designs          Receipts
+            │              │
+            └──────────────┼───────────────┘
+                           │
+                    RELATIONSHIP ENGINE
+                           │
+          ┌────────────────┼────────────────┐
+          ▼                ▼                ▼
+       CLIENT            PROJECT           TASK
+          │                │                │
+          └────────────────┼────────────────┘
+                           ▼
+                    CONTEXT ENGINE
+                           │
+                           ▼
+                         AGENTS
+```
+
+The most important thing is that **Files & Assets should not become another folder-management burden**.
+
+You should be able to dump a file into Personal OS, receive an email attachment, or connect Drive, and the system figures out:
+
+**what it is → whether it's important → whether it's an asset/document → who it belongs to → which project/task it relates to → whether it's the latest version → whether it's sensitive → whether an agent can access it → and where it should be surfaced when you need it.**

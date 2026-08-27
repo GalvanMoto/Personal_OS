@@ -1,0 +1,995 @@
+// Personal OS — data model
+//
+// Design rules (from the PRD):
+//  1. Multi-tenant: every business entity carries `tenantId`. Scoping is enforced
+//     in `lib/db/tenant.ts`, never left to individual call sites.
+//  2. Entity graph, not tables-in-isolation: `EntityLink` carries arbitrary
+//     relationships so new entity kinds do not require schema churn.
+//  3. Provenance on everything: `Provenance` records where a value came from and
+//     keeps FACT separate from INFERENCE.
+//  4. Agents mutate through domain tools only; `ApprovalRequest` + `ActivityLog`
+//     make every agent action reviewable.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Identity & tenancy
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  avatarUrl    String?
+  timezone     String   @default("Asia/Kolkata")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions    Session[]
+  memberships Membership[]
+  activity    ActivityLog[]
+
+  @@map("users")
+}
+
+model Session {
+  id             String   @id @default(cuid())
+  // Raw token lives in the cookie; only its SHA-256 digest is stored.
+  tokenHash      String   @unique
+  userId         String
+  activeTenantId String?
+  userAgent      String?
+  ipAddress      String?
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+/// A workspace. The tenant boundary for every record below.
+model Tenant {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships   Membership[]
+  invitations   Invitation[]
+  organizations Organization[]
+  people        Person[]
+  projects      Project[]
+  tasks         Task[]
+  checklistItems TaskChecklistItem[]
+  inboxItems    InboxItem[]
+  files         FileObject[]
+  documents     Document[]
+  links         LinkResource[]
+  notes         Note[]
+  emails        EmailMessage[]
+  events        CalendarEvent[]
+  reminders     Reminder[]
+  notifications Notification[]
+  conversations Conversation[]
+  chatMessages  ChatMessage[]
+  provenance    Provenance[]
+  entityLinks   EntityLink[]
+  domainEvents  DomainEvent[]
+  jobs          Job[]
+  jobRuns       JobRun[]
+  activity      ActivityLog[]
+  approvals     ApprovalRequest[]
+  integrations  Integration[]
+  automations   AutomationRule[]
+  accounts      FinancialAccount[]
+  transactions  Transaction[]
+  subscriptions Subscription[]
+  contextPacks  ContextPack[]
+  searchDocuments SearchDocument[]
+
+  @@map("tenants")
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+model Membership {
+  id        String     @id @default(cuid())
+  userId    String
+  tenantId  String
+  role      MemberRole @default(MEMBER)
+  createdAt DateTime   @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([tenantId])
+  @@map("memberships")
+}
+
+model Invitation {
+  id         String     @id @default(cuid())
+  tenantId   String
+  email      String
+  role       MemberRole @default(MEMBER)
+  tokenHash  String     @unique
+  invitedBy  String
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime   @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@map("invitations")
+}
+
+// ---------------------------------------------------------------------------
+// Shared vocabulary
+// ---------------------------------------------------------------------------
+
+/// Addressable node kinds in the information graph.
+enum EntityType {
+  ORGANIZATION
+  PERSON
+  PROJECT
+  TASK
+  INBOX_ITEM
+  FILE
+  DOCUMENT
+  LINK
+  NOTE
+  EMAIL
+  CALENDAR_EVENT
+  REMINDER
+  TRANSACTION
+  SUBSCRIPTION
+  FINANCIAL_ACCOUNT
+  CONVERSATION
+}
+
+/// Who caused a record to exist or change.
+enum ActorType {
+  USER
+  AGENT
+  SYSTEM
+}
+
+/// Where a piece of information originally entered the system.
+enum SourceType {
+  USER_INPUT
+  INBOX
+  UPLOAD
+  GMAIL
+  GOOGLE_DRIVE
+  GOOGLE_CALENDAR
+  AGENT
+  SYSTEM
+  IMPORT
+}
+
+// ---------------------------------------------------------------------------
+// Work: clients, projects, tasks
+// ---------------------------------------------------------------------------
+
+enum OrgKind {
+  CLIENT
+  VENDOR
+  PARTNER
+  EMPLOYER
+  OTHER
+}
+
+/// Clients, vendors and partners share one table so entity resolution has a
+/// single place to dedupe against (PRD §36).
+model Organization {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  kind      OrgKind  @default(CLIENT)
+  slug      String
+  website   String?
+  notes     String?
+  /// Brand colours, logo pointers, tone-of-voice — whatever the agents learn.
+  brand     Json?
+  archivedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  people       Person[]
+  projects     Project[]
+  transactions Transaction[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, kind])
+  @@map("organizations")
+}
+
+model Person {
+  id             String   @id @default(cuid())
+  tenantId       String
+  name           String
+  email          String?
+  phone          String?
+  role           String?
+  organizationId String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, email])
+  @@index([tenantId, organizationId])
+  @@map("people")
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+}
+
+model Project {
+  id             String        @id @default(cuid())
+  tenantId       String
+  name           String
+  slug           String
+  description    String?
+  status         ProjectStatus @default(ACTIVE)
+  organizationId String?
+  startsAt       DateTime?
+  dueAt          DateTime?
+  completedAt    DateTime?
+  color          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization Organization?   @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  tasks        Task[]
+  notes        Note[]
+  events       CalendarEvent[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+  @@index([tenantId, organizationId])
+  @@map("projects")
+}
+
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  WAITING
+  BLOCKED
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  tenantId    String
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  projectId   String?
+  parentId    String?
+  /// Free-text reason the task is parked, set when status is WAITING/BLOCKED.
+  waitingOn   String?
+  dueAt       DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  estimateMin Int?
+  position    Int          @default(0)
+  /// Cached output of the planning agent's scoring pass (PRD §22).
+  score       Float?
+  createdBy   ActorType    @default(USER)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  tenant   Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project  Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parent   Task?               @relation("TaskSubtasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subtasks Task[]              @relation("TaskSubtasks")
+  checklist TaskChecklistItem[]
+  reminders Reminder[]
+  packs    ContextPack[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, dueAt])
+  @@index([tenantId, projectId])
+  @@index([parentId])
+  @@map("tasks")
+}
+
+model TaskChecklistItem {
+  id       String   @id @default(cuid())
+  tenantId String
+  taskId   String
+  label    String
+  done     Boolean  @default(false)
+  position Int      @default(0)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_checklist_items")
+}
+
+// ---------------------------------------------------------------------------
+// Universal inbox (PRD §6) — the single front door
+// ---------------------------------------------------------------------------
+
+enum InboxKind {
+  TEXT
+  IMAGE
+  SCREENSHOT
+  PDF
+  DOCUMENT
+  URL
+  VOICE
+  EMAIL
+  FILE
+}
+
+enum InboxStatus {
+  PENDING
+  PROCESSING
+  NEEDS_REVIEW
+  PROCESSED
+  DISMISSED
+  FAILED
+}
+
+model InboxItem {
+  id         String      @id @default(cuid())
+  tenantId   String
+  kind       InboxKind   @default(TEXT)
+  status     InboxStatus @default(PENDING)
+  title      String?
+  /// Raw captured payload exactly as the user supplied it.
+  rawText    String?
+  sourceType SourceType  @default(USER_INPUT)
+  sourceRef  String?
+  /// Text pulled out of an image/PDF before the agents reason over it.
+  extractedText String?
+  /// Structured proposal from the inbox agent, before the user accepts it.
+  proposal   Json?
+  error      String?
+  processedAt DateTime?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  tenant Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  files  FileObject[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
+  @@map("inbox_items")
+}
+
+// ---------------------------------------------------------------------------
+// Knowledge: files, documents, links, notes
+// ---------------------------------------------------------------------------
+
+model FileObject {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  mimeType    String
+  sizeBytes   Int
+  /// Object-storage key. Local disk today, S3-compatible later.
+  storageKey  String
+  checksum    String?
+  inboxItemId String?
+  sourceType  SourceType @default(UPLOAD)
+  sourceRef   String?
+  createdAt   DateTime @default(now())
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  inboxItem InboxItem? @relation(fields: [inboxItemId], references: [id], onDelete: SetNull)
+  documents Document[]
+
+  @@index([tenantId, createdAt])
+  @@map("files")
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  tenantId  String
+  title     String
+  /// Parsed plain text, used for search and as agent context.
+  content   String?
+  summary   String?
+  fileId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  file   FileObject? @relation(fields: [fileId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@map("documents")
+}
+
+model LinkResource {
+  id        String   @id @default(cuid())
+  tenantId  String
+  url       String
+  title     String?
+  summary   String?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("links")
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  tenantId  String
+  title     String?
+  body      String
+  projectId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@map("notes")
+}
+
+// ---------------------------------------------------------------------------
+// Communication & time
+// ---------------------------------------------------------------------------
+
+model EmailMessage {
+  id          String   @id @default(cuid())
+  tenantId    String
+  /// Provider-side id (Gmail message id), unique per tenant.
+  externalId  String
+  threadId    String?
+  subject     String?
+  fromName    String?
+  fromEmail   String?
+  toEmails    String[]
+  snippet     String?
+  body        String?
+  receivedAt  DateTime
+  isRead      Boolean  @default(false)
+  /// Email agent's label: TASK_REQUEST, INVOICE, RECEIPT, MEETING, NOISE, ...
+  category    String?
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, externalId])
+  @@index([tenantId, receivedAt])
+  @@map("emails")
+}
+
+model CalendarEvent {
+  id         String   @id @default(cuid())
+  tenantId   String
+  externalId String?
+  title      String
+  location   String?
+  startsAt   DateTime
+  endsAt     DateTime
+  allDay     Boolean  @default(false)
+  projectId  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, startsAt])
+  @@map("calendar_events")
+}
+
+// ---------------------------------------------------------------------------
+// Reminders & notifications (PRD §21, §22)
+// ---------------------------------------------------------------------------
+
+enum ReminderStatus {
+  SCHEDULED
+  SENT
+  SNOOZED
+  CANCELLED
+}
+
+model Reminder {
+  id         String         @id @default(cuid())
+  tenantId   String
+  taskId     String?
+  title      String
+  body       String?
+  remindAt   DateTime
+  status     ReminderStatus @default(SCHEDULED)
+  /// RRULE string for repeating reminders; null means one-shot.
+  recurrence String?
+  sentAt     DateTime?
+  createdAt  DateTime       @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  task   Task?  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, remindAt, status])
+  @@map("reminders")
+}
+
+enum NotificationLevel {
+  INFO
+  REMINDER
+  IMPORTANT
+  URGENT
+  APPROVAL_REQUIRED
+}
+
+model Notification {
+  id        String            @id @default(cuid())
+  tenantId  String
+  level     NotificationLevel @default(INFO)
+  title     String
+  body      String?
+  /// In-app deep link, e.g. /w/acme/tasks/abc123
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime          @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, readAt, createdAt])
+  @@map("notifications")
+}
+
+// ---------------------------------------------------------------------------
+// Assistant
+// ---------------------------------------------------------------------------
+
+model Conversation {
+  id        String   @id @default(cuid())
+  tenantId  String
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant   Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([tenantId, updatedAt])
+  @@map("conversations")
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+  TOOL
+  SYSTEM
+}
+
+model ChatMessage {
+  id             String   @id @default(cuid())
+  tenantId       String
+  conversationId String
+  role           ChatRole
+  content        String
+  /// Tool invocations made while producing this message.
+  toolCalls      Json?
+  createdAt      DateTime @default(now())
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("chat_messages")
+}
+
+/// Assembled working context for a task (PRD §10, §21). Cached so opening a
+/// task is instant, invalidated when the underlying graph changes.
+model ContextPack {
+  id          String   @id @default(cuid())
+  tenantId    String
+  taskId      String
+  payload     Json
+  generatedAt DateTime @default(now())
+  staleAt     DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId])
+  @@map("context_packs")
+}
+
+// ---------------------------------------------------------------------------
+// Provenance & the relationship graph (PRD §8, §18, §32)
+// ---------------------------------------------------------------------------
+
+enum ProvenanceKind {
+  /// Something the source literally said. Trustworthy.
+  FACT
+  /// Something an agent concluded. Carries a confidence score.
+  INFERENCE
+}
+
+model Provenance {
+  id         String         @id @default(cuid())
+  tenantId   String
+  targetType EntityType
+  targetId   String
+  /// Which field this explains. Null means "the record as a whole".
+  field      String?
+  kind       ProvenanceKind @default(FACT)
+  value      Json?
+  confidence Float?
+  sourceType SourceType
+  sourceId   String?
+  sourceRef  String?
+  /// Verbatim snippet backing the claim, so the UI can show its work.
+  evidence   String?
+  agent      String?
+  createdAt  DateTime       @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, targetType, targetId])
+  @@map("provenance")
+}
+
+enum LinkRelation {
+  BELONGS_TO
+  MENTIONS
+  DERIVED_FROM
+  REQUIRES
+  ATTACHED_TO
+  DUPLICATE_OF
+  RELATED_TO
+}
+
+/// Generic edge between any two entities, so new relationships never require a
+/// migration and the assistant can traverse the graph uniformly.
+model EntityLink {
+  id         String       @id @default(cuid())
+  tenantId   String
+  fromType   EntityType
+  fromId     String
+  toType     EntityType
+  toId       String
+  relation   LinkRelation @default(RELATED_TO)
+  confidence Float?
+  createdBy  ActorType    @default(USER)
+  createdAt  DateTime     @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, fromType, fromId, toType, toId, relation])
+  @@index([tenantId, fromType, fromId])
+  @@index([tenantId, toType, toId])
+  @@map("entity_links")
+}
+
+// ---------------------------------------------------------------------------
+// Events, jobs, audit, approvals (PRD §26, §33, §34)
+// ---------------------------------------------------------------------------
+
+model DomainEvent {
+  id          String    @id @default(cuid())
+  tenantId    String
+  /// Dot-namespaced, e.g. "task.created", "inbox.item.captured".
+  type        String
+  payload     Json
+  actorType   ActorType @default(SYSTEM)
+  actorId     String?
+  occurredAt  DateTime  @default(now())
+  processedAt DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, type, occurredAt])
+  @@index([processedAt])
+  @@map("domain_events")
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  tenantId    String
+  kind        String
+  payload     Json?
+  status      JobStatus @default(QUEUED)
+  runAt       DateTime  @default(now())
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  lastError   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tenant Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  runs   JobRun[]
+
+  @@index([status, runAt])
+  @@index([tenantId, kind])
+  @@map("jobs")
+}
+
+model JobRun {
+  id         String    @id @default(cuid())
+  tenantId   String
+  jobId      String
+  status     JobStatus
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  output     Json?
+  error      String?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@map("job_runs")
+}
+
+model ActivityLog {
+  id         String      @id @default(cuid())
+  tenantId   String
+  actorType  ActorType   @default(USER)
+  actorId    String?
+  userId     String?
+  /// Verb phrase, e.g. "task.completed", "agent.tool.invoked".
+  action     String
+  targetType EntityType?
+  targetId   String?
+  summary    String
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@map("activity_log")
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+/// Gate for sensitive agent actions (PRD §19, §25). The agent proposes; the
+/// human decides; the executor only runs APPROVED rows.
+model ApprovalRequest {
+  id         String         @id @default(cuid())
+  tenantId   String
+  agent      String
+  tool       String
+  args       Json
+  reason     String
+  status     ApprovalStatus @default(PENDING)
+  decidedBy  String?
+  decidedAt  DateTime?
+  expiresAt  DateTime?
+  result     Json?
+  createdAt  DateTime       @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@map("approval_requests")
+}
+
+// ---------------------------------------------------------------------------
+// Integrations & automation (PRD §45)
+// ---------------------------------------------------------------------------
+
+enum IntegrationProvider {
+  GMAIL
+  GOOGLE_DRIVE
+  GOOGLE_CALENDAR
+  GOOGLE_CONTACTS
+}
+
+enum IntegrationStatus {
+  DISCONNECTED
+  CONNECTED
+  ERROR
+  EXPIRED
+}
+
+model Integration {
+  id          String              @id @default(cuid())
+  tenantId    String
+  provider    IntegrationProvider
+  status      IntegrationStatus   @default(DISCONNECTED)
+  accountRef  String?
+  scopes      String[]
+  /// Encrypted token blob. Never store raw provider credentials.
+  secretCipher String?
+  lastSyncAt  DateTime?
+  syncCursor  String?
+  lastError   String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, provider])
+  @@map("integrations")
+}
+
+model AutomationRule {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  /// Domain event type that fires this rule.
+  trigger   String
+  condition Json?
+  action    Json
+  enabled   Boolean  @default(true)
+  lastRunAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, trigger])
+  @@map("automation_rules")
+}
+
+// ---------------------------------------------------------------------------
+// Finance (PRD §8, §20 — schema now, UI in a later phase)
+// ---------------------------------------------------------------------------
+
+enum AccountKind {
+  BANK
+  CARD
+  CASH
+  WALLET
+}
+
+model FinancialAccount {
+  id           String      @id @default(cuid())
+  tenantId     String
+  name         String
+  kind         AccountKind @default(BANK)
+  institution  String?
+  /// Last four digits only. Full numbers never enter this database.
+  maskedNumber String?
+  currency     String      @default("INR")
+  createdAt    DateTime    @default(now())
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([tenantId])
+  @@map("financial_accounts")
+}
+
+enum TransactionDirection {
+  DEBIT
+  CREDIT
+}
+
+model Transaction {
+  id             String               @id @default(cuid())
+  tenantId       String
+  accountId      String?
+  organizationId String?
+  direction      TransactionDirection
+  /// Minor units (paise) as an integer. Money is never a float.
+  amountMinor    BigInt
+  currency       String               @default("INR")
+  description    String
+  category       String?
+  occurredAt     DateTime
+  /// Bank reference used to dedupe repeated statement imports.
+  externalRef    String?
+  createdAt      DateTime             @default(now())
+
+  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account      FinancialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  organization Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, externalRef])
+  @@index([tenantId, occurredAt])
+  @@map("transactions")
+}
+
+enum BillingCycle {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+model Subscription {
+  id          String       @id @default(cuid())
+  tenantId    String
+  name        String
+  vendor      String?
+  amountMinor BigInt
+  currency    String       @default("INR")
+  cycle       BillingCycle @default(MONTHLY)
+  nextDueAt   DateTime?
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, nextDueAt])
+  @@map("subscriptions")
+}
+
+// ---------------------------------------------------------------------------
+// Search (PRD §12)
+// ---------------------------------------------------------------------------
+
+/// One row per searchable entity, so "everything related to GB Banquet" is a
+/// single ranked query instead of a fan-out across ten tables. The `tsv` column
+/// is a generated tsvector added in the migration — Prisma cannot express it,
+/// and it is only ever read through raw SQL in `lib/search`.
+model SearchDocument {
+  id         String     @id @default(cuid())
+  tenantId   String
+  entityType EntityType
+  entityId   String
+  /// Weighted highest when ranking.
+  title      String
+  /// Description, notes, extracted text — whatever makes the entity findable.
+  body       String     @default("")
+  /// Deep link into the app, resolved at index time.
+  href       String?
+  updatedAt  DateTime   @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, entityType, entityId])
+  @@index([tenantId, entityType])
+  @@map("search_documents")
+}

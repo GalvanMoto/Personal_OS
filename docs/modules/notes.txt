@@ -1,0 +1,1248 @@
+For the **Notes module**, I would make it a **knowledge and thinking layer**, not another basic text editor.
+
+Notes should capture things that don't necessarily belong as a task, project, document, or email, while still being deeply connected to those entities.
+
+The core principle:
+
+> **A note is information you want Personal OS to remember and understand, not just text you typed.**
+
+# 1. Note types
+
+Start with:
+
+```text
+General
+Idea
+Meeting Note
+Decision
+Research
+Reference
+Client Note
+Project Note
+Personal
+Technical
+Journal
+Checklist
+Procedure / SOP
+```
+
+The user can also create custom note types later.
+
+---
+
+# 2. Note creation
+
+### Quick note
+
+```text
+Title
+Content
+```
+
+That's it.
+
+### Full note
+
+```text
+Title *
+Content *
+
+Type
+Project
+Client
+Tags
+Related entities
+Importance
+```
+
+### AI note
+
+You paste anything:
+
+> "For Tanniaqua, the client prefers short captions and wants the product link in every post."
+
+AI can turn that into:
+
+```text
+Note:
+Tanniaqua Content Preference
+
+Type:
+Client Note
+
+Client:
+Tanniaqua Zone
+
+Information:
+Client prefers short captions.
+Product link should be included in every post.
+
+Importance:
+Important
+```
+
+---
+
+# 3. Note fields
+
+Core:
+
+```text
+id
+title
+content
+note_type
+status
+importance
+
+created_at
+updated_at
+```
+
+Relationships:
+
+```text
+client_id
+project_id
+task_id
+person_id
+document_id
+calendar_event_id
+```
+
+Source:
+
+```text
+source_type
+source_id
+```
+
+AI:
+
+```text
+ai_summary
+ai_confidence
+ai_generated
+```
+
+---
+
+# 4. Rich text
+
+For the editor, I'd keep your planned **Tiptap**.
+
+Support:
+
+```text
+Headings
+Paragraphs
+Bold
+Italic
+Underline
+Lists
+Checklists
+Links
+Code blocks
+Quotes
+Tables
+Images
+Attachments
+Mentions
+```
+
+Don't turn it into a giant Notion clone initially.
+
+---
+
+# 5. Notes should support mentions
+
+Use entity mentions such as:
+
+```text
+@GB Banquet
+@Sarah
+#Personal OS
+#Tanniaqua
+```
+
+When you mention a project:
+
+```text
+@Personal OS
+```
+
+the note gets a relationship:
+
+```text
+Note
+→ related_to
+→ Project: Personal OS
+```
+
+This makes notes discoverable later.
+
+---
+
+# 6. Note relationships
+
+A note can connect to anything.
+
+```text
+Note
+├── Client
+├── Project
+├── Task
+├── Person
+├── Document
+├── File
+├── Email
+├── Calendar Event
+├── Transaction
+└── Other Note
+```
+
+Example:
+
+```text
+Meeting Note
+      ↓
+Client: GB Banquet
+      ↓
+Project: Event Marketing
+      ↓
+Task: Create Event Reel
+```
+
+---
+
+# 7. Note source
+
+Every note can come from:
+
+```text
+Manual
+Assistant
+Inbox
+Email
+Meeting
+Document
+AI Generated
+Imported
+System
+```
+
+Example:
+
+```text
+Source:
+Meeting
+
+Calendar Event:
+GB Banquet Review
+```
+
+---
+
+# 8. AI-generated summary
+
+For longer notes:
+
+```text
+Summary
+Key Points
+Decisions
+Action Items
+People
+Dates
+```
+
+Example:
+
+```text
+Summary:
+Client approved the first reel and requested two more.
+
+Action Items:
+• Create decoration reel
+• Create food reel
+
+Decision:
+Use shorter captions.
+```
+
+---
+
+# 9. Notes vs Tasks
+
+This distinction is important.
+
+### Note:
+
+> "Client prefers short captions."
+
+### Task:
+
+> "Rewrite caption for product post."
+
+AI should be able to turn a note into a task when appropriate.
+
+```text
+Note
+↓
+Action detected
+↓
+Create Task
+```
+
+But don't automatically turn every statement into a task.
+
+---
+
+# 10. Notes vs Documents
+
+### Document
+
+Usually an external or formal source:
+
+```text
+PDF
+Contract
+Brief
+Report
+Statement
+```
+
+### Note
+
+Something you create, summarize, interpret, or want to remember.
+
+For example:
+
+```text
+Client PDF
+↓
+Document
+
+Your understanding of that PDF
+↓
+Note
+```
+
+Both can remain linked.
+
+---
+
+# 11. Notes vs Activity
+
+Activity is automatically generated history:
+
+> Task changed to completed.
+
+Note is intentional information:
+
+> Client wants delivery emails sent before 5 PM.
+
+Don't mix them.
+
+---
+
+# 12. Important notes
+
+Every note should support an importance level:
+
+```text
+Normal
+Important
+Critical
+```
+
+This can influence:
+
+* Search ranking
+* AI context
+* Daily briefing
+* reminders
+* client/project summaries
+
+---
+
+# 13. Pinning
+
+Support:
+
+```text
+Pinned
+Unpinned
+```
+
+Pinned notes can appear in project/client context.
+
+Example:
+
+```text
+Pinned Client Notes
+
+• Client prefers short captions
+• Always send drafts before 6 PM
+• Use new branding
+```
+
+---
+
+# 14. Archive
+
+Use:
+
+```text
+Active
+Archived
+```
+
+Don't delete notes immediately.
+
+---
+
+# 15. Note tags
+
+Use global tags:
+
+```text
+Client
+Important
+Idea
+Technical
+Reference
+Decision
+Personal
+Research
+```
+
+A note can have multiple tags.
+
+---
+
+# 16. Note version history
+
+Because you're using rich text and notes can become important, track revisions.
+
+```text
+Version 1
+Version 2
+Version 3
+Current
+```
+
+Store:
+
+```text
+version_id
+note_id
+content
+created_at
+created_by
+change_summary
+```
+
+You don't necessarily need to expose the full version history in V1, but the backend should be designed so it can be added.
+
+---
+
+# 17. Decision notes
+
+I would make **Decision** a first-class note type.
+
+Example:
+
+```text
+Decision
+
+Decision:
+Use modular monolith architecture.
+
+Date:
+26 Aug 2026
+
+Reason:
+Simpler deployment and development.
+
+Alternatives:
+Microservices
+
+Related:
+Personal OS
+Backend
+Architecture
+```
+
+Then later you can ask:
+
+> Why did we choose modular monolith?
+
+The Assistant searches decisions.
+
+---
+
+# 18. Research notes
+
+Research notes can contain:
+
+```text
+Question
+Findings
+Sources
+Conclusion
+Open Questions
+Next Steps
+```
+
+This is useful for your technical work.
+
+---
+
+# 19. Meeting notes
+
+Meeting note structure:
+
+```text
+Meeting
+Date
+Attendees
+
+Agenda
+
+Discussion
+
+Decisions
+
+Action Items
+
+Questions
+
+Follow-up
+```
+
+AI can generate this from a transcript or your raw notes.
+
+---
+
+# 20. Journal / personal notes
+
+Keep these isolated where necessary.
+
+```text
+Personal
+Journal
+Private
+```
+
+They should have stronger privacy controls.
+
+A general work agent shouldn't automatically use private journal content for unrelated tasks.
+
+---
+
+# 21. Note privacy
+
+Every note should have:
+
+```text
+Visibility
+
+Private
+Personal OS
+Project
+Client
+Shared
+Restricted
+```
+
+For your initial single-user version, most can simply be private.
+
+---
+
+# 22. Sensitive notes
+
+Support sensitivity:
+
+```text
+Public
+Internal
+Personal
+Sensitive
+Highly Sensitive
+```
+
+A personal financial note should not automatically become visible to every agent.
+
+---
+
+# 23. AI memory extraction
+
+This is one of the most useful features.
+
+Suppose you write:
+
+> "I always want client deliverables reviewed before sending."
+
+AI identifies this as a **preference/fact**.
+
+It can propose:
+
+```text
+Potential Memory
+
+Preference:
+Review client deliverables before sending.
+
+[Remember]
+[Don't Remember]
+```
+
+If accepted, it moves into the structured memory system.
+
+Don't silently turn every note into permanent memory.
+
+---
+
+# 24. Notes as a source of truth for personal knowledge
+
+Your Assistant should be able to search:
+
+```text
+Notes
+Documents
+Emails
+Projects
+Tasks
+Files
+```
+
+So:
+
+> "What did I decide about the notification system?"
+
+could return a Decision Note.
+
+---
+
+# 25. AI note linking
+
+Suppose you create:
+
+> "Need to use the latest logo for GB."
+
+AI recognizes:
+
+```text
+Client → GB
+Task context → possible
+Asset → Logo
+```
+
+It can suggest:
+
+```text
+Related:
+GB Banquet
+GB Event Reel
+GB Logo
+```
+
+Again, suggestions can be auto-linked when confidence is sufficiently high.
+
+---
+
+# 26. Automatic note creation
+
+Your agents should be able to create notes from meaningful events.
+
+Examples:
+
+```text
+Meeting completed
+↓
+Create meeting note
+
+Project decision made
+↓
+Create decision note
+
+Long research session
+↓
+Create research summary
+
+Important client preference detected
+↓
+Create client note
+```
+
+But don't let agents create hundreds of useless notes.
+
+Use an importance threshold.
+
+---
+
+# 27. Note templates
+
+Useful templates:
+
+```text
+Meeting
+Decision
+Research
+Project Brief
+Client Preference
+Daily Review
+Technical Investigation
+Idea
+SOP
+```
+
+Example Meeting template:
+
+```text
+Meeting
+Date:
+Attendees:
+
+Agenda:
+
+Discussion:
+
+Decisions:
+
+Action Items:
+
+Follow-up:
+```
+
+---
+
+# 28. Note attachments
+
+Notes can contain:
+
+```text
+Files
+Images
+Documents
+Links
+Screenshots
+```
+
+But don't duplicate the actual file.
+
+Create a relationship:
+
+```text
+Note
+→ references
+→ File
+```
+
+---
+
+# 29. Note links
+
+Support internal references:
+
+```text
+[[Project: Personal OS]]
+[[Task: Notification Engine]]
+[[Client: GB Banquet]]
+[[Document: Contract]]
+```
+
+That gives you a lightweight knowledge graph directly from notes.
+
+---
+
+# 30. Backlinks
+
+If a project is mentioned inside a note, the project should be able to show:
+
+> **Referenced in 8 notes**
+
+This is extremely useful.
+
+Same for tasks, clients, documents, etc.
+
+---
+
+# 31. Search
+
+Note search should support:
+
+```text
+Title
+Content
+Tags
+Type
+Client
+Project
+Task
+Person
+Date
+Importance
+```
+
+And semantic search through embeddings.
+
+Example:
+
+> "Where did I write about PWA notifications?"
+
+returns the relevant note even if its title isn't "PWA notifications."
+
+---
+
+# 32. Filters
+
+Universal:
+
+```text
+Date
+Client
+Project
+Tags
+Importance
+Status
+Source
+```
+
+Specific:
+
+```text
+Note Type
+Visibility
+Sensitivity
+Created By
+```
+
+Smart:
+
+```text
+Pinned
+Recently Updated
+Important
+Decision
+Meeting
+Research
+Needs Follow-up
+Referenced by Active Task
+```
+
+---
+
+# 33. AI note queries
+
+The Assistant should support:
+
+> Find all decisions about Personal OS.
+
+> Show notes from my GB Banquet meetings.
+
+> What did I write about finance this month?
+
+> Find the note where I mentioned the latest logo.
+
+> Summarize my notes about this project.
+
+---
+
+# 34. Note reminders
+
+Notes can optionally generate reminders.
+
+Example:
+
+> "Remember to ask Sarah about the new logo next week."
+
+AI identifies:
+
+```text
+Reminder:
+Ask Sarah about new logo
+
+Date:
+Next week
+```
+
+But don't turn every note into a reminder.
+
+Only when there's an explicit or strongly inferred future action.
+
+---
+
+# 35. Note-to-task conversion
+
+Every note can have:
+
+```text
+Create Task
+```
+
+AI can prefill:
+
+```text
+Task Title
+Description
+Project
+Client
+Due Date
+Priority
+```
+
+from the note.
+
+---
+
+# 36. Note-to-document relationship
+
+You can write:
+
+> "Summary of client contract."
+
+and link:
+
+```text
+Note
+→ summarizes
+→ Contract Document
+```
+
+Then Assistant understands that relationship.
+
+---
+
+# 37. Note activity
+
+Track:
+
+```text
+Created
+Edited
+Linked
+Pinned
+Archived
+Restored
+AI analyzed
+Task created
+Reminder created
+```
+
+---
+
+# 38. Note database
+
+Core:
+
+```text
+notes
+
+id
+title
+content
+note_type
+status
+importance
+visibility
+sensitivity
+
+client_id
+project_id
+task_id
+person_id
+
+source_type
+source_id
+
+ai_summary
+ai_confidence
+ai_generated
+
+is_pinned
+created_by
+created_at
+updated_at
+archived_at
+```
+
+---
+
+# 39. Related tables
+
+```text
+note_versions
+note_tags
+note_links
+note_files
+note_relationships
+note_mentions
+note_extractions
+```
+
+And your generic relationship engine can handle many of these instead of creating excessive tables.
+
+---
+
+# 40. Note intelligence pipeline
+
+For AI-generated/processed notes:
+
+```text
+Note
+↓
+Extract
+↓
+Classify
+↓
+Find entities
+↓
+Find relationships
+↓
+Detect facts
+↓
+Detect decisions
+↓
+Detect actions
+↓
+Detect potential memories
+↓
+Index
+```
+
+---
+
+# 41. Note facts
+
+For example:
+
+> "Sarah prefers the shorter version."
+
+Store:
+
+```text
+Fact:
+Sarah prefers shorter version.
+
+Entity:
+Sarah
+
+Related:
+GB Banquet
+Content Project
+
+Source:
+Note #NOTE-123
+Confidence:
+0.95
+```
+
+This is better than leaving the information buried in text forever.
+
+---
+
+# 42. Note memory safety
+
+For sensitive/personal notes:
+
+```text
+Don't automatically extract permanent memory.
+```
+
+Instead:
+
+> Potential memory detected.
+
+Then you approve.
+
+This keeps the Personal OS from slowly accumulating unwanted personal assumptions.
+
+---
+
+# 43. Note creation sources
+
+Support:
+
+```text
+Manual
+Quick Capture
+Assistant
+Inbox
+Meeting
+Document
+Email
+Project
+Task
+Imported
+```
+
+This allows:
+
+> "Save this as a note."
+
+from anywhere.
+
+---
+
+# 44. Quick capture note
+
+Your fastest workflow should be:
+
+```text
+Quick Capture
+↓
+"Client likes shorter captions."
+↓
+AI detects:
+Client preference
+↓
+Suggest:
+Create Client Note
+```
+
+No full form required.
+
+---
+
+# 45. Note automation
+
+Examples:
+
+```text
+WHEN meeting ends
+→ create meeting note draft
+
+WHEN important client preference detected
+→ create note proposal
+
+WHEN assistant makes a major decision
+→ offer decision note
+
+WHEN project is completed
+→ create project retrospective note
+```
+
+---
+
+# 46. Project retrospective note
+
+When a project finishes, generate:
+
+```text
+Project Retrospective
+
+What was done
+What went well
+Problems
+Important decisions
+Client feedback
+What should change next time
+Useful links
+Reusable knowledge
+```
+
+This turns your previous work into future knowledge.
+
+---
+
+# 47. Client knowledge
+
+Over time a client can accumulate:
+
+```text
+Preferences
+Decisions
+Communication style
+Requirements
+Important facts
+Previous issues
+Useful links
+```
+
+The Client Agent can use those notes when working on future tasks.
+
+---
+
+# 48. Notes and the Context Engine
+
+When you open a task:
+
+```text
+Task
+↓
+Project
+↓
+Client
+↓
+Relevant Notes
+↓
+Relevant Documents
+↓
+Relevant Emails
+↓
+Relevant Files
+```
+
+The Context Engine decides which notes are relevant rather than dumping every note into the agent.
+
+---
+
+# 49. Notes and Assistant memory
+
+Think of the distinction like:
+
+```text
+NOTE
+"What I wrote down."
+
+MEMORY
+"What Personal OS has been explicitly allowed to remember."
+
+FACT
+"Verified structured information."
+
+DOCUMENT
+"Source material."
+
+ACTIVITY
+"What happened."
+
+TASK
+"What needs to happen."
+```
+
+Keeping those concepts separate will make your system much more reliable.
+
+---
+
+# 50. Final Notes architecture
+
+```text
+                         NOTES
+                           │
+       ┌───────────────────┼───────────────────┐
+       │                   │                   │
+    KNOWLEDGE            THINKING           RECORDS
+       │                   │                   │
+   Research              Ideas             Meetings
+   References            Decisions         Journal
+   Technical             Insights          Client Notes
+       │                   │                   │
+       └───────────────────┼───────────────────┘
+                           │
+                    RELATIONSHIP ENGINE
+                           │
+       ┌─────────────┬─────┼─────┬─────────────┐
+       ▼             ▼     ▼     ▼             ▼
+     Client        Project Task  Document     Person
+                           │
+                           ▼
+                      CONTEXT ENGINE
+                           │
+                           ▼
+                         AGENTS
+```
+
+For your Personal OS, I would make **Notes lightweight to create but extremely rich in relationships and searchable context**. The most valuable behavior is not the editor itself; it's that something you casually write today can later become a **fact, client preference, decision, task, reminder, project context, or Assistant answer** without you having to manually reorganize it.

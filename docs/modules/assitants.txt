@@ -1,0 +1,1837 @@
+For the **Assistant module**, this should be the actual brain/interface of your Personal OS. It is not just a chat screen. It should be able to **understand your request, retrieve the right context, call agents/tools, take actions, explain why it did something, and remember only what it is allowed to remember.**
+
+The core principle:
+
+> **You talk naturally. The Assistant figures out what needs to happen across your entire Personal OS.**
+
+# 1. Assistant responsibilities
+
+The Assistant should be able to:
+
+```text id="i3p4x7"
+Answer
+Search
+Understand
+Summarize
+Plan
+Create
+Update
+Organize
+Find
+Remind
+Schedule
+Analyze
+Compare
+Recommend
+Monitor
+Prepare
+Execute
+Explain
+```
+
+Across:
+
+```text id="3k7v8m"
+Tasks
+Projects
+Clients
+Email
+Files
+Documents
+Calendar
+Finance
+Subscriptions
+Invoices
+Notes
+Automations
+Activity
+Memory
+```
+
+---
+
+# 2. Assistant request types
+
+Every user message should first be classified into an intent.
+
+```text id="o5h6p2"
+Question
+Search
+Create
+Update
+Delete
+Analyze
+Plan
+Summarize
+Find
+Schedule
+Reminder
+Explain
+Compare
+Execute
+Review
+```
+
+Example:
+
+> "What do I need to finish today?"
+
+```text id="l4x2q8"
+Intent:
+Planning / Query
+```
+
+> "Create a task for the GB reel."
+
+```text id="p7m1n4"
+Intent:
+Create Task
+```
+
+> "Find the latest GB logo."
+
+```text id="w3q8y1"
+Intent:
+Search Asset
+```
+
+> "Move this to Friday."
+
+```text id="v8x5j2"
+Intent:
+Update Task
+```
+
+---
+
+# 3. Assistant should have context levels
+
+Do not send the entire Personal OS to the model.
+
+Use:
+
+```text id="n8v4q6"
+Level 1
+Current conversation
+
+Level 2
+Current page/entity
+
+Level 3
+Related entities
+
+Level 4
+Relevant knowledge
+
+Level 5
+External live sources
+```
+
+Example when you're inside a task:
+
+```text id="c2y7m9"
+Current Task
+↓
+Project
+↓
+Client
+↓
+Related Emails
+↓
+Related Files
+↓
+Related Documents
+↓
+Recent Activity
+```
+
+---
+
+# 4. Assistant context sources
+
+The Assistant should be able to access:
+
+```text id="g4k8s1"
+Tasks
+Projects
+Clients
+Contacts
+Emails
+Threads
+Files
+Assets
+Documents
+Notes
+Calendar
+Transactions
+Subscriptions
+Invoices
+Receipts
+Activity
+Memory
+```
+
+But access should still go through the Agent Control Plane.
+
+---
+
+# 5. Assistant should never have unrestricted access
+
+Architecture:
+
+```text id="h6j9k3"
+User
+ ↓
+Assistant
+ ↓
+Intent
+ ↓
+Orchestrator
+ ↓
+Context Engine
+ ↓
+Permission Engine
+ ↓
+Tool Router
+ ↓
+Agent / Integration
+```
+
+The Assistant itself isn't the security boundary.
+
+---
+
+# 6. Assistant response types
+
+Not every response should be plain text.
+
+It should return typed responses such as:
+
+```text id="r8c3m5"
+Text
+Task
+Project
+Client
+File
+Document
+Calendar Event
+Transaction
+Reminder
+Plan
+Search Results
+Approval Request
+Warning
+Error
+```
+
+Example:
+
+> "I found the latest logo."
+
+The response can contain the actual **File entity** and action:
+
+```text id="f7x2p8"
+Open File
+Attach to Task
+Copy Link
+```
+
+---
+
+# 7. Assistant actions
+
+Supported actions:
+
+```text id="w6q9v2"
+Create Task
+Update Task
+Complete Task
+Create Project
+Update Project
+Create Client
+Create Reminder
+Create Event
+Create Note
+Attach File
+Link Document
+Create Draft
+Schedule Follow-up
+Categorize Transaction
+Create Subscription
+Archive
+```
+
+Sensitive actions:
+
+```text id="m4x7r1"
+Send Email
+Delete File
+Delete Record
+Change Financial Data
+External Calendar Changes
+```
+
+require permission/approval.
+
+---
+
+# 8. Natural language commands
+
+You should be able to say:
+
+> "Add this to my tasks."
+
+> "Make this high priority."
+
+> "Move it to tomorrow."
+
+> "What's left for this client?"
+
+> "Find the latest document."
+
+> "What am I waiting for?"
+
+> "Prepare my meeting."
+
+> "How much did I spend this month?"
+
+> "Show me all overdue projects."
+
+> "What should I work on now?"
+
+> "Summarize today's emails."
+
+> "Remind me if the client doesn't respond."
+
+No forms should be necessary for ordinary actions.
+
+---
+
+# 9. Assistant planning
+
+For complex requests, the Assistant should create an internal plan.
+
+Example:
+
+> "Prepare everything I need for tomorrow."
+
+Plan:
+
+```text id="y5m8c2"
+1. Get incomplete tasks.
+2. Find tomorrow's deadlines.
+3. Check calendar.
+4. Find client meetings.
+5. Find required documents.
+6. Check blockers.
+7. Check important emails.
+8. Check financial reminders.
+9. Rank priorities.
+10. Prepare daily plan.
+```
+
+The plan is then executed through the appropriate agents.
+
+---
+
+# 10. Single-step vs multi-step
+
+### Simple
+
+> "Find my latest GB logo."
+
+One or two tool calls.
+
+### Complex
+
+> "Get everything ready for tomorrow."
+
+Multiple agents:
+
+```text id="d7v4n1"
+Planning Agent
+Task Agent
+Calendar Agent
+Email Agent
+File Agent
+Finance Agent
+```
+
+The Orchestrator controls the sequence.
+
+---
+
+# 11. Assistant tool selection
+
+The Assistant should only expose relevant tools.
+
+For:
+
+> "What meetings do I have tomorrow?"
+
+Expose:
+
+```text id="n5r7v2"
+search_calendar
+get_calendar_event
+```
+
+For:
+
+> "Find my latest bank statement."
+
+Expose:
+
+```text id="h2m8k1"
+search_documents
+search_files
+```
+
+For:
+
+> "What did I spend this month?"
+
+Expose:
+
+```text id="p9x4c7"
+get_transactions
+calculate_financial_summary
+```
+
+Do not expose everything unnecessarily.
+
+---
+
+# 12. Tool result validation
+
+Every tool result should be validated before the Assistant uses it.
+
+For financial data:
+
+```text id="r3w8m1"
+Database result
+↓
+Schema validation
+↓
+Business validation
+↓
+Assistant
+```
+
+For an email send:
+
+```text id="f5k2c9"
+Draft
+↓
+Policy
+↓
+Approval
+↓
+Send
+↓
+Verify
+```
+
+---
+
+# 13. Assistant source citations
+
+Every factual answer that depends on Personal OS data should be traceable.
+
+Example:
+
+> Your GB reel is due Friday.
+
+Internally:
+
+```text id="u7m3q8"
+Source:
+Task TASK-129
+
+Field:
+due_date
+
+Value:
+2026-08-28
+```
+
+The user should be able to click:
+
+**Why? / Source**
+
+and see where the information came from.
+
+---
+
+# 14. Assistant "Why?"
+
+This should be a standard capability.
+
+User:
+
+> Why did you make this high priority?
+
+Assistant:
+
+```text id="k8p2m5"
+Priority increased because:
+
+• Due tomorrow
+• Client is waiting
+• Task blocks final delivery
+```
+
+This uses the priority engine rather than free-form AI reasoning.
+
+---
+
+# 15. Assistant "What did you change?"
+
+After an action:
+
+> I updated the GB reel deadline from Aug 29 to Aug 28.
+
+Then:
+
+```text id="b3v7n9"
+Changed:
+Due Date
+
+Before:
+29 Aug
+
+After:
+28 Aug
+
+Source:
+Your instruction
+
+Timestamp:
+00:53
+```
+
+This becomes part of Activity/Audit.
+
+---
+
+# 16. Assistant confirmation model
+
+Use three levels.
+
+### No confirmation
+
+```text id="x5c8p1"
+Search
+Read
+Summarize
+Create internal task
+Create note
+Create reminder
+```
+
+### Soft confirmation
+
+```text id="m7q2v4"
+Change deadline
+Reschedule internal block
+Change priority
+Update project
+```
+
+### Hard confirmation
+
+```text id="z1n5k8"
+Send email
+Delete file
+Delete data
+Financial changes
+External calendar modifications
+```
+
+---
+
+# 17. Assistant conversation memory
+
+The Assistant needs conversation memory, but not unlimited memory.
+
+Store:
+
+```text id="c6f9p2"
+Conversation
+Messages
+Tool Calls
+Results
+Actions
+Sources
+Created Entities
+```
+
+For long conversations:
+
+```text id="u3x7m1"
+Old messages
+↓
+Summary
+↓
+Current context
+```
+
+This avoids continually sending massive chat histories.
+
+---
+
+# 18. Assistant permanent memory
+
+Separate this from conversation history.
+
+Permanent memory may include:
+
+```text id="q8v2m5"
+Preferences
+Work habits
+Important decisions
+Approved facts
+Recurring preferences
+```
+
+Example:
+
+> "I prefer client deliverables reviewed before sending."
+
+But memory should require explicit consent for important/personal facts.
+
+---
+
+# 19. Assistant memory commands
+
+Support:
+
+> Remember that I prefer...
+
+> Forget that.
+
+> What do you remember about me?
+
+> Show me memories about this client.
+
+This gives the user control.
+
+---
+
+# 20. Assistant context memory
+
+There should also be short-term working memory.
+
+Example:
+
+```text id="w4c8n2"
+Current session
+
+Working on:
+GB Reel
+
+Files found:
+logo.svg
+brief.pdf
+
+Current next step:
+Edit video
+```
+
+This is different from permanent memory.
+
+---
+
+# 21. Assistant multimodal input
+
+Since your system is meant to reduce manual entry, support:
+
+```text id="n1x7c4"
+Text
+Image
+Screenshot
+PDF
+Document
+File
+URL
+Voice
+```
+
+Example:
+
+Upload screenshot → Assistant understands it.
+
+Upload client brief → Assistant extracts tasks.
+
+Upload receipt → Finance Agent processes it.
+
+---
+
+# 22. Assistant screenshot understanding
+
+You should be able to send:
+
+> "Add whatever this client is asking for."
+
+with screenshot.
+
+Assistant:
+
+```text id="x9m3b6"
+Detected:
+Client request
+
+Tasks:
+3
+
+Deadline:
+Friday
+
+Asset:
+New product image
+```
+
+Then:
+
+> Create these.
+
+The system executes the structured changes.
+
+---
+
+# 23. Assistant document understanding
+
+You can say:
+
+> "Read this and tell me what I actually need to do."
+
+It should return:
+
+```text id="v6p1k8"
+Summary
+Requirements
+Deadlines
+Tasks
+Dependencies
+Documents needed
+People involved
+Questions
+Risks
+```
+
+Then optionally:
+
+> "Create the tasks."
+
+---
+
+# 24. Assistant finance queries
+
+Examples:
+
+> How much did I spend this month?
+
+> What subscriptions are due?
+
+> Show unusual expenses.
+
+> Where did my money go this week?
+
+> Which transactions need review?
+
+> Show freelance income.
+
+> Find my latest bank statement.
+
+The Assistant should use structured Finance data rather than trying to infer numbers from memory.
+
+---
+
+# 25. Assistant email queries
+
+Examples:
+
+> What emails need my attention?
+
+> Which clients haven't replied?
+
+> Find the latest email from Sarah.
+
+> What did the client ask for?
+
+> Draft a reply.
+
+> What deadlines came through email today?
+
+Again, the Assistant uses Email Agent + data graph.
+
+---
+
+# 26. Assistant project queries
+
+Examples:
+
+> What's happening with Personal OS?
+
+> What did I work on yesterday?
+
+> What is blocking this project?
+
+> Show my project decisions.
+
+> What files do I need?
+
+> How much time have I spent?
+
+> Is this project at risk?
+
+---
+
+# 27. Assistant task queries
+
+Examples:
+
+> What should I do now?
+
+> Show overdue tasks.
+
+> What can I finish in 30 minutes?
+
+> Which task is blocking the most work?
+
+> Move all my incomplete tasks to tomorrow.
+
+For bulk mutations, confirmation may be appropriate.
+
+---
+
+# 28. Assistant calendar queries
+
+Examples:
+
+> What's my day tomorrow?
+
+> When can I fit two hours for this?
+
+> Prepare me for my 3 PM meeting.
+
+> Am I overbooked tomorrow?
+
+> What meetings have open action items?
+
+---
+
+# 29. Assistant universal search
+
+The Assistant should act as a semantic search interface.
+
+User:
+
+> "Find the thing Sarah sent me about the new pricing."
+
+Search across:
+
+```text id="y2b7v8"
+Email
+Attachments
+Documents
+Files
+Notes
+Projects
+Tasks
+```
+
+Then rank results by relevance.
+
+---
+
+# 30. Search reasoning
+
+Search pipeline:
+
+```text id="c4n8m2"
+Natural language
+↓
+Entity extraction
+↓
+Intent extraction
+↓
+Filter generation
+↓
+Structured search
+↓
+Semantic search
+↓
+Relationship expansion
+↓
+Ranking
+↓
+Result
+```
+
+Don't rely solely on vector search.
+
+Use hybrid search.
+
+---
+
+# 31. Assistant ranking
+
+Results should consider:
+
+```text id="p3x7q9"
+Semantic similarity
+Entity match
+Date relevance
+Relationship strength
+Importance
+Source reliability
+Freshness
+User context
+```
+
+For "latest logo", recency + approved status matter more than semantic similarity.
+
+---
+
+# 32. Assistant response confidence
+
+Internally maintain:
+
+```text id="v8k3p2"
+Answer Confidence
+Source Confidence
+Action Confidence
+```
+
+Example:
+
+> I found two possible logos. I'm not sure which is the current approved version.
+
+Then present options rather than pretending.
+
+---
+
+# 33. Assistant should ask minimal questions
+
+Good:
+
+> I found two possible deadlines: Friday in the email and Monday in the project brief. Which one should control?
+
+Bad:
+
+> What client? What project? What date? What priority?
+
+when the system already has enough information.
+
+The Assistant should resolve what it can automatically.
+
+---
+
+# 34. Assistant proactive messages
+
+It should also initiate useful interactions.
+
+Examples:
+
+> You have three overdue tasks.
+
+> Your project is at risk.
+
+> A bank statement arrived and was processed.
+
+> Your Adobe renewal is tomorrow.
+
+> A client replied to the thread you were waiting on.
+
+> Required assets for your current task are now available.
+
+These originate from agents/automations, not from the chat itself.
+
+---
+
+# 35. Assistant daily briefing
+
+The Assistant should generate:
+
+```text id="h2w7m5"
+Today
+
+Priority
+3
+
+Overdue
+2
+
+Meetings
+3
+
+Waiting
+1
+
+Financial
+1 upcoming payment
+
+Potential Risk
+1 project
+
+Recommended First Task
+GB Reel
+```
+
+Then explain why the recommendation was made.
+
+---
+
+# 36. Assistant task planning
+
+Example:
+
+> Plan my day.
+
+It considers:
+
+```text id="c5v8m2"
+Deadlines
+Priority
+Calendar
+Available hours
+Estimated effort
+Dependencies
+Client commitments
+Current workload
+```
+
+Output is structured as a plan, not just conversational advice.
+
+---
+
+# 37. Assistant work mode
+
+When you say:
+
+> Start GB Reel.
+
+Assistant should:
+
+```text id="m9p2x4"
+Resolve task
+↓
+Open task context
+↓
+Find resources
+↓
+Start work session
+↓
+Enable focus behavior
+```
+
+It can tell you:
+
+> I found the brief, approved logo, and event photos. One reference video is still missing.
+
+---
+
+# 38. Assistant completion mode
+
+When you say:
+
+> I'm done.
+
+It determines which task you mean from active context.
+
+Then:
+
+```text id="z4c8m1"
+Complete Task?
+↓
+Check checklist
+↓
+Update work session
+↓
+Cancel reminders
+↓
+Update project
+↓
+Update progress
+```
+
+If something important is unfinished:
+
+> The export step is still unchecked. Do you want me to mark the task complete anyway?
+
+---
+
+# 39. Assistant activity trace
+
+Every tool call should be visible in an optional detailed mode:
+
+```text id="u7m2q5"
+Assistant Run
+
+Intent:
+Find latest GB logo
+
+Step 1
+Resolved Client
+
+Step 2
+Searched project assets
+
+Step 3
+Found 5 logos
+
+Step 4
+Filtered approved versions
+
+Step 5
+Selected latest approved asset
+
+Result:
+GB-logo-final.svg
+```
+
+This is invaluable for debugging.
+
+---
+
+# 40. Assistant runs
+
+Create an `assistant_runs` concept:
+
+```text id="h6x3p9"
+Assistant Run
+├── User Request
+├── Intent
+├── Context
+├── Plan
+├── Steps
+├── Tools
+├── Results
+├── Actions
+├── Approvals
+├── Final Response
+└── Error
+```
+
+This can feed your Activity/Audit system.
+
+---
+
+# 41. Assistant error handling
+
+If a tool fails:
+
+Bad:
+
+> Something went wrong.
+
+Good:
+
+> I couldn't access Google Drive because its connection expired. I can still use the files already indexed in Personal OS.
+
+Or:
+
+> The statement was processed, but the closing balance didn't reconcile, so I left the transactions in review.
+
+The Assistant should surface meaningful system state.
+
+---
+
+# 42. Assistant interruption handling
+
+For long-running work:
+
+```text id="j3v8k1"
+User Request
+↓
+Long Agent Run
+↓
+Job queued
+↓
+Background processing
+↓
+Result
+```
+
+The Assistant can show:
+
+```text id="w9f2m6"
+Processing document...
+
+32 / 80 pages
+```
+
+and later update the relevant Inbox/Document state.
+
+---
+
+# 43. Assistant should not perform long operations synchronously
+
+For:
+
+```text id="c7x5m2"
+Large Drive indexing
+Large PDF analysis
+Mailbox processing
+Financial import
+Bulk classification
+```
+
+use:
+
+```text id="p1n8v4"
+Assistant
+↓
+Create Job
+↓
+Queue
+↓
+Worker
+↓
+Agent
+↓
+Result
+```
+
+---
+
+# 44. Assistant approvals
+
+Approval objects should look like:
+
+```text id="m4r7x2"
+Approval Required
+
+Action:
+Send Email
+
+Reason:
+Client requested final delivery.
+
+Recipient:
+Sarah
+
+Content:
+...
+
+[Approve]
+[Edit]
+[Reject]
+```
+
+For financial changes:
+
+```text id="w8k3p1"
+Financial Action
+
+Change:
+Transaction category
+
+From:
+Unknown
+
+To:
+Software
+
+Confidence:
+91%
+
+[Approve]
+```
+
+---
+
+# 45. Assistant safety boundaries
+
+The Assistant should **not** be allowed to:
+
+```text id="q5m8x2"
+Access secrets
+Read credentials directly
+Bypass permissions
+Delete data silently
+Send external communication without authorization
+Make financial transfers
+Change account security
+```
+
+Even if the model is instructed to do so.
+
+Application policies must block it.
+
+---
+
+# 46. Assistant settings
+
+Allow users to configure:
+
+```text id="k7x2m8"
+Default AI provider
+Response style
+Proactivity
+Autonomy
+Confirmation policy
+Memory
+Data access
+Agent access
+Financial access
+Notification behavior
+```
+
+---
+
+# 47. Proactivity setting
+
+This is important.
+
+```text id="v3n8c2"
+Assistant Proactivity
+
+Minimal
+Only respond
+
+Balanced
+Surface important issues
+
+Proactive
+Actively monitor and suggest
+
+Autonomous
+Perform permitted actions automatically
+```
+
+I'd recommend **Balanced** as the default.
+
+---
+
+# 48. Autonomy levels
+
+Per action:
+
+```text id="s6p9x3"
+Read
+Automatic
+
+Create internal data
+Automatic
+
+Modify existing data
+Ask
+
+External actions
+Ask
+
+Sensitive financial/security actions
+Always ask
+```
+
+---
+
+# 49. Assistant modes
+
+You can conceptually expose:
+
+```text id="c8v4m1"
+Ask
+Plan
+Find
+Act
+Review
+```
+
+For example:
+
+> **Plan my week**
+
+uses Planning.
+
+> **Find the contract**
+
+uses Search.
+
+> **Send the client a reply**
+
+uses Action.
+
+But you don't need separate chat interfaces.
+
+---
+
+# 50. Assistant API architecture
+
+I would make an internal API like:
+
+```text id="p5m7x2"
+POST /api/assistant/message
+```
+
+Flow:
+
+```text id="x3k8v1"
+message
+↓
+intent classification
+↓
+context builder
+↓
+orchestrator
+↓
+tool execution
+↓
+validation
+↓
+approval if required
+↓
+response
+```
+
+For streaming:
+
+```text id="m4c7n2"
+Server-Sent Events
+or
+WebSocket
+```
+
+so the user sees progress.
+
+---
+
+# 51. Assistant internal objects
+
+I would define:
+
+```ts id="v8m3q1"
+AssistantRequest
+AssistantContext
+AssistantPlan
+AssistantStep
+ToolCall
+ToolResult
+ApprovalRequest
+AssistantResponse
+```
+
+This makes the system much easier to control.
+
+---
+
+# 52. Assistant context object
+
+Conceptually:
+
+```ts id="k2x7m9"
+{
+  user,
+  currentPage,
+  currentEntity,
+  conversation,
+  relevantEntities,
+  relevantDocuments,
+  relevantEmails,
+  relevantTasks,
+  relevantCalendar,
+  relevantFinance,
+  permissions,
+  availableTools
+}
+```
+
+Only populate what is necessary.
+
+---
+
+# 53. Assistant tools by domain
+
+### Tasks
+
+```text id="q7m2v8"
+searchTasks
+getTask
+createTask
+updateTask
+completeTask
+```
+
+### Projects
+
+```text id="x5k8n3"
+searchProjects
+getProject
+createProject
+updateProject
+getProjectContext
+```
+
+### Files
+
+```text id="m9v4c7"
+searchFiles
+getFile
+getAsset
+getTaskResources
+```
+
+### Email
+
+```text id="p3x7k2"
+searchEmails
+getEmail
+getThread
+createDraft
+sendEmail
+```
+
+### Calendar
+
+```text id="c8n2v5"
+searchEvents
+getEvent
+createEvent
+updateEvent
+findAvailability
+```
+
+### Finance
+
+```text id="r6m3x8"
+getTransactions
+getFinancialSummary
+searchStatements
+getSubscriptions
+getInvoices
+```
+
+### Memory
+
+```text id="u4k7p2"
+searchMemory
+createMemoryProposal
+forgetMemory
+```
+
+---
+
+# 54. Assistant should use domain tools, not direct SQL
+
+Very important:
+
+Don't let the AI generate:
+
+```sql
+UPDATE tasks ...
+```
+
+Instead:
+
+```text id="z8m3q5"
+update_task()
+```
+
+The domain service validates:
+
+```text id="j4v7k2"
+Permissions
+Entity existence
+Allowed fields
+Business rules
+Audit
+```
+
+Then changes the database.
+
+---
+
+# 55. Assistant event awareness
+
+The Assistant should consume events such as:
+
+```text id="v2p8m1"
+NewEmail
+TaskOverdue
+MeetingStarting
+StatementReceived
+SubscriptionDue
+FileAdded
+ProjectAtRisk
+ClientReplied
+```
+
+So it can proactively generate relevant interactions.
+
+---
+
+# 56. Assistant and Inbox
+
+This relationship is particularly important:
+
+```text id="m7x4c2"
+Inbox
+↓
+Important item
+↓
+Assistant context
+↓
+Agent
+↓
+Action
+```
+
+Example:
+
+> "Your bank statement arrived."
+
+Assistant can explain:
+
+```text id="q3n8v5"
+Processed successfully.
+42 transactions extracted.
+1 transaction needs review.
+Statement reconciled.
+```
+
+---
+
+# 57. Assistant and Context Packs
+
+For a task:
+
+```text id="x6p2m8"
+Assistant
+↓
+Task Context Pack
+↓
+Relevant resources
+↓
+Conversation
+```
+
+So when you say:
+
+> "Let's work on this."
+
+it already understands the task.
+
+---
+
+# 58. Assistant and files
+
+User:
+
+> "I need the latest approved logo."
+
+Assistant:
+
+```text id="k8m4p1"
+Search:
+Client
+→ Project
+→ Asset type = Logo
+→ Status = Approved
+→ Current version
+```
+
+Then returns the asset.
+
+---
+
+# 59. Assistant and finance
+
+User:
+
+> "What did I spend on software in August?"
+
+The Assistant should:
+
+```text id="g5x2m9"
+Date = Aug 1–31
+Category = Software
+Type = Expense
+Exclude transfers
+```
+
+Then calculate from actual transactions.
+
+Not ask the AI model to perform arithmetic from raw text.
+
+---
+
+# 60. Assistant and calendar
+
+User:
+
+> "Find me two hours to finish the project tomorrow."
+
+Assistant:
+
+```text id="r8c4m2"
+Task
+↓
+Estimate 2h
+↓
+Tomorrow's calendar
+↓
+Working hours
+↓
+Existing commitments
+↓
+Find slots
+↓
+Recommend
+```
+
+Then optionally create an internal focus block with approval according to settings.
+
+---
+
+# 61. Assistant and work logs
+
+User:
+
+> "What did I do yesterday?"
+
+Assistant combines:
+
+```text id="p6m3v9"
+Work Sessions
+Task Activity
+Project Activity
+Notes
+```
+
+Then:
+
+> You spent 3h 40m across three projects.
+
+---
+
+# 62. Assistant and decisions
+
+User:
+
+> "Why are we using Postgres?"
+
+Assistant searches:
+
+```text id="n4x7c2"
+Decision Notes
+Project notes
+Architecture documents
+Conversation memory
+```
+
+Then returns the decision with source.
+
+---
+
+# 63. Assistant and reminders
+
+User:
+
+> "Don't let me forget this."
+
+Assistant determines:
+
+```text id="w3m8k5"
+Object:
+Current Task
+
+Reminder:
+Required
+
+Timing:
+Not specified
+
+Use:
+Default reminder policy
+```
+
+If ambiguity matters:
+
+> When would you like the reminder?
+
+But if system policy can reasonably determine timing, it can propose one.
+
+---
+
+# 64. Assistant's "do everything" capability
+
+Eventually:
+
+> **"Handle this."**
+
+means:
+
+```text id="k5p8m2"
+Understand source
+↓
+Identify entities
+↓
+Determine required actions
+↓
+Check permissions
+↓
+Execute low-risk actions
+↓
+Ask for high-risk approvals
+↓
+Verify results
+↓
+Report everything
+```
+
+This is the experience you're aiming for.
+
+---
+
+# 65. Final Assistant architecture
+
+```text id="x7m3p9"
+                         USER
+                           │
+                           ▼
+                      ASSISTANT
+                           │
+                    Intent Detection
+                           │
+                           ▼
+                    Context Engine
+                           │
+                           ▼
+                     ORCHESTRATOR
+                           │
+                    ┌──────┼───────┐
+                    ▼      ▼       ▼
+                 Planner  Agents  Search
+                    │      │       │
+                    └──────┼───────┘
+                           ▼
+                      TOOL ROUTER
+                           │
+                           ▼
+                      POLICY ENGINE
+                           │
+                  ┌────────┼─────────┐
+                  ▼        ▼         ▼
+                Tasks    Gmail      Drive
+                Finance  Calendar   Files
+                           │
+                           ▼
+                       DATABASE
+                           │
+                           ▼
+                       EVENT BUS
+                           │
+                           ▼
+                       AGENTS
+                           │
+                           ▼
+                    NOTIFICATIONS
+```
+
+The key rule is:
+
+> **The Assistant is the interface. The Orchestrator is the brain that coordinates. Agents own specialized work. Tools provide controlled capabilities. The Policy Engine enforces what is allowed. PostgreSQL remains the source of truth.**
+
+That gives you the assistant you're actually describing: you don't need to know whether something lives in Gmail, Drive, Tasks, Finance, Calendar, or Documents. You tell Personal OS **what you want**, and the Assistant figures out **what to find, where to find it, why it needs it, which agent should handle it, what it is allowed to do, and what changed afterward.**

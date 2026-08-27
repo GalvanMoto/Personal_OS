@@ -1,0 +1,1567 @@
+For the **Documents module**, I would make it different from Files & Assets.
+
+**Files & Assets = the physical digital objects.**
+**Documents = the structured knowledge/information extracted from those objects.**
+
+A PDF bank statement is a file. Its structured financial statement, period, account, transactions, issuer, and extracted facts are document data.
+
+A client brief is a file. The **requirements, deadlines, deliverables, decisions, and entities inside it** become document intelligence.
+
+# 1. Document module purpose
+
+Documents should answer:
+
+> What does this document contain, what does it mean, who/what is it related to, what important facts came from it, and what can Personal OS do with that information?
+
+It should support:
+
+```text id="8c4m1k"
+Client Documents
+Project Documents
+Contracts
+Proposals
+Briefs
+Specifications
+Reports
+Statements
+Invoices
+Receipts
+Tax Documents
+Investment Documents
+Bank Documents
+Legal Documents
+Insurance Documents
+Meeting Documents
+Research
+Personal Documents
+```
+
+---
+
+# 2. Document vs File
+
+Keep the relationship like:
+
+```text id="p1r6vo"
+FILE
+PDF / DOCX / XLSX / JPG
+        ↓
+DOCUMENT
+Semantic representation
+        ↓
+EXTRACTED INFORMATION
+Facts / entities / dates / amounts / requirements
+```
+
+Example:
+
+```text
+statement_august.pdf
+        ↓
+Document
+"August 2026 SBI Bank Statement"
+        ↓
+42 transactions
+opening balance
+closing balance
+account
+statement period
+```
+
+The original file is preserved.
+
+---
+
+# 3. Document creation
+
+Again, you should have three routes.
+
+### Manual
+
+Create a document record manually.
+
+### Upload
+
+Upload a document and let the system analyze it.
+
+### Automatic
+
+Inbox receives a document → Personal OS automatically creates the document record.
+
+The automatic route should become the main one.
+
+---
+
+# 4. Basic document information
+
+Core fields:
+
+```text id="krskx9"
+Document Title *
+Document Type *
+Description
+Status
+Category
+Source
+```
+
+Example:
+
+```text
+Title:
+GB Banquet Event Brief
+
+Type:
+Client Brief
+
+Category:
+Project
+
+Status:
+Active
+```
+
+---
+
+# 5. Document types
+
+I'd define a flexible document taxonomy.
+
+```text id="9nq3a6"
+General
+Brief
+Requirement
+Proposal
+Contract
+Agreement
+Specification
+SOP
+Report
+Research
+Presentation
+Meeting Notes
+Invoice
+Receipt
+Statement
+Bank Statement
+Investment Statement
+Tax Document
+Insurance Document
+Legal Document
+Reference
+Personal Document
+Other
+```
+
+---
+
+# 6. Document status
+
+```text id="3c6p4a"
+Processing
+Draft
+Active
+Under Review
+Approved
+Superseded
+Archived
+Expired
+```
+
+For automatically ingested documents:
+
+```text
+Received
+→ Processing
+→ Processed
+→ Active
+```
+
+---
+
+# 7. Document metadata
+
+Every document should maintain:
+
+```text id="6g64fg"
+Document ID
+Title
+Type
+Category
+Status
+
+Created Date
+Document Date
+Modified Date
+Effective Date
+Expiry Date
+
+Issuer
+Author
+Owner
+
+Language
+Country
+Currency
+
+Source
+Source ID
+
+File ID
+Version
+Checksum
+```
+
+Only applicable fields are populated.
+
+---
+
+# 8. Document relationships
+
+Documents need deep relationships.
+
+```text id="3b2o0f"
+Document
+├── Client
+├── Project
+├── Task
+├── Person
+├── Organization
+├── Email
+├── File
+├── Calendar Event
+├── Transaction
+├── Invoice
+├── Subscription
+├── Note
+└── Other Document
+```
+
+Example:
+
+```text
+Client Brief
+   ↓
+GB Banquet
+   ↓
+Social Media Project
+   ↓
+3 Tasks
+```
+
+---
+
+# 9. Document content
+
+For text-based documents, retain extracted content.
+
+```text id="3co0th"
+Raw Text
+Normalized Text
+Sections
+Headings
+Tables
+Lists
+Page References
+```
+
+Do not only store an AI summary.
+
+The actual extracted content needs to remain searchable.
+
+---
+
+# 10. AI document understanding
+
+AI can extract:
+
+```text id="ks2m55"
+Summary
+Key Facts
+Requirements
+Goals
+Deadlines
+People
+Organizations
+Locations
+Amounts
+Products
+Services
+References
+Decisions
+Risks
+Action Items
+Questions
+```
+
+Example:
+
+```text
+Document:
+Client Brief
+
+AI extracted:
+
+Goal:
+Create 3 promotional reels
+
+Deadline:
+28 Aug 2026
+
+Required:
+Latest logo
+9 event photos
+Brand colors
+
+Client:
+GB Banquet
+```
+
+---
+
+# 11. Document facts
+
+I would introduce a proper **Document Facts** concept.
+
+Example:
+
+```text id="z2l4x7"
+FACT
+
+Key:
+deadline
+
+Value:
+2026-08-28
+
+Confidence:
+0.97
+
+Source:
+Page 3
+
+Extracted By:
+Document Agent
+```
+
+Another:
+
+```text
+FACT
+
+Key:
+budget
+
+Value:
+AUD 5,000
+
+Source:
+Page 4
+```
+
+This allows agents to retrieve precise information.
+
+---
+
+# 12. Facts need provenance
+
+Every extracted fact should remember exactly where it came from.
+
+```text id="8vvj5i"
+Document
+→ Page
+→ Section
+→ Extracted Fact
+```
+
+So the Assistant can answer:
+
+> "Where did this deadline come from?"
+
+with:
+
+> Page 3 of the client brief.
+
+---
+
+# 13. Document sections
+
+For longer documents, store sections.
+
+```text id="py5k6r"
+Section
+├── Title
+├── Page Start
+├── Page End
+├── Content
+├── Summary
+└── Embedding
+```
+
+Example:
+
+```text
+1. Project Overview
+2. Requirements
+3. Deliverables
+4. Timeline
+5. Budget
+6. Terms
+```
+
+This makes retrieval much better than embedding an entire 50-page PDF as one object.
+
+---
+
+# 14. Document chunks
+
+For semantic retrieval:
+
+```text id="8eg3m7"
+Document
+↓
+Sections
+↓
+Chunks
+↓
+Embeddings
+```
+
+Use `pgvector` initially.
+
+Each chunk should retain:
+
+```text id="3pz5q8"
+document_id
+page
+section
+text
+embedding
+```
+
+Then an agent can retrieve the exact relevant passage.
+
+---
+
+# 15. Document search
+
+Search should work across:
+
+```text id="0z0e6f"
+Title
+Filename
+Content
+Summary
+Sections
+Facts
+Entities
+Tags
+Client
+Project
+Document Type
+Dates
+```
+
+So:
+
+> "Find the document that says the client needs 3 reels."
+
+can work without knowing the document name.
+
+---
+
+# 16. Semantic search
+
+User:
+
+> "Which document contains the new pricing details?"
+
+The system should search meaning, not just keywords.
+
+Result:
+
+```text
+Pricing Update.pdf
+Page 4
+```
+
+Then show the relevant extracted section.
+
+---
+
+# 17. Document versions
+
+Documents need version control.
+
+Example:
+
+```text id="t37xgq"
+Website Specification
+
+v1
+v2
+v3
+Current
+```
+
+Each version points to its underlying file.
+
+```text
+Document
+    ↓
+Document Version
+    ↓
+File
+```
+
+---
+
+# 18. Version metadata
+
+```text id="m1s6w2"
+Version Number
+Created At
+Created By
+Source
+Change Summary
+Is Current
+Previous Version
+```
+
+AI can produce:
+
+> v3 changes the delivery deadline and adds two new requirements.
+
+But that should be derived from actual document comparison.
+
+---
+
+# 19. Document comparison
+
+Support:
+
+```text id="x5x2o9"
+Compare versions
+```
+
+The engine can identify:
+
+```text
+Added
+Removed
+Changed
+```
+
+Especially useful for:
+
+* contracts
+* requirements
+* proposals
+* project specifications
+* client briefs
+
+---
+
+# 20. Important document detection
+
+The system should automatically classify documents as important.
+
+Examples:
+
+```text id="ihc7o9"
+Bank Statement → Important
+Investment Statement → Important
+Contract → Important
+Tax Document → Critical
+Random newsletter PDF → Noise
+Client brief → Important
+```
+
+This connects directly to the Inbox intelligence you designed.
+
+---
+
+# 21. Document sensitivity
+
+Every document gets:
+
+```text id="w1j7nu"
+Public
+Internal
+Personal
+Sensitive
+Highly Sensitive
+```
+
+Examples:
+
+```text
+Logo → Internal
+Client contract → Sensitive
+Bank statement → Highly Sensitive
+Tax document → Highly Sensitive
+Public product brochure → Public
+```
+
+---
+
+# 22. Document access
+
+Agents should access documents through policy.
+
+Example:
+
+```text id="1hq34a"
+Finance Agent
+✓ Bank Statements
+
+Task Agent
+✗ Bank Statements
+
+Project Agent
+✓ Client Brief
+
+General Assistant
+Depends on sensitivity
+```
+
+This prevents sensitive information from being unnecessarily exposed.
+
+---
+
+# 23. Expiration
+
+Some documents have expiration dates.
+
+Examples:
+
+```text id="1u3qf5"
+Contract expires
+Insurance expires
+License expires
+Certificate expires
+Subscription agreement expires
+```
+
+Store:
+
+```text
+effective_date
+expiry_date
+renewal_date
+```
+
+Then automation can act.
+
+---
+
+# 24. Document reminders
+
+Example:
+
+> Insurance policy expires in 30 days.
+
+The system can create:
+
+```text id="7y7mm9"
+Reminder
+30 days before
+
+Reminder
+7 days before
+```
+
+The Reminder Agent owns notification behavior.
+
+---
+
+# 25. Contract intelligence
+
+For contracts, extract:
+
+```text id="l2w21w"
+Parties
+Effective Date
+Expiration Date
+Renewal Date
+Payment Terms
+Notice Period
+Responsibilities
+Obligations
+Termination Terms
+Important Dates
+```
+
+Then relate obligations to tasks.
+
+Example:
+
+```text
+Contract
+→ payment due monthly
+→ subscription/finance
+→ reminder
+```
+
+---
+
+# 26. Client brief intelligence
+
+A brief should produce:
+
+```text id="z6lu82"
+Goals
+Requirements
+Deliverables
+Deadlines
+Assets Required
+Approval Process
+Stakeholders
+References
+Questions
+```
+
+Then:
+
+```text
+Brief
+↓
+Task Agent
+↓
+Tasks
+```
+
+---
+
+# 27. Meeting document intelligence
+
+Meeting notes can extract:
+
+```text id="d4w6z0"
+Attendees
+Topics
+Decisions
+Tasks
+Deadlines
+Questions
+Follow-ups
+```
+
+Then:
+
+```text
+Meeting Notes
+↓
+Tasks
+↓
+Calendar
+↓
+Project
+```
+
+---
+
+# 28. Financial document intelligence
+
+For bank statements:
+
+```text id="y8d7g2"
+Statement Type
+Institution
+Account
+Period
+Opening Balance
+Closing Balance
+Transactions
+```
+
+For investment statements:
+
+```text id="h2h9q4"
+Provider
+Account
+Statement Period
+Holdings
+Units
+Prices
+Contributions
+Withdrawals
+Dividends
+Interest
+Fees
+```
+
+For invoices:
+
+```text id="r2w7r9"
+Invoice Number
+Issuer
+Recipient
+Amount
+Tax
+Issue Date
+Due Date
+Status
+```
+
+For receipts:
+
+```text id="sb6u15"
+Merchant
+Date
+Amount
+Tax
+Currency
+Payment Method
+Category
+```
+
+These should feed the Finance domain.
+
+---
+
+# 29. Document extraction validation
+
+For high-impact documents, don't directly trust AI.
+
+Process:
+
+```text id="k4c0a8"
+Extract
+↓
+Normalize
+↓
+Validate
+↓
+Cross-check
+↓
+Commit
+```
+
+For bank statements:
+
+```text
+Opening Balance
++
+Credits
+-
+Debits
+=
+Closing Balance
+```
+
+If reconciliation fails:
+
+```text
+Needs Review
+```
+
+---
+
+# 30. Document intelligence confidence
+
+Every extraction can have:
+
+```text id="7xhm8c"
+Confidence
+Source
+Extraction Method
+```
+
+Example:
+
+```text
+Deadline
+28 Aug 2026
+Confidence: 98%
+
+Budget
+AUD 5,000
+Confidence: 94%
+```
+
+---
+
+# 31. Document entities
+
+The system should maintain extracted entities:
+
+```text id="9mtq78"
+People
+Organizations
+Clients
+Projects
+Products
+Accounts
+Locations
+Dates
+Amounts
+```
+
+Example:
+
+```text
+Document
+→ Sarah
+→ GB Banquet
+→ Event Marketing
+→ ₹50,000
+→ 28 Aug
+```
+
+Then the Relationship Engine can create connections.
+
+---
+
+# 32. Document tags
+
+Global tags:
+
+```text id="2j7m1n"
+Client
+Internal
+Finance
+Legal
+Important
+Reference
+Final
+Draft
+Review
+2026
+```
+
+AI may suggest them.
+
+---
+
+# 33. Document lifecycle
+
+The lifecycle could be:
+
+```text id="r50gd6"
+Received
+↓
+Queued
+↓
+Processing
+↓
+Extracting
+↓
+Classifying
+↓
+Linking
+↓
+Validated
+↓
+Indexed
+↓
+Active
+↓
+Superseded
+↓
+Archived
+```
+
+---
+
+# 34. Document source hierarchy
+
+Documents can originate from:
+
+```text id="r0rj42"
+Inbox
+Gmail
+Google Drive
+Manual Upload
+Scanner
+Assistant
+Generated
+Import
+```
+
+The source is always retained.
+
+---
+
+# 35. Inbox → Document flow
+
+Example:
+
+```text id="xg9p7j"
+Gmail
+ ↓
+Inbox
+ ↓
+Attachment
+ ↓
+File
+ ↓
+Document
+ ↓
+Classification
+ ↓
+Extraction
+ ↓
+Relationships
+ ↓
+Domain routing
+```
+
+For a bank statement:
+
+```text
+Document
+ ↓
+Finance Agent
+ ↓
+Transactions
+```
+
+For a client brief:
+
+```text
+Document
+ ↓
+Project Agent
+ ↓
+Tasks
+```
+
+---
+
+# 36. Document → Task flow
+
+A document can automatically produce tasks.
+
+Example:
+
+> "Website must be updated before September 5."
+
+The Document Agent extracts:
+
+```text
+Requirement
+Website update
+
+Deadline
+5 Sep
+
+Responsible
+Gautam
+```
+
+Task Agent proposes:
+
+```text
+Task:
+Update website
+
+Due:
+5 Sep
+```
+
+Source:
+
+```text
+Generated from Document #DOC-8291
+```
+
+---
+
+# 37. Document → Project flow
+
+A newly received document might mention a project that doesn't yet exist.
+
+The agent can identify:
+
+```text
+Unknown Project
+Potential project:
+Website Redesign
+```
+
+Then:
+
+```text
+Create Project
+```
+
+or:
+
+```text
+Attach to existing Project
+```
+
+depending on confidence.
+
+---
+
+# 38. Document → Client flow
+
+Same for clients.
+
+A new proposal from an unknown company:
+
+```text
+Company:
+ABC Pty Ltd
+```
+
+The system checks existing organizations/clients.
+
+If no match:
+
+```text
+Potential new client
+```
+
+rather than silently creating a duplicate.
+
+---
+
+# 39. Document-to-document relationships
+
+Documents can relate to each other:
+
+```text id="pviqmg"
+Contract
+→ replaced_by
+→ Contract v2
+
+Proposal
+→ followed_by
+→ Agreement
+
+Invoice
+→ references
+→ Contract
+
+Receipt
+→ settles
+→ Invoice
+
+Bank Statement
+→ contains
+→ Transaction
+```
+
+This creates a powerful knowledge graph.
+
+---
+
+# 40. Document timeline
+
+Each document can have history:
+
+```text id="4v9w5w"
+26 Aug
+Received
+
+26 Aug
+Processed
+
+26 Aug
+Linked to Project
+
+26 Aug
+3 tasks extracted
+
+27 Aug
+Superseded by v2
+```
+
+---
+
+# 41. Document activity
+
+Track:
+
+```text id="z2slut"
+Uploaded
+Viewed
+Downloaded
+Processed
+Extracted
+Linked
+Edited
+Versioned
+Archived
+Shared
+```
+
+Actor:
+
+```text
+User
+Agent
+System
+Integration
+```
+
+---
+
+# 42. Document AI context
+
+For agents, create a concise context representation:
+
+```text id="s90jdu"
+Document Context
+
+Type:
+Client Brief
+
+Client:
+GB Banquet
+
+Project:
+Social Media
+
+Important:
+3 reels required
+
+Deadline:
+28 Aug
+
+Assets:
+Logo
+Event Photos
+
+Related Tasks:
+3
+
+Latest Version:
+v3
+```
+
+This is what you send to other agents rather than the entire PDF every time.
+
+---
+
+# 43. Document "Ask"
+
+Every document should support contextual assistant queries.
+
+Examples:
+
+> What does this document require?
+
+> What are the deadlines?
+
+> Who is responsible?
+
+> What changed from the previous version?
+
+> Create tasks from this.
+
+> Summarize this.
+
+> Find the payment terms.
+
+> What should I pay attention to?
+
+The Assistant should operate against the document context.
+
+---
+
+# 44. Document actions
+
+Possible actions:
+
+```text id="nmf4ia"
+Summarize
+Extract Tasks
+Extract Dates
+Extract Financial Data
+Compare Versions
+Find Requirements
+Link to Project
+Link to Client
+Create Reminder
+Create Task
+Archive
+Mark Important
+```
+
+High-impact actions should go through your normal agent permission system.
+
+---
+
+# 45. Document filters
+
+Universal:
+
+```text id="f3r2pp"
+Search
+Date
+Client
+Project
+Tags
+Source
+Status
+```
+
+Document-specific:
+
+```text
+Document Type
+Category
+Sensitivity
+Author
+Issuer
+Expiration
+Version
+```
+
+Smart:
+
+```text
+Important
+Needs Review
+Recently Added
+Expiring Soon
+Superseded
+Contains Deadlines
+Contains Tasks
+Contains Financial Information
+Missing Relationships
+```
+
+---
+
+# 46. Document creation fields — final
+
+For implementation, I'd define:
+
+```text id="ws2f4j"
+DOCUMENT
+
+Identification
+├── Title *
+├── Type *
+├── Category
+├── Description
+├── Status
+
+Dates
+├── Document Date
+├── Effective Date
+├── Expiry Date
+├── Renewal Date
+
+Ownership
+├── Author
+├── Issuer
+├── Owner
+
+Relationships
+├── Client
+├── Project
+├── Task
+├── Organization
+├── People
+
+Source
+├── File
+├── Inbox Item
+├── Email
+├── Integration
+├── External ID
+
+Classification
+├── Sensitivity
+├── Importance
+├── Tags
+
+AI
+├── Summary
+├── Key Facts
+├── Confidence
+├── Extraction Status
+
+Versioning
+├── Version
+├── Version Group
+├── Previous Version
+├── Is Current
+
+System
+├── Created At
+├── Updated At
+├── Last Indexed
+```
+
+---
+
+# 47. What you actually manually enter
+
+For a normal document upload:
+
+```text
+File
+```
+
+That's often enough.
+
+The system should determine:
+
+```text
+Title
+Type
+Category
+Client
+Project
+Document Date
+Issuer
+Importance
+Sensitivity
+Tags
+Summary
+Entities
+Deadlines
+Requirements
+```
+
+from the file.
+
+For example, you upload:
+
+`GB_final_brief.pdf`
+
+and Personal OS should turn it into:
+
+```text
+Document:
+GB Banquet Final Brief
+
+Type:
+Client Brief
+
+Client:
+GB Banquet
+
+Project:
+Event Marketing
+
+Important:
+Yes
+
+Requirements:
+6
+
+Deadlines:
+2
+
+Tasks detected:
+4
+
+People:
+3
+
+Related Files:
+8
+
+Status:
+Active
+```
+
+---
+
+# 48. Document database structure
+
+I would keep the database separate from the physical file:
+
+```text
+documents
+├── id
+├── title
+├── document_type
+├── category
+├── description
+├── status
+├── sensitivity
+├── importance
+├── document_date
+├── effective_date
+├── expiry_date
+├── renewal_date
+├── author_id
+├── issuer_id
+├── owner_id
+├── current_version_id
+├── source_type
+├── source_id
+├── ai_summary
+├── ai_confidence
+├── extraction_status
+├── created_at
+├── updated_at
+└── last_indexed_at
+```
+
+Related:
+
+```text
+document_versions
+document_sections
+document_chunks
+document_facts
+document_entities
+document_tags
+document_relationships
+document_extractions
+```
+
+---
+
+# 49. Most important relationship
+
+The real structure becomes:
+
+```text
+                    DOCUMENT
+                        │
+          ┌─────────────┼──────────────┐
+          │             │              │
+       ORIGINAL       CONTENT        FACTS
+         FILE        SECTIONS       ENTITIES
+          │             │              │
+          └─────────────┼──────────────┘
+                        │
+                 RELATIONSHIP ENGINE
+                        │
+        ┌───────────────┼────────────────┐
+        ↓               ↓                ↓
+      CLIENT          PROJECT           TASK
+        │               │                │
+        └───────────────┼────────────────┘
+                        ↓
+                      AGENTS
+                        ↓
+                  ACTION / PLAN
+```
+
+---
+
+# 50. The distinction I would lock into your architecture
+
+Your **Files & Assets** module answers:
+
+> **"Where is the thing?"**
+
+Your **Documents** module answers:
+
+> **"What does the thing contain and mean?"**
+
+Your **Inbox** answers:
+
+> **"What just arrived and does it matter?"**
+
+Your **Agents** answer:
+
+> **"What should Personal OS do about it?"**
+
+And your **Knowledge/Relationship layer** answers:
+
+> **"What else is this connected to?"**
+
+That separation will make the Personal OS much more powerful and prevent the common mistake of turning the document system into just another file browser.

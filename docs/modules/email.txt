@@ -1,0 +1,1557 @@
+For the **Email module**, I would make it an **intelligence layer over your email accounts**, not another Gmail clone.
+
+Its job is to continuously understand incoming/outgoing emails, identify what matters, connect emails to your Personal OS entities, extract tasks/documents/financial information/deadlines, track replies and follow-ups, and give agents controlled access.
+
+Since you already decided that **Inbox is the primary ingestion layer**, Email and Inbox should work together like:
+
+```text
+Gmail / Outlook
+      ↓
+Email Sync
+      ↓
+Universal Inbox
+      ↓
+Email Intelligence
+      ↓
+Tasks / Projects / Clients / Finance / Documents / Calendar
+```
+
+# 1. Email module responsibilities
+
+The Email module should handle:
+
+```text
+Accounts
+Messages
+Threads
+Senders
+Recipients
+Attachments
+Labels
+Search
+Classification
+Important messages
+Tasks
+Deadlines
+Follow-ups
+Drafts
+Replies
+Client communication
+Financial emails
+Document emails
+Subscriptions
+Meeting requests
+Email activity
+```
+
+---
+
+# 2. Email account
+
+You may eventually connect multiple accounts.
+
+```text id="9a4d1k"
+Email Account
+
+Provider
+Gmail
+Outlook
+
+Account Name
+Work
+
+Email Address
+your@email.com
+
+Status
+Connected
+
+Last Sync
+26 Aug 2026
+
+Sync Status
+Healthy
+```
+
+Each account should have its own permissions and sync configuration.
+
+---
+
+# 3. Email account settings
+
+Store:
+
+```text id="g7u1lv"
+Provider
+Email address
+Account name
+External account ID
+Scopes
+Sync enabled
+Read enabled
+Send enabled
+Attachment access
+Last sync
+Sync cursor / history token
+Sync status
+Last error
+Connected at
+```
+
+Don't store the user's Gmail password. Use OAuth tokens securely.
+
+---
+
+# 4. Email folders / labels
+
+You don't need to recreate the provider's entire folder system.
+
+Normalize:
+
+```text id="5so42e"
+Inbox
+Sent
+Drafts
+Archive
+Trash
+Spam
+Starred
+Important
+```
+
+And preserve provider-specific labels separately.
+
+---
+
+# 5. Email message fields
+
+Core:
+
+```text id="p6m3rs"
+Email ID
+External ID
+Thread ID
+
+Account
+Sender
+Recipients
+CC
+BCC
+
+Subject
+Body
+Snippet
+
+Sent At
+Received At
+
+Read Status
+Starred
+Important
+
+Labels
+
+Message URL
+```
+
+System:
+
+```text id="b2h8ok"
+Created At
+Updated At
+Synced At
+```
+
+---
+
+# 6. Sender / recipient relationships
+
+Never leave sender information only as raw email strings.
+
+Resolve:
+
+```text id="o4m1q8"
+Email
+↓
+Person
+↓
+Organization
+↓
+Client
+```
+
+Example:
+
+```text
+sarah@gbbanquet.com
+       ↓
+Sarah Smith
+       ↓
+GB Banquet
+       ↓
+Client
+```
+
+This is essential for your agent system.
+
+---
+
+# 7. Email classification
+
+Every important email should get:
+
+```text id="2s4r5p"
+Primary Category
+Secondary Categories
+Importance
+Sensitivity
+Action State
+Confidence
+```
+
+Categories:
+
+```text id="7s9d2x"
+Client
+Project
+Finance
+Banking
+Investment
+Invoice
+Receipt
+Subscription
+Calendar
+Meeting
+Document
+Tax
+Legal
+Security
+Personal
+Marketing
+Newsletter
+System
+Other
+```
+
+---
+
+# 8. Importance
+
+Use the same universal importance model:
+
+```text id="0u8j1z"
+Critical
+Important
+Relevant
+Low
+Noise
+```
+
+Example:
+
+```text id="0l5yq4"
+Bank Statement → Important
+Client deadline → Critical
+Newsletter → Noise
+Receipt → Relevant
+Security alert → Critical
+```
+
+---
+
+# 9. Action state
+
+Each email should determine:
+
+```text id="k6r8q3"
+No Action
+Needs Review
+Needs Reply
+Follow Up
+Create Task
+Update Task
+Create Reminder
+Create Event
+Import Finance
+Store Document
+Approval Required
+```
+
+This becomes much more useful than "read/unread."
+
+---
+
+# 10. AI extraction
+
+From each meaningful email, extract:
+
+```text id="r8y3mz"
+People
+Organizations
+Clients
+Projects
+Tasks
+Deadlines
+Dates
+Amounts
+Currencies
+Documents
+Files
+Events
+Products
+Services
+Questions
+Requests
+Decisions
+```
+
+Example:
+
+> "Please update the reel and send it by Friday."
+
+becomes:
+
+```text id="f2xq7e"
+Task:
+Update reel
+
+Deadline:
+28 Aug 2026
+
+Action:
+Create / Update Task
+
+Client:
+Matched client
+
+Importance:
+High
+```
+
+---
+
+# 11. Email thread intelligence
+
+Don't analyze every email in isolation.
+
+The system should understand the full thread:
+
+```text id="9w8c2p"
+Thread
+├── Message 1
+├── Message 2
+├── Message 3
+└── Message 4
+```
+
+Then determine:
+
+```text id="z0p6ac"
+Current status
+Latest request
+Latest deadline
+Open questions
+Pending reply
+Final decision
+```
+
+So if a client changed the requirement three emails later, the current state reflects the latest information.
+
+---
+
+# 12. Thread state
+
+Useful calculated fields:
+
+```text id="g3u8fd"
+Open
+Waiting for Me
+Waiting for Them
+Resolved
+Closed
+Needs Follow-up
+```
+
+Example:
+
+> Waiting for Them
+
+means you replied and are now waiting for the client.
+
+---
+
+# 13. Needs Reply detection
+
+The Email Agent should determine:
+
+```text id="n4v9e5"
+Does this email actually require a reply?
+```
+
+Not every question mark means yes.
+
+Signals include:
+
+```text id="5a9v2w"
+Direct request
+Question
+Approval request
+Client request
+Meeting proposal
+Missing information
+```
+
+Then:
+
+```text
+Needs Reply = Yes
+```
+
+---
+
+# 14. Follow-up tracking
+
+If you send an email:
+
+> "Please send the logo when you get a chance."
+
+and the person doesn't reply, the system can track:
+
+```text id="4f3n8d"
+Follow-up expected
+Follow-up date
+Related task
+Related person
+Related client
+```
+
+Then:
+
+> No reply from Sarah for 3 days.
+
+---
+
+# 15. Follow-up should be relationship-aware
+
+Don't remind you about every unanswered email.
+
+Use importance:
+
+```text id="v0b4g6"
+Important client + important request
+→ follow-up
+
+Newsletter
+→ no follow-up
+
+Automated receipt
+→ no follow-up
+```
+
+---
+
+# 16. Email → Task
+
+This should be one of the strongest workflows.
+
+Input:
+
+> "Please update the homepage before Monday."
+
+System:
+
+```text id="8v7x3m"
+Email
+↓
+Task detected
+↓
+Existing project found
+↓
+Task created/updated
+↓
+Deadline extracted
+↓
+Email linked
+↓
+Reminder scheduled
+```
+
+Source:
+
+```text
+Created from Email #EMAIL-123
+```
+
+---
+
+# 17. Email → Existing Task
+
+This is even more important.
+
+If there is already:
+
+> Update homepage
+
+and the client replies:
+
+> "Can you also change the pricing section?"
+
+Don't create another unrelated task automatically.
+
+Instead:
+
+```text id="z29m7w"
+Existing task found
+↓
+New requirement detected
+↓
+Update existing task
+↓
+Add requirement
+↓
+Attach email
+```
+
+Or propose a subtask if appropriate.
+
+---
+
+# 18. Email → Project
+
+If the email references an existing project:
+
+```text id="q6k1r7"
+Email
+↓
+Project match
+↓
+Attach to project
+```
+
+If no project exists:
+
+```text id="b9w4rc"
+Potential new project
+```
+
+and send it to review or project creation logic.
+
+---
+
+# 19. Email → Client
+
+The system should resolve client relationships using:
+
+```text id="4v8q7y"
+Email address
+Domain
+Contact
+Signature
+Previous emails
+Existing relationships
+Project references
+```
+
+This prevents manually selecting a client every time.
+
+---
+
+# 20. Email → Document
+
+When an email contains:
+
+```text id="t2z6qa"
+PDF
+DOCX
+XLSX
+```
+
+the Inbox/File/Document pipeline processes it.
+
+The Email module maintains:
+
+```text id="r8y0jp"
+Email
+→ Attachment
+→ File
+→ Document
+```
+
+So:
+
+> "Find the document Sarah sent me last week"
+
+works naturally.
+
+---
+
+# 21. Email → Finance
+
+Examples:
+
+```text id="x1g4te"
+Bank statement
+Investment statement
+Receipt
+Invoice
+Subscription confirmation
+Payment confirmation
+Tax document
+```
+
+Email identifies it, then routes it.
+
+For example:
+
+```text
+Email
+ ↓
+Attachment
+ ↓
+Bank Statement
+ ↓
+Finance Agent
+ ↓
+Transactions
+```
+
+The financial data doesn't remain buried in Email.
+
+---
+
+# 22. Email → Calendar
+
+Example:
+
+> "Let's meet Thursday at 4 PM."
+
+Email Agent extracts:
+
+```text id="l8zj2m"
+Person
+Date
+Time
+Meeting intent
+```
+
+Calendar Agent checks availability.
+
+Then:
+
+```text id="z0y8h4"
+Available
+→ propose event
+```
+
+Creating the external event follows your permission policy.
+
+---
+
+# 23. Email → Subscription
+
+Example:
+
+> "Your subscription renews on September 2."
+
+Extract:
+
+```text id="45d6qs"
+Provider
+Amount
+Billing cycle
+Renewal date
+Payment account
+```
+
+Then:
+
+```text
+Subscription
++
+Reminder
+```
+
+---
+
+# 24. Email → Security
+
+Detect:
+
+```text id="c7i3h0"
+New login
+Password changed
+2FA code
+Security alert
+Account recovery
+Suspicious activity
+Permission change
+```
+
+These should receive high importance.
+
+Some should never be automatically archived or treated as normal mail.
+
+---
+
+# 25. Email attachments
+
+Attachment records:
+
+```text id="0q9x3r"
+Attachment ID
+Email ID
+Filename
+MIME Type
+Size
+Checksum
+Storage Reference
+Processing Status
+File ID
+```
+
+Then:
+
+```text id="9p8x3v"
+Processing:
+Queued
+Processed
+Failed
+Unsupported
+```
+
+---
+
+# 26. Attachment classification
+
+The attachment itself should be classified independently:
+
+```text id="j2c7m9"
+Invoice
+Receipt
+Statement
+Contract
+Brief
+Logo
+Image
+Video
+Spreadsheet
+Report
+Tax Document
+Other
+```
+
+---
+
+# 27. Email source priority
+
+The Email Agent should know:
+
+```text id="1w6j4r"
+Known client
+Known contact
+Financial institution
+Government
+Investment provider
+Employer
+Vendor
+System
+Unknown sender
+```
+
+This helps importance detection.
+
+---
+
+# 28. Email security classification
+
+Every email gets:
+
+```text id="9v1q5s"
+Public
+Internal
+Personal
+Sensitive
+Highly Sensitive
+```
+
+For example:
+
+```text id="x9y3ce"
+Generic newsletter → Public
+
+Client email → Internal
+
+Contract → Sensitive
+
+Bank statement → Highly Sensitive
+```
+
+---
+
+# 29. Email agent permissions
+
+Email Agent:
+
+```text id="2i8y0d"
+Read
+✓
+
+Search
+✓
+
+Read attachments
+✓
+
+Create tasks
+✓
+
+Create reminders
+✓
+
+Draft replies
+✓
+
+Send
+Requires approval
+
+Delete
+Disabled by default
+```
+
+Exactly matches your earlier Agent Control Plane.
+
+---
+
+# 30. Email search
+
+Search should support:
+
+```text id="1xx4h0"
+Sender
+Recipient
+Subject
+Content
+Date
+Attachment
+Client
+Project
+Importance
+Category
+Status
+Thread
+```
+
+And natural queries:
+
+> "Find emails from Sarah about the GB reel."
+
+> "Show all finance emails this month."
+
+> "Find invoices from August."
+
+> "Show emails that need a reply."
+
+---
+
+# 31. Smart email views
+
+Useful predefined views:
+
+```text id="m0v2h9"
+Needs Reply
+Client Requests
+Important
+Follow-ups
+Finance
+Banking
+Investment
+Invoices
+Receipts
+Subscriptions
+Meetings
+Documents
+Security
+```
+
+These are just saved filters.
+
+---
+
+# 32. Email date filters
+
+Use your universal date engine:
+
+```text id="0t8q5h"
+Today
+Yesterday
+This Week
+Last Week
+This Month
+Last Month
+This Quarter
+This Year
+Custom Range
+```
+
+Date field:
+
+```text id="i8p9v1"
+Received
+Sent
+Updated
+```
+
+---
+
+# 33. Email labels
+
+Don't duplicate provider labels unnecessarily.
+
+Use:
+
+```text id="g9j7w6"
+Provider Labels
+```
+
+and your own:
+
+```text id="h4s5t8"
+Personal OS Categories
+```
+
+This keeps your classification independent of Gmail.
+
+---
+
+# 34. Email draft system
+
+Your application should support AI drafts.
+
+Example:
+
+> "Draft a reply to Sarah saying the reel will be ready tomorrow."
+
+The Email Agent prepares:
+
+```text id="4h7s9b"
+Recipient
+Subject
+Body
+Related Task
+Related Project
+Source Thread
+```
+
+Then:
+
+```text
+[Edit]
+[Send]
+```
+
+Sending requires permission/approval according to your policy.
+
+---
+
+# 35. Reply context
+
+When generating a draft, the agent should see:
+
+```text id="s3g7k0"
+Current email
++
+Thread history
++
+Related project
++
+Relevant task
++
+Relevant documents
++
+Client preferences
+```
+
+So it doesn't produce a generic reply.
+
+---
+
+# 36. Email context
+
+For each email/thread, generate:
+
+```text id="n7f3q8"
+Summary
+Current Request
+Open Questions
+Deadline
+Required Action
+Related Client
+Related Project
+Related Task
+Attachments
+Next Step
+```
+
+That gives the Assistant a compact representation.
+
+---
+
+# 37. Email timeline
+
+Thread history should retain:
+
+```text id="u0r6x3"
+Received
+Processed
+Task extracted
+Task created
+Reply drafted
+Reply sent
+Follow-up scheduled
+```
+
+This belongs partly to Activity/Audit.
+
+---
+
+# 38. Email activity
+
+Track:
+
+```text id="r9c4m7"
+Synced
+Read
+Categorized
+Linked
+Task Created
+Attachment Processed
+Draft Created
+Reply Sent
+Archived
+Label Changed
+```
+
+Don't modify provider data unless the user grants permission.
+
+---
+
+# 39. Email automation
+
+Rules could include:
+
+```text id="2k7v3m"
+New client email
+→ link to client
+
+Email contains deadline
+→ create/update task
+
+Important attachment
+→ process document
+
+Bank statement detected
+→ process finance
+
+Subscription renewal detected
+→ update subscription
+
+Email needs reply
+→ create follow-up
+
+No reply after 3 days
+→ notify
+
+Security alert detected
+→ critical notification
+```
+
+---
+
+# 40. Email digest
+
+The daily assistant can summarize only meaningful mail.
+
+Example:
+
+```text id="w5n2kh"
+Email Intelligence
+
+5 important emails
+
+2 require replies
+1 contains new task
+1 financial document
+1 client approval
+```
+
+Not:
+
+> You received 47 emails.
+
+The system should reduce noise.
+
+---
+
+# 41. Email "important message" detection
+
+The model should consider:
+
+```text id="1os7qi"
+Sender importance
+Content intent
+Existing client/project relationship
+Deadline
+Financial impact
+Security impact
+Attachment type
+Urgency
+Actionability
+```
+
+Then score the email.
+
+---
+
+# 42. Email deduplication
+
+You'll need duplicate protection because provider sync systems can produce repeated records.
+
+Use:
+
+```text id="7x2ks8"
+Provider
+External Message ID
+Thread ID
+Timestamp
+Content hash
+```
+
+`External Message ID` should normally be the strongest unique identifier.
+
+---
+
+# 43. Email sync architecture
+
+Use incremental sync.
+
+```text id="u89yqz"
+Gmail
+ ↓
+Sync Worker
+ ↓
+Raw Email
+ ↓
+Normalize
+ ↓
+Store
+ ↓
+Emit EmailReceived / EmailUpdated
+ ↓
+Inbox Intelligence
+```
+
+Don't reprocess every historical email on every sync.
+
+---
+
+# 44. Email historical ingestion
+
+Initial connection:
+
+```text id="ww9at4"
+Connect account
+↓
+Initial sync
+↓
+Import selected historical period
+↓
+Process priority-first
+↓
+Build index
+```
+
+For the first version, I'd allow:
+
+```text id="1h3p7a"
+Last 30 days
+Last 90 days
+Last year
+Custom
+```
+
+rather than immediately processing the entire mailbox.
+
+---
+
+# 45. Incremental processing
+
+After initial sync:
+
+```text id="3h5q9p"
+New email
+→ process once
+
+Modified email
+→ process change
+
+New attachment
+→ process attachment
+```
+
+Track processing state separately.
+
+---
+
+# 46. Email database
+
+Core `emails`:
+
+```text id="z9f3o2"
+id
+account_id
+external_id
+thread_id
+
+sender_id
+subject
+body
+snippet
+
+sent_at
+received_at
+
+is_read
+is_starred
+is_important
+
+source_url
+
+classification
+importance
+sensitivity
+action_state
+
+ai_summary
+ai_confidence
+
+created_at
+updated_at
+synced_at
+```
+
+---
+
+# 47. Related tables
+
+```text id="2u5f6s"
+email_recipients
+email_cc
+email_labels
+email_attachments
+email_threads
+email_classifications
+email_extractions
+email_relationships
+email_followups
+email_drafts
+email_processing_runs
+```
+
+Some relationships can be consolidated into your generic Relationship Engine.
+
+---
+
+# 48. Email thread database
+
+```text id="e0j7p8"
+email_threads
+
+id
+account_id
+external_thread_id
+
+subject
+participants
+
+latest_message_at
+message_count
+
+status
+importance
+
+client_id
+project_id
+task_id
+
+ai_summary
+current_request
+next_action
+
+created_at
+updated_at
+```
+
+---
+
+# 49. Email sender intelligence
+
+You can maintain a sender profile:
+
+```text id="m4e8j6"
+Person
+Organization
+Email Domain
+Importance
+Known Client
+Typical Category
+Typical Documents
+Communication Frequency
+Last Contact
+```
+
+This makes future classification faster.
+
+---
+
+# 50. Email agent "source of truth"
+
+Email itself should remain the source for:
+
+```text id="fd0v5e"
+What was actually sent
+Who sent it
+When it was sent
+Original wording
+Original attachments
+```
+
+Don't let AI summaries replace original emails.
+
+---
+
+# 51. Email provenance
+
+Any object created from an email should link back:
+
+```text id="x0k6m1"
+Task
+← generated_from
+← Email
+
+Document
+← attached_to
+← Email
+
+Transaction
+← extracted_from
+← Statement
+← attached_to
+← Email
+```
+
+This gives you full traceability.
+
+---
+
+# 52. Email privacy
+
+Because email can contain everything from:
+
+```text id="h3m7q5"
+Personal messages
+Passwords
+Financial data
+Health data
+Legal documents
+Client information
+```
+
+your agents should work on **minimum required access**.
+
+For example:
+
+```text id="f8c1w5"
+Task Agent
+→ sees task-related email content
+
+Finance Agent
+→ sees financial email content
+
+General Assistant
+→ sees only what's needed for the user's query
+```
+
+Don't put the entire mailbox into every agent's context.
+
+---
+
+# 53. Email + your Universal Inbox
+
+The clean architecture is:
+
+```text id="p7m1s8"
+                    EMAIL
+                      │
+                 Email Sync
+                      │
+                  Raw Email
+                      │
+                  NORMALIZE
+                      │
+                 UNIVERSAL INBOX
+                      │
+             ┌────────┼─────────┐
+             ↓        ↓         ↓
+           Email    Document   Finance
+          Agent      Agent      Agent
+             │        │         │
+             └────────┼─────────┘
+                      ↓
+               PERSONAL OS GRAPH
+```
+
+So the Inbox remains your **ingestion gateway**, while Email remains the **communication domain**.
+
+---
+
+# 54. The key email creation/management operations
+
+Your Email Agent should have controlled tools such as:
+
+```text id="m3p1e9"
+search_emails()
+get_email()
+get_thread()
+
+search_attachments()
+get_attachment()
+
+classify_email()
+get_email_context()
+
+create_task_from_email()
+update_task_from_email()
+
+create_draft()
+send_email()
+
+schedule_followup()
+
+archive_email()
+mark_read()
+mark_important()
+```
+
+High-impact tools such as `send_email()` should require the appropriate permission/approval.
+
+---
+
+# 55. "What should I do with this email?"
+
+This should be a one-command capability.
+
+The agent analyzes:
+
+```text id="5p8v4c"
+Email
+↓
+Intent
+↓
+Importance
+↓
+Entities
+↓
+Existing relationships
+↓
+Required action
+```
+
+Then returns something like:
+
+```text
+Client request
+→ Update existing task
+→ Due Friday
+→ Attach email
+→ Reminder Thursday morning
+```
+
+That is much more useful than simply summarizing the email.
+
+---
+
+# 56. "What happened in my email today?"
+
+Assistant can aggregate:
+
+```text id="x0t8h4"
+8 important emails
+
+3 client requests
+2 documents
+1 invoice
+1 meeting
+1 security alert
+
+2 tasks created
+1 deadline added
+1 follow-up scheduled
+```
+
+---
+
+# 57. "What emails do I need to act on?"
+
+The system should return only:
+
+```text id="7s2m8e"
+Needs reply
+Deadline
+Approval
+Client request
+Financial action
+Security issue
+Follow-up
+```
+
+rather than unread count.
+
+---
+
+# 58. Final Email model
+
+```text id="q3m4j9"
+                          EMAIL
+                            │
+                     Email Account
+                            │
+                         Threads
+                            │
+                        Messages
+                            │
+                       Attachments
+                            │
+                ┌───────────┼────────────┐
+                ↓           ↓            ↓
+              TASK       DOCUMENT     FINANCE
+                │           │            │
+                └───────────┼────────────┘
+                            ↓
+                         CLIENT
+                            │
+                         PROJECT
+                            │
+                           TASK
+                            │
+                         CONTEXT
+                            │
+                          AGENTS
+```
+
+The most important rule for your implementation is:
+
+> **Email should be a source of information and communication, not the place where every piece of information permanently lives.**
+
+Email tells Personal OS what happened; the appropriate domain owns the resulting data. A client request becomes a Task/Project relationship, a statement becomes a Finance record, a PDF becomes a Document, a meeting proposal becomes Calendar intelligence, and the original email remains attached as the **authoritative source**.
+
+That will keep your Personal OS clean even after thousands of emails are processed.

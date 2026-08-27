@@ -1,0 +1,1525 @@
+For the **Calendar module**, I would make it more than a Google Calendar clone.
+
+The Calendar in Personal OS should be the **time and commitment layer** that connects your tasks, projects, clients, reminders, work sessions, deadlines, meetings, and personal activities.
+
+And since you said **no page layout**, I’ll focus only on the **data, creation fields, automation, relationships, filters, AI behavior, and calendar functionality**.
+
+# 1. Calendar module responsibility
+
+Calendar should answer:
+
+> What is happening, when is it happening, what is related to it, how much time do I have, and what should Personal OS do around it?
+
+It should manage:
+
+```text id="8v6tqg"
+Events
+Meetings
+Appointments
+Deadlines
+Time Blocks
+Focus Sessions
+Reminders
+Recurring Events
+Travel
+Personal Events
+Work Sessions
+Availability
+```
+
+---
+
+# 2. Calendar sources
+
+Your calendar system can have multiple sources.
+
+For example:
+
+```text id="5e8n4k"
+Google Calendar
+Personal OS Calendar
+Imported Calendar
+```
+
+Even if Google Calendar is connected, keep an internal normalized `calendar_events` model.
+
+So:
+
+```text id="9tqk0r"
+Google Calendar
+       ↓
+Sync
+       ↓
+Personal OS Calendar Event
+```
+
+The Personal OS becomes the intelligence layer.
+
+---
+
+# 3. Calendar Event creation
+
+A full event should support:
+
+```text id="i6j9ve"
+Event Title *
+Event Type *
+Description
+Start Date *
+Start Time
+End Date *
+End Time
+All Day
+Timezone
+Location
+Meeting URL
+Calendar
+```
+
+### Event types
+
+```text id="jmbepk"
+Meeting
+Appointment
+Focus Time
+Work Block
+Personal
+Travel
+Deadline
+Reminder
+Review
+Planning
+Event
+Other
+```
+
+---
+
+# 4. People / attendees
+
+```text id="qgu0xy"
+Organizer
+Attendees
+Required Attendees
+Optional Attendees
+```
+
+Each attendee should ideally link to your `Person` entity.
+
+That means:
+
+```text id="0wd6gw"
+Calendar Event
+      ↓
+Sarah
+      ↓
+GB Banquet
+      ↓
+Client
+```
+
+---
+
+# 5. Client and project relationship
+
+Every event should optionally connect to:
+
+```text id="3iyh9v"
+Client
+Project
+Task
+Contact
+Organization
+```
+
+Example:
+
+```text id="x7y8m2"
+Meeting:
+GB Banquet Review
+
+Client:
+GB Banquet
+
+Project:
+Event Marketing
+
+Related Tasks:
+3
+```
+
+This is very important for your assistant.
+
+---
+
+# 6. Meeting details
+
+For meetings:
+
+```text id="z9et6r"
+Meeting URL
+Location
+Agenda
+Preparation Notes
+Expected Outcome
+Related Documents
+Related Tasks
+```
+
+The system can automatically find:
+
+```text id="owtr6x"
+Last conversation
+Open tasks
+Pending questions
+Previous meeting notes
+Relevant documents
+```
+
+---
+
+# 7. Event description
+
+Keep a rich text description:
+
+```text id="afkg4g"
+Description
+Agenda
+Notes
+Instructions
+```
+
+But don't force all of this during creation.
+
+The AI can enrich it later.
+
+---
+
+# 8. Recurrence
+
+Support:
+
+```text id="k1k3w7"
+Does not repeat
+Daily
+Weekdays
+Weekly
+Biweekly
+Monthly
+Yearly
+Custom
+```
+
+Custom examples:
+
+```text id="y7t5bi"
+Every Monday
+Every 2 weeks
+First Monday of month
+Last Friday of month
+Every 3 months
+```
+
+Use recurrence rules internally rather than creating endless duplicate events.
+
+---
+
+# 9. Event reminders
+
+Each event can have multiple reminders.
+
+```text id="o4thw5"
+Reminder
+
+At time of event
+5 minutes before
+10 minutes before
+15 minutes before
+30 minutes before
+1 hour before
+1 day before
+Custom
+```
+
+But Personal OS should also support **smart reminders**.
+
+---
+
+# 10. Smart meeting reminder
+
+Instead of:
+
+> Meeting in 30 minutes.
+
+Your system can say:
+
+> **GB Banquet meeting in 30 minutes.**
+>
+> You still have 2 unresolved tasks and the client hasn't approved the latest reel.
+
+This comes from Context Engine + Calendar.
+
+---
+
+# 11. Meeting preparation automation
+
+Before a meeting, Calendar Agent can automatically assemble:
+
+```text id="q0lg9x"
+Meeting
+↓
+Client
+↓
+Project
+↓
+Open Tasks
+↓
+Pending Issues
+↓
+Recent Emails
+↓
+Previous Meetings
+↓
+Documents
+↓
+Decisions
+```
+
+Then produce a meeting brief.
+
+You don't have to manually prepare it.
+
+---
+
+# 12. Post-meeting automation
+
+After a meeting, the system should optionally generate:
+
+```text id="h0dkm0"
+Meeting Summary
+Decisions
+Tasks
+Deadlines
+Follow-ups
+People mentioned
+Documents referenced
+```
+
+Then:
+
+```text id="2g7t2x"
+Meeting
+↓
+AI extraction
+↓
+Task Agent
+↓
+Task creation
+↓
+Reminder Agent
+↓
+Calendar updates
+```
+
+---
+
+# 13. Calendar availability
+
+Calendar should calculate actual availability.
+
+It should understand:
+
+```text id="9wqymb"
+Working hours
+Existing meetings
+Focus sessions
+Breaks
+Time blocks
+Personal events
+```
+
+Then:
+
+> "Can I fit a 2-hour task today?"
+
+The system can answer based on actual free time.
+
+---
+
+# 14. Focus blocks
+
+You should support dedicated focus time.
+
+```text id="0cw5yr"
+Focus Block
+
+Project:
+Personal OS
+
+Task:
+Implement notification system
+
+Duration:
+2 hours
+
+Distraction policy:
+Block normal notifications
+```
+
+This can create an actual calendar event.
+
+---
+
+# 15. Task-to-calendar scheduling
+
+This is a key feature.
+
+A task:
+
+```text id="v9m39q"
+Task:
+Create promotional video
+
+Estimated:
+2h
+
+Due:
+Friday
+```
+
+Planning Agent can determine:
+
+```text id="6n4q2v"
+Thursday
+10:00 → 12:00
+```
+
+and optionally create a focus block.
+
+The task remains the source of truth; the calendar holds the planned time.
+
+---
+
+# 16. Deadline vs calendar event
+
+These should be different concepts.
+
+### Deadline
+
+> Task must be complete by Friday.
+
+### Calendar event
+
+> Client meeting Friday at 3 PM.
+
+### Time block
+
+> Work on task Friday 10–12.
+
+They can be related:
+
+```text id="abjvpy"
+Task
+ ↓
+Deadline
+
+Task
+ ↓
+Scheduled Work Block
+ ↓
+Calendar
+```
+
+Do not turn every deadline into a calendar event automatically unless the user chooses that behavior.
+
+---
+
+# 17. Calendar status
+
+An event can have:
+
+```text id="2f6aak"
+Scheduled
+Confirmed
+Tentative
+Cancelled
+Completed
+Rescheduled
+Declined
+No-show
+```
+
+For synced external events, preserve the external status.
+
+---
+
+# 18. Calendar event source
+
+Every event needs provenance:
+
+```text id="fpfy4g"
+Source
+Personal OS
+Google Calendar
+Imported
+AI
+Task Planner
+Assistant
+```
+
+Example:
+
+```text id="x8nn3z"
+Source:
+Planning Agent
+
+Reason:
+Scheduled 2-hour work block for task.
+```
+
+---
+
+# 19. AI-generated events
+
+The assistant can interpret:
+
+> "Schedule two hours for the GB reel tomorrow morning."
+
+It determines:
+
+```text id="8mnrqi"
+Task:
+GB reel
+
+Duration:
+2h
+
+Date:
+Tomorrow
+
+Preferred:
+Morning
+
+Available:
+10–12
+
+Action:
+Create focus block
+```
+
+If there isn't enough space, it should propose alternatives.
+
+---
+
+# 20. Conflict detection
+
+Calendar should automatically detect:
+
+```text id="frw42e"
+Overlapping meetings
+Double bookings
+Insufficient travel time
+Insufficient task time
+Back-to-back meetings
+Outside work hours
+```
+
+Example:
+
+> You have a client call at 4 PM, but the planned 3-hour task block ends at 4:30 PM.
+
+---
+
+# 21. Schedule risk
+
+Calendar should talk to Task Agent.
+
+Example:
+
+```text id="4sr3v9"
+Tasks due today:
+5
+
+Available work time:
+4h
+
+Estimated remaining work:
+8h
+```
+
+System:
+
+> **Your day is overcommitted.**
+
+And then suggest:
+
+```text id="6m1i67"
+Move task A → tomorrow
+Move task B → Friday
+Keep task C → today
+```
+
+---
+
+# 22. Automatic rescheduling
+
+This should be configurable.
+
+Example:
+
+```text id="gq3q5y"
+Meeting added
+↓
+Existing focus block conflicts
+↓
+Planning Agent
+↓
+Find alternative free time
+↓
+Suggest reschedule
+```
+
+Don't silently move important appointments.
+
+For internal focus blocks, automatic rescheduling can be enabled.
+
+---
+
+# 23. Travel time
+
+Optional but useful.
+
+Event fields:
+
+```text id="cj07a0"
+Location
+Travel Duration
+Travel Mode
+```
+
+Then:
+
+```text id="2xdpkf"
+Meeting:
+3 PM
+
+Travel:
+30 min
+
+Recommended departure:
+2:20 PM
+```
+
+This is more relevant for physical appointments than ordinary remote meetings.
+
+---
+
+# 24. Calendar categories
+
+Use categories such as:
+
+```text id="2t9nwh"
+Work
+Client
+Personal
+Finance
+Health
+Travel
+Focus
+Deadline
+Planning
+Admin
+Other
+```
+
+These also become filters.
+
+---
+
+# 25. Color is secondary
+
+You can have colors for visual differentiation, but do not make color the actual category data.
+
+Store:
+
+```text id="i8e6n4"
+event_category = CLIENT
+```
+
+and separately:
+
+```text id="u5ox5k"
+display_color
+```
+
+This keeps the data semantic.
+
+---
+
+# 26. Calendar filters
+
+Use your universal filter architecture.
+
+### Date
+
+```text id="jvyyzg"
+Today
+Tomorrow
+This Week
+Next 7 Days
+This Month
+Next Month
+Custom Range
+```
+
+### Type
+
+```text id="65yjz2"
+Meeting
+Focus
+Appointment
+Travel
+Deadline
+Personal
+```
+
+### Related entity
+
+```text id="em3h5l"
+Client
+Project
+Task
+Person
+```
+
+### Calendar source
+
+```text id="8w1srj"
+Google
+Personal OS
+Imported
+```
+
+### Status
+
+```text id="3f9q1k"
+Confirmed
+Tentative
+Cancelled
+Completed
+```
+
+---
+
+# 27. Smart calendar filters
+
+These are much more valuable:
+
+```text id="0k5d2s"
+Client Meetings
+Today's Meetings
+Upcoming Deadlines
+Focus Blocks
+Overbooked Days
+Conflicts
+Unprepared Meetings
+Meetings With Open Tasks
+Travel Events
+```
+
+---
+
+# 28. Calendar group/filter combinations
+
+Example:
+
+> Show me client meetings this week.
+
+```text id="3h8a60"
+Date = This Week
+Type = Meeting
+Related Entity = Client
+```
+
+Or:
+
+> Show me all GB Banquet events.
+
+```text id="7ut1y1"
+Related Client = GB Banquet
+```
+
+---
+
+# 29. Calendar views
+
+You asked not to receive layouts, but the calendar needs underlying view modes:
+
+```text id="22ml7l"
+Day
+Week
+Month
+Agenda
+Year
+```
+
+And the same date/filter system works across all views.
+
+---
+
+# 30. Agenda mode
+
+This is particularly useful for your Personal OS.
+
+It should show:
+
+```text id="w5e2i8"
+Wednesday
+
+09:00
+Focus — Personal OS
+
+11:30
+GB Banquet meeting
+
+13:30
+Lunch
+
+15:00
+Client XYZ call
+
+17:00
+Daily review
+```
+
+The assistant can reason over the agenda.
+
+---
+
+# 31. Calendar workload
+
+For each day calculate:
+
+```text id="8z6e3c"
+Meeting Time
+Focus Time
+Free Time
+Travel Time
+Personal Time
+```
+
+Example:
+
+```text id="wjs7b2"
+Wednesday
+
+Meetings: 2h
+Focus: 4h
+Personal: 2h
+Free: 2h
+```
+
+This becomes input to your Planning Agent.
+
+---
+
+# 32. Work hours
+
+Calendar should use global settings:
+
+```text id="9w7e5f"
+Monday
+10:00–19:00
+
+Tuesday
+10:00–19:00
+```
+
+And exceptions:
+
+```text id="g2g6z7"
+Holiday
+Leave
+Travel
+Unavailable
+```
+
+---
+
+# 33. Availability status
+
+Your system can internally calculate:
+
+```text id="c3vuxr"
+Available
+Busy
+Focus
+Meeting
+Personal
+Unavailable
+```
+
+Useful for planning.
+
+---
+
+# 34. Time-block relationship
+
+Each scheduled work block should be connected to:
+
+```text id="6aw6j5"
+Project
+Task
+Work Session
+```
+
+Example:
+
+```text id="z2o4c1"
+Calendar Block
+10:00–12:00
+
+↓
+Task
+Implement notification system
+
+↓
+Project
+Personal OS
+```
+
+When the user starts working, you can start the Work Session automatically.
+
+---
+
+# 35. Start Work from calendar
+
+Calendar event:
+
+> Personal OS — Notification System
+
+Action:
+
+```text id="zr9h0w"
+[Start Work]
+```
+
+Then:
+
+```text id="m9y8ki"
+Calendar block
+↓
+Work session
+↓
+Task
+↓
+Project
+```
+
+This creates accurate work logs.
+
+---
+
+# 36. Calendar agent responsibilities
+
+The Calendar Agent should be responsible for:
+
+```text id="ftzpvk"
+Read events
+Create events
+Update events
+Detect conflicts
+Find availability
+Schedule focus blocks
+Reschedule internal blocks
+Prepare meetings
+Generate meeting summaries
+Extract tasks from meetings
+Connect events to projects/tasks
+```
+
+External calendar deletion or major changes should require appropriate permissions.
+
+---
+
+# 37. Calendar + Email
+
+Email can create calendar intelligence.
+
+Example:
+
+> "Can we meet Thursday at 4 PM?"
+
+Email Agent detects:
+
+```text id="m6lzn5"
+Meeting proposal
+Date
+Time
+Person
+```
+
+Calendar Agent checks:
+
+```text id="s9x8z5"
+Availability
+Conflicts
+Existing commitment
+```
+
+Then Assistant can tell you:
+
+> You're available Thursday at 4 PM.
+
+Creating the external event should still follow your calendar permission policy.
+
+---
+
+# 38. Calendar + Tasks
+
+When task deadline approaches:
+
+```text id="7k1kwc"
+Task due Friday
+↓
+Planning Agent
+↓
+Check calendar
+↓
+Find available work block
+↓
+Schedule focus session
+```
+
+This is how Calendar becomes an active part of Personal OS rather than a passive display.
+
+---
+
+# 39. Calendar + Client
+
+A meeting with a client should automatically bring context:
+
+```text id="hh4d50"
+Client
+Projects
+Open Tasks
+Recent Emails
+Previous Meetings
+Pending Decisions
+Outstanding Questions
+```
+
+The meeting assistant uses those relationships.
+
+---
+
+# 40. Calendar + Finance
+
+For things like:
+
+```text id="f2l2ly"
+Payment deadline
+Tax deadline
+Subscription renewal
+Bill due
+```
+
+Finance can create calendar/reminder relationships.
+
+Example:
+
+> Adobe renewal on September 2.
+
+It can be represented as:
+
+```text id="64tzo7"
+Subscription
+↓
+Renewal Date
+↓
+Reminder
+↓
+Optional Calendar Event
+```
+
+---
+
+# 41. Calendar + Inbox
+
+An incoming email like:
+
+> "Your appointment is confirmed for September 4 at 3 PM."
+
+Inbox detects:
+
+```text id="c4p8i5"
+Event
+Date
+Time
+Location
+Provider
+```
+
+Calendar Agent can propose/create the event according to your automation policy.
+
+---
+
+# 42. Calendar + Assistant
+
+Assistant queries:
+
+> What is my day like tomorrow?
+
+Should combine:
+
+```text id="c6s1fr"
+Calendar
++
+Tasks
++
+Deadlines
++
+Work blocks
++
+Personal commitments
+```
+
+Not just calendar events.
+
+---
+
+# 43. Calendar intelligent briefing
+
+Before starting the day:
+
+```text id="mbga2y"
+Today
+
+3 meetings
+4h available focus time
+2 deadlines
+
+Important:
+GB Banquet meeting at 3 PM
+
+Preparation:
+• Review latest reel
+• Check client email
+• Review pending approval
+```
+
+That briefing is generated from relationships across the system.
+
+---
+
+# 44. Calendar event database
+
+Core table:
+
+```text id="nx7wmg"
+calendar_events
+
+id
+title
+description
+
+event_type
+
+start_at
+end_at
+timezone
+all_day
+
+status
+
+location
+meeting_url
+
+calendar_id
+external_id
+source
+
+client_id
+project_id
+task_id
+organizer_id
+
+recurrence_rule
+
+created_by
+created_at
+updated_at
+```
+
+---
+
+# 45. Related tables
+
+```text id="hll5qe"
+calendar_event_attendees
+calendar_event_reminders
+calendar_event_links
+calendar_event_documents
+calendar_event_notes
+calendar_event_tasks
+calendar_event_work_blocks
+```
+
+You can also reuse generic relationship tables rather than making every relationship a dedicated table.
+
+---
+
+# 46. Calendar account/source
+
+```text id="0f0r1z"
+calendar_sources
+
+id
+provider
+name
+external_id
+account_id
+sync_enabled
+read_enabled
+write_enabled
+last_sync_at
+sync_status
+```
+
+For Google:
+
+```text id="kv9ruw"
+Google Calendar
+Personal
+Work
+Other
+```
+
+---
+
+# 47. Calendar sync behavior
+
+Keep:
+
+```text id="s6n8gc"
+Raw External Event
+↓
+Normalize
+↓
+Match entities
+↓
+Store internal event
+↓
+Detect changes
+↓
+Update relationships
+```
+
+Never make the Google event itself your entire internal data model.
+
+---
+
+# 48. Calendar event provenance
+
+Example:
+
+```text id="29l0du"
+Source:
+Google Calendar
+
+External ID:
+abc123
+
+Imported:
+26 Aug 2026
+
+Last synced:
+26 Aug 2026 23:41
+
+Linked project:
+GB Banquet
+```
+
+---
+
+# 49. AI confidence
+
+When AI associates an event:
+
+```text id="x6s3zx"
+Client:
+GB Banquet
+Confidence:
+0.97
+
+Project:
+Event Marketing
+Confidence:
+0.89
+```
+
+High-confidence relationships can be automatic.
+
+Low-confidence relationships should go through review.
+
+---
+
+# 50. Calendar automation rules
+
+Examples:
+
+```text id="jyd53c"
+WHEN meeting created
+→ find related client
+
+WHEN meeting starts in 30 minutes
+→ prepare meeting context
+
+WHEN meeting ends
+→ ask/generate summary
+
+WHEN meeting has unresolved tasks
+→ include them in preparation
+
+WHEN task is due soon
+→ find available focus time
+
+WHEN calendar conflict occurs
+→ notify user
+
+WHEN day is overbooked
+→ recommend rescheduling
+
+WHEN meeting is cancelled
+→ free related work block
+```
+
+---
+
+# 51. Important: calendar automation should respect event ownership
+
+For external meetings:
+
+```text id="al3q70"
+Don't automatically move.
+
+Don't automatically cancel.
+
+Don't automatically modify important meetings.
+```
+
+For internally created focus blocks:
+
+```text id="u8xdly"
+Can automatically move.
+Can automatically recreate.
+Can automatically optimize.
+```
+
+That distinction will prevent the assistant from making a mess of your real calendar.
+
+---
+
+# 52. Calendar-specific notifications
+
+Examples:
+
+### 1 hour before
+
+> Client meeting in 1 hour.
+
+### 15 minutes before
+
+> GB Banquet meeting in 15 minutes. Your meeting brief is ready.
+
+### Conflict
+
+> You have two meetings starting at 3 PM.
+
+### Unprepared
+
+> Client meeting in 30 minutes. There are 3 unresolved tasks related to this project.
+
+### Schedule overload
+
+> You have 7.5 hours of planned work tomorrow but only 5.5 hours available.
+
+---
+
+# 53. Calendar-specific smart features
+
+I'd include:
+
+```text id="xkw7i7"
+Meeting preparation
+Meeting follow-up
+Conflict detection
+Free-time detection
+Workload detection
+Focus scheduling
+Task scheduling
+Deadline awareness
+Travel buffer
+Automatic internal rescheduling
+Daily agenda
+Weekly planning
+```
+
+---
+
+# 54. Weekly planning
+
+Once per week the Planning Agent can evaluate:
+
+```text id="1ium7p"
+Open Tasks
+Upcoming Deadlines
+Calendar
+Projects
+Client commitments
+Estimated work
+Available hours
+```
+
+Then construct:
+
+```text id="m8bivn"
+Monday
+→ Project A
+
+Tuesday
+→ Client B
+
+Wednesday
+→ Development
+
+Thursday
+→ Client C
+
+Friday
+→ Review / catch-up
+```
+
+The user can approve the plan.
+
+---
+
+# 55. Calendar creation fields — final
+
+For your actual implementation:
+
+```text id="zd6b6g"
+EVENT
+
+Basic
+├── Title *
+├── Type *
+├── Description
+├── Status
+│
+Schedule
+├── Start *
+├── End *
+├── All Day
+├── Timezone
+├── Recurrence
+│
+People
+├── Organizer
+├── Attendees
+│
+Relations
+├── Client
+├── Project
+├── Task
+│
+Meeting
+├── Location
+├── Meeting URL
+├── Agenda
+├── Expected Outcome
+│
+Resources
+├── Documents
+├── Files
+├── Links
+│
+Reminders
+├── Reminder Rules
+│
+Automation
+├── Preparation
+├── Follow-up
+├── Notifications
+│
+Source
+├── Provider
+├── External ID
+├── Created By
+```
+
+---
+
+# 56. What you manually enter
+
+For an ordinary event, ideally:
+
+```text id="qj66jr"
+Title
+Start
+End
+```
+
+Everything else can be optional or automatically inferred.
+
+For example:
+
+> "Meeting with Sarah Thursday at 4."
+
+The system should determine:
+
+```text id="kn8r06"
+Event Type → Meeting
+Person → Sarah
+Client → matched
+Project → matched
+Timezone → user's timezone
+Calendar → default work calendar
+Reminder → automatic
+Context → generated
+```
+
+---
+
+# 57. Final Calendar relationship
+
+The Calendar module should ultimately connect:
+
+```text id="r6bttk"
+                         CALENDAR
+                             │
+        ┌────────────────────┼─────────────────────┐
+        │                    │                     │
+     MEETINGS            WORK BLOCKS          DEADLINES
+        │                    │                     │
+        ▼                    ▼                     ▼
+      CLIENT              TASK                  TASK
+        │                    │                     │
+      PROJECT              PROJECT              PROJECT
+        │
+    EMAILS / DOCS
+        │
+     CONTEXT
+        │
+     ASSISTANT
+```
+
+So Calendar isn't just:
+
+> **"What time is my meeting?"**
+
+It becomes:
+
+> **"What commitments do I have, what work fits around them, what should I prepare, what deadlines are approaching, and what does the assistant need to do before and after each commitment?"**
+
+That is the Calendar layer I would build into your Personal OS.

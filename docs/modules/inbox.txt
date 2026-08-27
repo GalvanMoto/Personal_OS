@@ -1,0 +1,1876 @@
+Yes. I understand the purpose of the **`/studio/inbox`** now.
+
+This Inbox should **not be a normal inbox**, and it should not simply show every incoming email/message/file.
+
+It should become the **primary intelligence ingestion layer for Personal OS**.
+
+Its job is:
+
+> **Continuously receive raw information → identify what matters → extract it → classify it → connect it to the Personal OS → preserve the original source → trigger the appropriate agents.**
+
+And because this is where bank statements, investment information, invoices, client requests, documents, receipts, subscriptions, etc. may enter, the Inbox needs to be treated almost like an **event/data ingestion system**, not just a UI feature.
+
+---
+
+# 1. Core purpose of `/studio/inbox`
+
+The Inbox should answer:
+
+> **"What information has entered my digital life that Personal OS should know about?"**
+
+It should automatically process:
+
+* Emails
+* Email attachments
+* PDFs
+* Images
+* Screenshots
+* Documents
+* Statements
+* Receipts
+* Invoices
+* Investment documents
+* Insurance documents
+* Tax documents
+* Client requests
+* Project briefs
+* Calendar-related messages
+* Subscription emails
+* Payment notifications
+* Important personal documents
+* Financial documents
+* URLs
+* Other captured information
+
+But it should **not turn everything into a task**.
+
+That distinction is extremely important.
+
+---
+
+# 2. The Inbox should have an Intelligence Pipeline
+
+The pipeline should be:
+
+```text
+SOURCE
+  ↓
+INGEST
+  ↓
+NORMALIZE
+  ↓
+CLASSIFY
+  ↓
+IMPORTANCE DETECTION
+  ↓
+ENTITY EXTRACTION
+  ↓
+DOCUMENT EXTRACTION
+  ↓
+RELATIONSHIP RESOLUTION
+  ↓
+DEDUPLICATION
+  ↓
+SECURITY CLASSIFICATION
+  ↓
+ACTION DETECTION
+  ↓
+STORE
+  ↓
+TRIGGER AGENTS
+```
+
+The Inbox is therefore the **front door to Personal OS**.
+
+---
+
+# 3. First stage: Ingestion
+
+The system receives raw objects.
+
+For email:
+
+```text
+Email
+├── sender
+├── recipients
+├── subject
+├── body
+├── timestamp
+├── thread
+├── labels
+└── attachments
+```
+
+For attachments:
+
+```text
+Attachment
+├── filename
+├── MIME type
+├── size
+├── email ID
+└── binary/file reference
+```
+
+For uploads:
+
+```text
+Upload
+├── file
+├── source
+├── timestamp
+└── uploader
+```
+
+Everything should receive an internal immutable:
+
+```text
+source_id
+```
+
+That source ID should remain attached to everything extracted from it.
+
+---
+
+# 4. Do not let AI immediately "understand everything"
+
+First use a deterministic preprocessing layer.
+
+Example:
+
+```text
+PDF
+↓
+PDF parser
+↓
+Text extraction
+↓
+Metadata extraction
+↓
+Page count
+↓
+OCR only if necessary
+↓
+AI classification
+```
+
+For spreadsheets:
+
+```text
+XLSX
+↓
+Workbook parser
+↓
+Sheets
+↓
+Headers
+↓
+Rows
+↓
+AI interpretation
+```
+
+For images:
+
+```text
+Image
+↓
+Metadata
+↓
+Vision analysis
+↓
+OCR if needed
+```
+
+This reduces unnecessary AI calls and makes results more reliable.
+
+---
+
+# 5. Importance detection
+
+This should be one of the most important components.
+
+Every incoming item gets an:
+
+```text
+importance_score
+```
+
+and:
+
+```text
+importance_level
+```
+
+For example:
+
+```text
+Critical
+Important
+Relevant
+Low Value
+Noise
+```
+
+The Inbox should primarily surface:
+
+### Critical
+
+Things that could cause immediate consequences.
+
+Examples:
+
+* bank statement
+* payment failure
+* security alert
+* tax notice
+* investment transaction
+* account warning
+* deadline
+* important client request
+
+### Important
+
+Things that need to be known or acted on.
+
+Examples:
+
+* project request
+* invoice
+* subscription renewal
+* new client requirement
+* investment statement
+* contract
+* approval request
+
+### Relevant
+
+Useful information that doesn't require immediate action.
+
+### Noise
+
+Marketing emails, generic notifications, irrelevant newsletters, etc.
+
+The system can retain them if required, but they should not pollute the Personal OS.
+
+---
+
+# 6. Importance is not the same as category
+
+This distinction matters.
+
+An email can be:
+
+```text
+Category: Finance
+Importance: Critical
+Action: Review
+```
+
+Another:
+
+```text
+Category: Finance
+Importance: Low
+Action: None
+```
+
+Another:
+
+```text
+Category: Client
+Importance: High
+Action: Create Task
+```
+
+So you need independent dimensions:
+
+```text
+importance
+category
+action_required
+sensitivity
+confidence
+```
+
+---
+
+# 7. Primary Inbox categories
+
+I would start with these categories:
+
+```text
+Finance
+Investments
+Banking
+Work
+Clients
+Projects
+Calendar / Meetings
+Documents
+Invoices
+Subscriptions
+Receipts
+Tax
+Legal
+Insurance
+Travel
+Security
+Personal
+Purchases
+System Alerts
+Other
+```
+
+But categories should be extensible.
+
+---
+
+# 8. Finance needs multiple subcategories
+
+Don't just have `Finance`.
+
+Use:
+
+```text
+Finance
+├── Banking
+├── Bank Statement
+├── Transaction
+├── Credit Card
+├── Loan
+├── Payment
+├── Refund
+├── Investment
+├── Dividend
+├── Interest
+├── Brokerage
+├── Mutual Fund
+├── Stock
+├── Tax
+├── Invoice
+├── Receipt
+└── Subscription
+```
+
+This is particularly important because your Inbox is going to feed the Finance Agent.
+
+---
+
+# 9. Investment intelligence
+
+If an email/document looks like:
+
+> "Your monthly investment statement"
+
+the Inbox should detect:
+
+```text
+Category:
+Investments
+
+Document Type:
+Investment Statement
+
+Provider:
+XYZ
+
+Account:
+XYZ Investment Account
+
+Period:
+August 2026
+
+Financial Data:
+Detected
+
+Sensitivity:
+Financial
+
+Action:
+Import financial information
+```
+
+It should then send the extracted information to the Finance/Investment subsystem.
+
+---
+
+# 10. Bank statement detection
+
+Suppose an email contains:
+
+> `SBI_Statement_August_2026.pdf`
+
+The Inbox should automatically detect:
+
+```text
+Document Type:
+Bank Statement
+
+Institution:
+SBI
+
+Period:
+01 Aug 2026 → 31 Aug 2026
+
+Account:
+xxxx1234
+
+Financial Document:
+true
+
+Sensitivity:
+Highly Sensitive
+```
+
+Then:
+
+```text
+Bank Statement Agent
+        ↓
+Document Extraction
+        ↓
+Transactions
+        ↓
+Normalization
+        ↓
+Deduplication
+        ↓
+Categorization
+        ↓
+Finance Database
+```
+
+The original PDF remains preserved.
+
+---
+
+# 11. Never let extracted financial data replace the source
+
+You need:
+
+```text
+Source document
+        +
+Extracted financial records
+```
+
+not:
+
+```text
+Source document
+        ↓
+converted
+        ↓
+source deleted
+```
+
+For example:
+
+```text
+Bank Statement
+ID: DOC-19281
+
+Transactions extracted:
+42
+
+Extraction confidence:
+98%
+
+Processed:
+Aug 26
+
+Source preserved:
+Yes
+```
+
+This is essential for auditability.
+
+---
+
+# 12. Document importance detection
+
+The Inbox should identify important documents even when the email itself looks unimportant.
+
+Example:
+
+Subject:
+
+> `Your monthly statement`
+
+The email itself might appear ordinary.
+
+But attachment:
+
+> `Statement.pdf`
+
+contains financial information.
+
+Therefore the processing order should be:
+
+```text
+Email classification
+        ↓
+Attachment classification
+        ↓
+Combined importance
+```
+
+An important attachment should elevate the entire Inbox item.
+
+---
+
+# 13. Attachment intelligence
+
+Every attachment should be independently analyzed.
+
+For example:
+
+```text
+Email
+├── attachment.pdf
+├── logo.png
+└── invoice.xlsx
+```
+
+AI should classify them separately:
+
+```text
+attachment.pdf
+→ contract
+
+logo.png
+→ brand asset
+
+invoice.xlsx
+→ invoice / finance document
+```
+
+Then connect each to the relevant entity.
+
+---
+
+# 14. Important message detection
+
+The system should ask internally:
+
+### Is this from someone important?
+
+```text
+Known Client
+Known Contact
+Bank
+Investment Provider
+Government
+Insurance
+Employer
+Vendor
+```
+
+### Does the content contain something actionable?
+
+```text
+Deadline
+Request
+Approval
+Payment
+Document
+Security issue
+Account change
+Meeting
+```
+
+### Does it contain financial information?
+
+```text
+Statement
+Transaction
+Receipt
+Invoice
+Dividend
+Interest
+Investment
+Payment
+```
+
+### Does it affect an existing project?
+
+```text
+Project mention
+Task mention
+Client mention
+```
+
+### Does it contain a new entity?
+
+```text
+New client
+New subscription
+New account
+New provider
+```
+
+That gives you a meaningful importance score.
+
+---
+
+# 15. Example importance scoring
+
+Conceptually:
+
+```text
+Base score
++
+Known important sender
++
+Financial document
++
+Deadline
++
+Task request
++
+Security event
++
+Existing project relation
++
+High-value transaction
++
+New important entity
+```
+
+Then:
+
+```text
+0–29    Noise
+30–49   Low
+50–69   Relevant
+70–84   Important
+85–100  Critical
+```
+
+Don't expose the exact mathematical score to the user unless useful. Internally it's valuable for explainability.
+
+---
+
+# 16. AI must explain importance
+
+For important Inbox records store:
+
+```text
+Why important:
+Bank statement detected
+Financial information present
+Contains 42 transactions
+```
+
+Or:
+
+```text
+Why important:
+Client requested new deliverable
+Deadline detected
+Existing active project matched
+```
+
+This makes the classification auditable.
+
+---
+
+# 17. Action detection
+
+Every processed item should produce an `action_state`.
+
+Possible values:
+
+```text
+No Action
+Review
+Create Task
+Create Reminder
+Update Task
+Update Project
+Update Client
+Import Finance
+Create Event
+Create Subscription
+Store Document
+Follow Up
+Approval Required
+```
+
+Example:
+
+```text
+Client email
+↓
+Action:
+Create Task
+Due:
+Aug 29
+Project:
+Tanniaqua
+```
+
+Another:
+
+```text
+Bank statement
+↓
+Action:
+Import Finance
+```
+
+Another:
+
+```text
+Adobe payment email
+↓
+Action:
+Update Subscription
+```
+
+---
+
+# 18. Entity extraction
+
+The Inbox should extract:
+
+```text
+People
+Organizations
+Clients
+Projects
+Tasks
+Dates
+Amounts
+Currencies
+Accounts
+Transactions
+Subscriptions
+Documents
+Files
+Events
+Locations
+URLs
+Products
+Services
+```
+
+These become candidates for linking.
+
+---
+
+# 19. Entity resolution
+
+Suppose an email says:
+
+> "Hi Gautam, regarding GB Banquet..."
+
+The system should search:
+
+```text
+Existing Client
+GB Banquet
+
+Existing Project
+GB Banquet Social Media
+
+Existing Contact
+Sarah
+```
+
+Then:
+
+```text
+Email
+→ Client
+→ Project
+→ possible Task
+```
+
+If confidence is low, don't blindly associate.
+
+Mark:
+
+```text
+Needs Review
+```
+
+---
+
+# 20. Confidence system
+
+Every AI extraction should have confidence.
+
+Example:
+
+```text
+Client:
+GB Banquet
+Confidence: 0.98
+
+Project:
+Social Media
+Confidence: 0.86
+
+Deadline:
+28 Aug
+Confidence: 0.97
+```
+
+Then your system can define thresholds:
+
+```text
+> 0.90
+Automatic
+
+0.70–0.90
+Suggest / review
+
+< 0.70
+Do not automatically commit
+```
+
+These thresholds should be configurable by entity/risk.
+
+Financial extraction should generally be stricter than a simple project tag.
+
+---
+
+# 21. Sensitive data classification
+
+Every Inbox item should receive a sensitivity level.
+
+```text
+Public
+Internal
+Personal
+Sensitive
+Highly Sensitive
+```
+
+Examples:
+
+```text
+Client email
+→ Internal
+
+Bank statement
+→ Highly Sensitive
+
+Investment statement
+→ Highly Sensitive
+
+Tax document
+→ Highly Sensitive
+
+Generic newsletter
+→ Public / Low
+```
+
+This directly controls which agents can access the content.
+
+---
+
+# 22. Security boundary
+
+This is critical.
+
+A document marked:
+
+```text
+Highly Sensitive
+```
+
+shouldn't automatically become available to every agent.
+
+For example:
+
+```text
+Finance Agent
+✓
+
+Personal Planning Agent
+Maybe
+
+Task Agent
+✗
+
+General Assistant
+Limited / redacted
+```
+
+The Inbox is therefore also part of your **data access control system**.
+
+---
+
+# 23. Document lifecycle
+
+Every important document should go through:
+
+```text
+Received
+↓
+Detected
+↓
+Classified
+↓
+Extracted
+↓
+Validated
+↓
+Linked
+↓
+Indexed
+↓
+Stored
+↓
+Available to permitted agents
+```
+
+If extraction fails:
+
+```text
+Processing Failed
+```
+
+It should not silently enter the database with bad information.
+
+---
+
+# 24. Duplicate detection
+
+This will become extremely important.
+
+The same bank statement could arrive:
+
+* by email
+* as a duplicate email
+* manually uploaded
+* forwarded again
+
+You should detect duplicates using combinations of:
+
+```text
+Provider
+External ID
+File hash
+Document hash
+Filename
+Date range
+Account
+Amount
+Document type
+```
+
+Then:
+
+```text
+Duplicate detected
+Existing document:
+Statement — Aug 2026
+
+[Use Existing]
+[Keep Both]
+```
+
+Financial duplicates deserve very strict handling.
+
+---
+
+# 25. Inbox should maintain Raw + Processed records
+
+I strongly recommend two conceptual layers.
+
+### Raw Inbox
+
+Exactly what arrived.
+
+```text
+RawEmail
+RawAttachment
+RawUpload
+```
+
+Immutable.
+
+### Processed Inbox
+
+What Personal OS understood.
+
+```text
+Classification
+Entities
+Actions
+Relationships
+Extraction
+Importance
+Sensitivity
+```
+
+Never overwrite the original raw source.
+
+---
+
+# 26. Inbox processing states
+
+Use something like:
+
+```text
+Received
+Queued
+Processing
+Classified
+Extracting
+Needs Review
+Processed
+Actioned
+Ignored
+Failed
+Archived
+```
+
+This makes background processing observable.
+
+---
+
+# 27. "Ignored" is different from "Deleted"
+
+A newsletter might be:
+
+```text
+Category: Marketing
+Importance: Noise
+Action: None
+Status: Ignored
+```
+
+Keep the source if retention rules permit, but don't let it contaminate your operational system.
+
+---
+
+# 28. Inbox-to-Personal-OS routing
+
+This is the most important part.
+
+The Inbox should route information into domain systems.
+
+```text
+                INBOX
+                  │
+      ┌───────────┼────────────┐
+      ▼           ▼            ▼
+   Finance      Work         Personal
+      │           │            │
+      ▼           ▼            ▼
+Transactions   Tasks        Calendar
+Investments    Projects     Notes
+Subscriptions  Clients      Reminders
+Invoices       Documents
+```
+
+The Inbox is therefore **not the final storage location for everything**.
+
+It is the intelligent **routing layer**.
+
+---
+
+# 29. Example: client email
+
+Input:
+
+> "Please finish the reel by Friday and use the attached logo."
+
+Processing:
+
+```text
+Category:
+Client / Project
+
+Importance:
+Important
+
+Entities:
+Client → GB Banquet
+Project → Social Media
+
+Task:
+Finish reel
+
+Deadline:
+28 Aug 2026
+
+Attachment:
+logo.png
+
+Action:
+Create/Update Task
+
+Relationship:
+logo → task
+email → project
+email → client
+```
+
+---
+
+# 30. Example: bank statement
+
+Input:
+
+```text
+SBI Statement August.pdf
+```
+
+Processing:
+
+```text
+Category:
+Banking
+
+Importance:
+Critical / Important
+
+Sensitivity:
+Highly Sensitive
+
+Document:
+Bank Statement
+
+Period:
+August 2026
+
+Account:
+SBI
+
+Action:
+Import Finance
+
+Extraction:
+42 transactions
+
+Agent:
+Finance Agent
+```
+
+The Inbox doesn't create 42 tasks.
+
+It routes the data into Finance.
+
+---
+
+# 31. Example: investment statement
+
+```text
+Monthly Investment Statement
+```
+
+Processing:
+
+```text
+Category:
+Investments
+
+Document:
+Investment Statement
+
+Provider:
+XYZ
+
+Account:
+Investment Account
+
+Holdings:
+Detected
+
+Transactions:
+Detected
+
+Dividends:
+Detected
+
+Action:
+Import Investment Data
+```
+
+Then the Finance system can maintain:
+
+```text
+Portfolio
+Holdings
+Transactions
+Contributions
+Dividends
+Returns
+```
+
+---
+
+# 32. Example: subscription email
+
+Input:
+
+> "Your Adobe subscription will renew on September 2."
+
+System:
+
+```text
+Category:
+Subscriptions
+
+Provider:
+Adobe
+
+Amount:
+₹1,675
+
+Renewal:
+2 Sep 2026
+
+Action:
+Create/Update Subscription
+
+Reminder:
+1–3 days before renewal
+```
+
+---
+
+# 33. Example: receipt
+
+Input:
+
+```text
+receipt.pdf
+```
+
+Extract:
+
+```text
+Merchant
+Date
+Amount
+Currency
+Tax
+Payment method
+Category
+```
+
+Then:
+
+```text
+Match existing transaction
+```
+
+If matched:
+
+```text
+Transaction ← Receipt
+```
+
+If not:
+
+```text
+Potential new expense
+```
+
+---
+
+# 34. Example: document with mixed information
+
+Suppose a PDF contains:
+
+* client requirements
+* price
+* deadline
+* payment information
+
+The document shouldn't belong to only one category.
+
+Store multiple signals:
+
+```text
+Primary Category:
+Client / Project
+
+Secondary:
+Finance
+
+Entities:
+Client
+Project
+Task
+Amount
+Deadline
+```
+
+This is why your classification system should support:
+
+```text
+primary_category
+secondary_categories[]
+```
+
+---
+
+# 35. Inbox Agent responsibilities
+
+The Inbox Agent should handle:
+
+```text
+Classification
+Importance
+Entity extraction
+Document classification
+Action detection
+Source linking
+Duplicate detection
+Routing
+```
+
+It should **not** independently perform every downstream action.
+
+Instead:
+
+```text
+Inbox Agent
+    ↓
+Event / Action Proposal
+    ↓
+Task Agent
+Finance Agent
+Project Agent
+Document Agent
+etc.
+```
+
+---
+
+# 36. Agent flow
+
+Example bank statement:
+
+```text
+Email arrives
+      ↓
+Inbox Agent
+      ↓
+Attachment detected
+      ↓
+Document Processor
+      ↓
+Bank Statement Classifier
+      ↓
+Finance Agent
+      ↓
+Transaction Extraction
+      ↓
+Validation
+      ↓
+Duplicate Detection
+      ↓
+Transaction Store
+      ↓
+Financial Summary Update
+```
+
+The Inbox coordinates; domain agents own domain logic.
+
+---
+
+# 37. Inbox events
+
+You should create domain events like:
+
+```text
+SourceReceived
+EmailReceived
+AttachmentReceived
+DocumentDetected
+ImportantItemDetected
+FinancialDocumentDetected
+ClientRequestDetected
+TaskRequestDetected
+DeadlineDetected
+InvestmentDocumentDetected
+SubscriptionDetected
+ReceiptDetected
+InvoiceDetected
+SecurityAlertDetected
+```
+
+Agents subscribe to relevant events.
+
+---
+
+# 38. Inbox should become the source of truth for provenance, not every domain
+
+This distinction is important.
+
+Example:
+
+```text
+Bank Statement
+```
+
+The original source belongs to the Inbox/document system.
+
+The **financial transactions** belong to Finance.
+
+The **client request** belongs to Task/Project.
+
+The **meeting information** belongs to Calendar.
+
+The Inbox maintains the connection:
+
+```text
+Transaction
+← extracted_from →
+Bank Statement
+← received_via →
+Email
+```
+
+---
+
+# 39. Every extracted object needs provenance
+
+For example:
+
+```text
+Transaction #TX-19482
+
+Source:
+Statement #DOC-8293
+
+Source Email:
+EMAIL-19382
+
+Extracted By:
+Finance Agent
+
+Extraction Version:
+v1.3
+
+Confidence:
+0.99
+```
+
+Similarly:
+
+```text
+Task #TASK-182
+
+Source:
+Email #EMAIL-19382
+
+Detected By:
+Inbox Agent
+
+Confidence:
+0.94
+```
+
+This is going to be one of the most important aspects of your Personal OS.
+
+---
+
+# 40. Important document vault
+
+I would have the Inbox automatically maintain an **Important Documents index**.
+
+Not another manual folder.
+
+It detects:
+
+```text
+Bank Statements
+Investment Statements
+Tax Documents
+Invoices
+Receipts
+Contracts
+Insurance
+Government Documents
+Employment Documents
+Legal Documents
+Property Documents
+Subscriptions
+```
+
+Then documents become searchable through Personal OS.
+
+For example:
+
+> "Show all my bank statements from 2026."
+
+or:
+
+> "Find my latest investment statement."
+
+or:
+
+> "What tax documents arrived this year?"
+
+---
+
+# 41. Document metadata
+
+Every important document should store:
+
+```text
+Document ID
+Original File
+Filename
+Document Type
+Category
+Issuer
+Recipient
+Date
+Period From
+Period To
+Amount
+Currency
+Account
+Client
+Project
+Sensitivity
+Source
+Hash
+Version
+Extraction Status
+AI Confidence
+Created At
+```
+
+Only fields relevant to the document type need to be populated.
+
+---
+
+# 42. Financial document processing needs extra controls
+
+Because statements can affect financial information:
+
+```text
+Extract
+↓
+Validate
+↓
+Reconcile
+↓
+Detect duplicates
+↓
+Calculate totals
+↓
+Compare with statement totals
+↓
+Only then commit
+```
+
+For example:
+
+```text
+Statement says:
+Opening balance = ₹50,000
+Transactions = ...
+Closing balance = ₹42,300
+
+System calculates:
+Expected closing balance = ₹42,300
+
+Match:
+YES ✓
+```
+
+If mismatch:
+
+```text
+Financial extraction requires review.
+```
+
+Do not let an LLM silently invent transaction values.
+
+---
+
+# 43. Email intelligence should have sender reputation/context
+
+Maintain sender/entity profiles.
+
+For example:
+
+```text
+Sender:
+sbi@example...
+
+Known Provider:
+SBI
+
+Category:
+Banking
+
+Trust:
+Verified / known
+
+Expected documents:
+Statements
+Alerts
+Transactions
+```
+
+Then the system can classify future messages faster and more reliably.
+
+---
+
+# 44. The Inbox should learn patterns
+
+Suppose you repeatedly receive:
+
+```text
+Monthly statement from SBI
+```
+
+The system learns:
+
+```text
+Sender → Banking
+Document → Bank Statement
+Importance → Important
+Action → Finance Import
+```
+
+But "learning" should mean updating explicit rules/signals, not silently changing critical behavior.
+
+For financial documents, require stronger validation.
+
+---
+
+# 45. User review queue
+
+The Inbox needs a special state:
+
+```text
+Needs Review
+```
+
+Examples:
+
+```text
+Possible new client
+Possible duplicate transaction
+Uncertain document
+Low-confidence deadline
+Uncertain financial category
+Unknown investment document
+```
+
+You should get a compact review action:
+
+```text
+Accept
+Correct
+Ignore
+```
+
+Your correction becomes useful training/context data.
+
+---
+
+# 46. The most important Inbox rule
+
+Don't ask you questions for obvious things.
+
+Bad:
+
+> "This looks like a bank statement. Is it a bank statement?"
+
+Every time.
+
+Good:
+
+```text
+Known SBI sender
++
+Known statement pattern
++
+Valid PDF
++
+Expected monthly period
+```
+
+→ Automatically classify.
+
+Only ask when confidence or consequences justify it.
+
+---
+
+# 47. Inbox intelligence should be confidence × impact
+
+A mistake in:
+
+> "This is a social media email."
+
+is low impact.
+
+A mistake in:
+
+> "This ₹25,000 transaction belongs to Business."
+
+is high impact.
+
+So the review threshold should depend on:
+
+```text
+confidence
+×
+action impact
+×
+data sensitivity
+```
+
+Not just AI confidence.
+
+---
+
+# 48. What your `/studio/inbox` ultimately feeds
+
+Think of it as:
+
+```text
+                       INBOX
+                         │
+        ┌────────────────┼──────────────────┐
+        │                │                  │
+      WORK            FINANCE            PERSONAL
+        │                │                  │
+    Tasks             Banking             Events
+    Projects          Investments         Reminders
+    Clients           Expenses            Notes
+    Documents         Subscriptions       Documents
+    Meetings          Invoices
+```
+
+And above it:
+
+```text
+               PERSONAL OS AGENTS
+                       │
+             CONTEXT / RELATIONSHIPS
+                       │
+                  ASSISTANT
+```
+
+So when you ask:
+
+> **"What do I need to know today?"**
+
+the assistant can use information that originally arrived through Inbox, even if that information now lives in:
+
+* Finance
+* Tasks
+* Projects
+* Calendar
+* Documents
+* Clients
+* Subscriptions
+* Knowledge
+
+---
+
+# 49. The database concepts I would add specifically for Inbox
+
+You already have your normal domain tables.
+
+For this system, add:
+
+```text
+inbox_items
+inbox_sources
+inbox_attachments
+inbox_classifications
+inbox_extractions
+inbox_actions
+inbox_reviews
+inbox_processing_runs
+
+documents
+document_versions
+document_entities
+document_extractions
+
+source_references
+provenance_records
+```
+
+And for financial ingestion:
+
+```text
+financial_documents
+financial_document_extractions
+```
+
+The important part is that raw source and extracted domain data remain connected.
+
+---
+
+# 50. The complete flow
+
+Your actual Personal OS flow should now be:
+
+```text
+                 EXTERNAL WORLD
+                       │
+        ┌──────────────┼───────────────┐
+        │              │               │
+       Gmail         Upload          Capture
+        │              │               │
+        └──────────────┼───────────────┘
+                       ↓
+                 UNIVERSAL INBOX
+                       ↓
+                 INGESTION LAYER
+                       ↓
+             IMPORTANCE DETECTION
+                       ↓
+                 CLASSIFICATION
+                       ↓
+             DOCUMENT PROCESSING
+                       ↓
+                ENTITY EXTRACTION
+                       ↓
+               RELATIONSHIP MATCH
+                       ↓
+                 DEDUPLICATION
+                       ↓
+             SENSITIVITY CHECK
+                       ↓
+               ACTION DETECTION
+                       ↓
+              ┌────────┴─────────┐
+              ↓                  ↓
+         AUTO ROUTE          NEEDS REVIEW
+              ↓
+      ┌───────┼─────────┬──────────┐
+      ↓       ↓         ↓          ↓
+    Tasks   Finance   Projects   Documents
+      │       │         │          │
+      └───────┼─────────┼──────────┘
+              ↓
+        PERSONAL OS GRAPH
+              ↓
+          AI ASSISTANT
+              ↓
+       PLANNING / AUTOMATION
+              ↓
+          NOTIFICATIONS
+```
+
+### The most important conceptual change
+
+Your `/studio/inbox` should be treated as **the Personal OS's ingestion and intelligence gateway**, not merely a page where you view messages.
+
+It should know:
+
+**What arrived → whether it matters → what it contains → how sensitive it is → what entities it belongs to → what domain owns the extracted information → what action is necessary → what source proves it → which agent should process it next.**
+
+That architecture is what will let you eventually receive a **bank statement, investment statement, client request, invoice, receipt, contract, subscription notification, or random screenshot** and have the rest of Personal OS update itself without you manually entering everything.

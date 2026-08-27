@@ -1,0 +1,1388 @@
+For these **four Finance areas**, I would design them as one connected financial system rather than four independent pages.
+
+The structure should be:
+
+```text id="j9m8af"
+Finance
+├── Overview
+├── Transactions
+├── Subscriptions
+└── Invoices & Receipts
+```
+
+The **Finance Agent** gets data primarily from your Inbox/email/document pipeline, but Finance itself becomes the structured source of truth for financial records.
+
+---
+
+# 1. Finance Overview
+
+The Overview is not where you manually enter information. It is an **intelligence dashboard generated from the financial data**.
+
+It should answer:
+
+> How much money came in, how much went out, what is coming up, what looks unusual, and what needs attention?
+
+## Core information
+
+```text id="j7w8x2"
+Total Balance
+Available Balance
+Income
+Expenses
+Net Cash Flow
+Pending
+Upcoming Payments
+Outstanding Invoices
+Subscription Cost
+```
+
+For multiple accounts:
+
+```text id="5fq3qk"
+Accounts
+├── SBI
+├── Jio Finance
+├── Credit Card
+└── Other
+```
+
+Don't manually aggregate balances. The system should calculate them from account/statement data where possible.
+
+---
+
+# 2. Finance time filters
+
+Use the universal date engine:
+
+```text id="x6d1a8"
+Today
+Yesterday
+This Week
+This Month
+Last Month
+This Quarter
+This Year
+YTD
+Custom Range
+```
+
+And a month selector:
+
+```text id="m6g4tb"
+August 2026
+```
+
+The Overview should let you change the reporting period and recalculate the metrics.
+
+---
+
+# 3. Income section
+
+Calculate:
+
+```text id="n7q5v4"
+Total Income
+Salary
+Freelance
+Interest
+Dividends
+Refunds
+Other
+```
+
+Each amount links back to transactions.
+
+Example:
+
+```text id="4e6x2y"
+Freelance
+₹25,000
+42% of income
+
+[View Transactions]
+```
+
+---
+
+# 4. Expense section
+
+Automatically categorize:
+
+```text id="1w8d4a"
+Food
+Travel
+Shopping
+Software
+Bills
+Business
+Entertainment
+Other
+```
+
+Also show:
+
+```text id="0q7m2s"
+Largest Expense
+Highest Category
+Average Daily Spend
+Recurring Expenses
+```
+
+---
+
+# 5. Cash flow
+
+Show:
+
+```text id="z4k8x1"
+Opening Balance
++
+Income
+-
+Expenses
++
+Refunds
+-
+Transfers
+=
+Closing Balance
+```
+
+Transfers between your own accounts should not inflate income/expense.
+
+---
+
+# 6. Account overview
+
+Each financial account should show:
+
+```text id="w6m3rf"
+Account Name
+Institution
+Type
+Current / Latest Balance
+Currency
+Last Statement
+Last Synced
+```
+
+Status:
+
+```text id="0j9w6s"
+Connected
+Importing
+Needs Review
+Disconnected
+```
+
+---
+
+# 7. Financial alerts
+
+The Overview should surface important anomalies:
+
+```text id="h2q4p8"
+Large transaction detected
+Subscription renewal tomorrow
+Uncategorized transactions
+Statement missing
+Balance mismatch
+Possible duplicate
+Unusual spending
+Invoice overdue
+```
+
+These should feed the notification system.
+
+---
+
+# 8. Financial insights
+
+The Finance Agent can calculate:
+
+```text id="m5t3n9"
+Spending increased
+Software cost increased
+Food spending decreased
+Recurring charges detected
+New merchant detected
+Income changed
+```
+
+Example:
+
+> Software spending increased 31% compared with July.
+
+The underlying calculation should be deterministic, with AI used mainly to explain it.
+
+---
+
+# 9. Finance Overview automations
+
+Examples:
+
+```text id="p2k6r7"
+New statement received
+→ import transactions
+
+Month ends
+→ generate monthly financial summary
+
+Large transaction detected
+→ notify
+
+Uncategorized transaction
+→ add review item
+
+Subscription approaching
+→ create reminder
+
+Invoice overdue
+→ notify
+```
+
+---
+
+# 10. Transactions
+
+This should be the **canonical ledger view**.
+
+Every financial movement should eventually resolve to a transaction.
+
+## Transaction fields
+
+```text id="7g8t2d"
+Transaction ID
+Account
+Date
+Posted Date
+
+Amount
+Currency
+
+Type
+Category
+Subcategory
+
+Merchant
+Description
+
+Reference
+External ID
+
+Status
+```
+
+Types:
+
+```text id="4n0j2b"
+Income
+Expense
+Transfer
+Refund
+Fee
+Interest
+Dividend
+Adjustment
+```
+
+---
+
+# 11. Transaction classification
+
+Each transaction gets:
+
+```text id="9c1m4p"
+Primary Category
+Subcategory
+Business / Personal
+Recurring / One-time
+```
+
+Example:
+
+```text id="w0q5j7"
+Adobe
+₹1,675
+
+Type:
+Expense
+
+Category:
+Software
+
+Recurring:
+Yes
+
+Business:
+Yes
+```
+
+---
+
+# 12. Transaction source
+
+Every transaction must know where it originated.
+
+```text id="b5u8c3"
+Source
+
+Bank Statement
+Email
+Invoice
+Receipt
+Manual
+Import
+Integration
+```
+
+And:
+
+```text id="6m9r1t"
+Source Document
+Source Email
+Source File
+Import Batch
+```
+
+This gives you full provenance.
+
+---
+
+# 13. Transaction confidence
+
+AI-generated categorization should store:
+
+```text id="x7n1k5"
+Category Confidence
+Merchant Confidence
+Business/Personal Confidence
+```
+
+Example:
+
+```text id="2p8y4m"
+Category:
+Software
+
+Confidence:
+96%
+```
+
+Low confidence:
+
+```text id="0m5g8w"
+Confidence:
+62%
+
+→ Needs Review
+```
+
+---
+
+# 14. Transaction review
+
+A transaction can enter:
+
+```text id="q4t7d2"
+Needs Review
+```
+
+Reasons:
+
+```text id="m3f9z1"
+Unknown merchant
+Possible duplicate
+Unknown category
+Possible self-transfer
+Unusual transaction
+Statement mismatch
+```
+
+User actions:
+
+```text id="p7x2k8"
+Approve
+Correct
+Ignore
+```
+
+---
+
+# 15. Self-transfer detection
+
+This is critical for your finances.
+
+Suppose:
+
+```text id="5w1d2h"
+SBI
+-₹20,000
+
+Jio Finance
++₹20,000
+```
+
+The system should identify:
+
+```text id="c8m0q6"
+Internal Transfer
+```
+
+rather than:
+
+```text Expense ₹20,000
+Income ₹20,000
+```
+
+This prevents completely incorrect financial reporting.
+
+---
+
+# 16. Duplicate transaction detection
+
+Detect using:
+
+```text id="n2k9x4"
+Account
+Date
+Amount
+Merchant
+Reference
+External ID
+Description
+```
+
+Potential duplicate:
+
+```text id="f4c6m8"
+Transaction A
+₹2,400
+
+Transaction B
+₹2,400
+
+Similarity:
+97%
+```
+
+Then:
+
+```text id="4r5y9v"
+[Keep Both]
+[Mark Duplicate]
+```
+
+Don't automatically delete financial records.
+
+---
+
+# 17. Recurring transaction detection
+
+The system should discover recurring patterns:
+
+```text id="j5g7s3"
+Adobe
+Monthly
+₹1,675
+
+Hosting
+Monthly
+₹799
+
+Domain
+Yearly
+₹1,299
+```
+
+These can create/update Subscriptions.
+
+---
+
+# 18. Transaction filters
+
+Universal:
+
+```text id="r6j1v5"
+Date
+Account
+Amount
+Category
+Type
+Source
+```
+
+Advanced:
+
+```text id="y8c4k7"
+Merchant
+Business / Personal
+Recurring
+Currency
+Status
+Confidence
+```
+
+Smart:
+
+```text id="p0t9s2"
+Large
+Unusual
+Recurring
+Uncategorized
+Possible Duplicate
+Possible Transfer
+Needs Review
+```
+
+---
+
+# 19. Transaction sorting
+
+```text id="w6p8z3"
+Date
+Amount
+Merchant
+Category
+Confidence
+```
+
+Ascending/descending.
+
+---
+
+# 20. Subscriptions
+
+Subscriptions should be a **recurring obligation tracker**, not merely a list of SaaS products.
+
+Each subscription:
+
+```text id="c3f9m2"
+Name
+Provider
+Category
+Amount
+Currency
+Billing Cycle
+
+Next Billing Date
+Last Billing Date
+Start Date
+
+Status
+
+Payment Account
+Payment Method
+
+Website
+Notes
+```
+
+---
+
+# 21. Subscription status
+
+```text id="r8t2q6"
+Active
+Trial
+Paused
+Cancelled
+Expired
+Payment Failed
+Unknown
+```
+
+---
+
+# 22. Subscription detection
+
+Subscriptions can be detected automatically from:
+
+```text id="4y6q8x"
+Emails
+Transactions
+Invoices
+Receipts
+```
+
+Example:
+
+```text id="x5m7w1"
+Adobe payment email
++
+Monthly ₹1,675 transactions
+=
+Subscription candidate
+```
+
+The system links evidence instead of creating duplicate subscriptions.
+
+---
+
+# 23. Subscription verification
+
+When detected:
+
+```text id="b1c5n7"
+Potential Subscription
+
+Adobe
+₹1,675
+Monthly
+
+Evidence:
+3 monthly transactions
+1 renewal email
+
+Confidence:
+98%
+```
+
+Then:
+
+```text id="s5k9z2"
+[Confirm]
+```
+
+For high confidence, automatic creation is reasonable.
+
+---
+
+# 24. Subscription cost calculations
+
+Show:
+
+```text id="j1r4q7"
+Monthly Cost
+Yearly Cost
+Upcoming Cost
+```
+
+Example:
+
+```text id="c8v2m1"
+Monthly:
+₹6,240
+
+Estimated Annual:
+₹74,880
+```
+
+The calculation should be deterministic.
+
+---
+
+# 25. Subscription notifications
+
+Automatically:
+
+```text id="a5z7r9"
+7 days before
+3 days before
+1 day before
+Payment day
+Payment failed
+Price changed
+```
+
+But notification policy should prevent duplicates.
+
+---
+
+# 26. Subscription intelligence
+
+Detect:
+
+```text id="q9x4w3"
+New subscription
+Price increase
+Unexpected renewal
+Duplicate subscription
+Unused/possibly inactive
+Annual renewal
+Payment failure
+```
+
+Example:
+
+> Adobe renewed at ₹1,675, up from ₹1,499 last month.
+
+---
+
+# 27. Subscription relationship
+
+```text id="t3h8j5"
+Subscription
+├── Transactions
+├── Emails
+├── Invoices
+├── Receipts
+├── Account
+└── Reminders
+```
+
+This allows:
+
+> "How much did I spend on subscriptions this year?"
+
+to be answered accurately.
+
+---
+
+# 28. Invoices & Receipts
+
+I would keep them in one module but with two clearly different entity types.
+
+### Invoice
+
+A request for payment.
+
+### Receipt
+
+Proof that payment occurred.
+
+---
+
+# 29. Invoice fields
+
+```text id="m4v7n2"
+Invoice ID
+Invoice Number
+
+Issuer
+Recipient
+
+Client
+Vendor
+
+Issue Date
+Due Date
+
+Subtotal
+Tax
+Discount
+Total
+
+Currency
+
+Status
+
+Project
+Account
+
+File
+Source
+Notes
+```
+
+---
+
+# 30. Invoice statuses
+
+```text id="y2c5v8"
+Draft
+Sent
+Due
+Partially Paid
+Paid
+Overdue
+Cancelled
+Disputed
+```
+
+---
+
+# 31. Invoice line items
+
+Don't only store total amount.
+
+Support:
+
+```text id="v5k7p1"
+Item
+Description
+Quantity
+Unit Price
+Tax
+Discount
+Line Total
+```
+
+Example:
+
+```text id="0f6r2m"
+Website Development
+1 × ₹40,000
+
+SEO
+1 × ₹10,000
+```
+
+---
+
+# 32. Invoice relationships
+
+```text id="8g3m6v"
+Invoice
+├── Client / Vendor
+├── Project
+├── Tasks
+├── Transactions
+├── Receipt
+├── Document
+└── Email
+```
+
+---
+
+# 33. Invoice payment matching
+
+This is important.
+
+Suppose an invoice is:
+
+```text id="m9s2a7"
+Invoice:
+₹25,000
+```
+
+and bank transaction arrives:
+
+```text id="b4f7x1"
+Credit:
+₹25,000
+```
+
+Finance Agent can identify:
+
+```text id="j3k6q8"
+Likely payment for Invoice INV-1004
+Confidence:
+96%
+```
+
+Then:
+
+```text id="z9c3w5"
+Invoice
+Status → Paid
+```
+
+But for financial records, high-impact matches can go through review depending on confidence/rules.
+
+---
+
+# 34. Receipt fields
+
+```text id="x8v5b3"
+Receipt ID
+
+Merchant
+Date
+
+Subtotal
+Tax
+Total
+
+Currency
+
+Payment Method
+Account
+
+Category
+
+Transaction
+Invoice
+
+File
+Source
+```
+
+AI extracts these from uploaded/email receipts.
+
+---
+
+# 35. Receipt → transaction matching
+
+Example:
+
+```text id="n6t2r9"
+Receipt
+₹2,400
+Adobe
+26 Aug
+
+Transaction
+₹2,400
+Adobe
+26 Aug
+
+Match:
+99%
+```
+
+Then:
+
+```text id="q7w4e3"
+Receipt ↔ Transaction
+```
+
+This gives you a clean proof trail.
+
+---
+
+# 36. Receipt categories
+
+AI can categorize:
+
+```text id="h1j6q9"
+Food
+Travel
+Software
+Shopping
+Business
+Office
+Entertainment
+Other
+```
+
+Again, low-confidence classifications go to review.
+
+---
+
+# 37. Financial documents
+
+Invoices, receipts and statements should all reference your Document/File layer:
+
+```text id="b2x7f5"
+Email
+ ↓
+Attachment
+ ↓
+File
+ ↓
+Document
+ ↓
+Finance Record
+```
+
+So the finance database doesn't duplicate the actual file.
+
+---
+
+# 38. Invoice/receipt filters
+
+Universal:
+
+```text id="z4k6y1"
+Date
+Client
+Project
+Status
+Amount
+```
+
+Invoice-specific:
+
+```text id="s8q2m3"
+Due Date
+Payment Status
+Overdue
+Vendor
+```
+
+Receipt-specific:
+
+```text id="k3w8j5"
+Merchant
+Category
+Payment Account
+Transaction Match
+```
+
+Smart:
+
+```text id="q1m6x4"
+Due Soon
+Overdue
+Unpaid
+Recently Paid
+Needs Review
+Unmatched
+Missing Document
+```
+
+---
+
+# 39. Financial agent responsibilities
+
+### Finance Agent
+
+```text id="w8m5t2"
+Import statements
+Parse transactions
+Normalize data
+Detect transfers
+Detect duplicates
+Categorize
+Match receipts
+Match invoices
+Detect subscriptions
+Analyze spending
+Generate reports
+```
+
+### Investment Agent
+
+Keep investment logic separate from normal transaction categorization:
+
+```text id="j7q4n9"
+Investment Statements
+Holdings
+Contributions
+Withdrawals
+Dividends
+Interest
+Brokerage data
+Portfolio positions
+```
+
+---
+
+# 40. Finance overview should know about investments
+
+Eventually Overview should include:
+
+```text id="p4x8s1"
+Cash
+Investments
+Liabilities
+Net Position
+```
+
+But keep investment valuation logic separate from bank transaction logic.
+
+---
+
+# 41. Financial account structure
+
+An account record:
+
+```text id="v2k7m3"
+Account
+├── Name
+├── Institution
+├── Account Type
+├── Currency
+├── Masked Number
+├── Status
+├── Source
+└── Last Statement
+```
+
+Types:
+
+```text id="r5m8x2"
+Bank
+Credit Card
+Cash
+Wallet
+Brokerage
+Investment
+Loan
+Other
+```
+
+---
+
+# 42. Financial data provenance
+
+This is mandatory.
+
+For example:
+
+```text id="s7c2v5"
+Transaction
+₹1,675
+Adobe
+
+Source:
+SBI Statement
+
+Document:
+STATEMENT-00291
+
+Email:
+EMAIL-00928
+
+Extracted:
+26 Aug 2026
+
+Extraction:
+Finance Agent v1.2
+
+Confidence:
+99%
+```
+
+You can always trace the financial number back to the original source.
+
+---
+
+# 43. Financial reconciliation
+
+For statements:
+
+```text id="d8m4s7"
+Opening Balance
++
+Credits
+-
+Debits
+=
+Closing Balance
+```
+
+For each statement, calculate and compare.
+
+If mismatch:
+
+```text id="x3n7q2"
+Statement reconciliation failed.
+
+Expected:
+₹42,350
+
+Reported:
+₹42,310
+
+Difference:
+₹40
+
+[Review]
+```
+
+Do not silently accept it.
+
+---
+
+# 44. Financial month closing
+
+At month end:
+
+```text id="r4h8m2"
+August 2026
+
+Statements Received
+✓
+
+Transactions Imported
+✓
+
+Uncategorized
+2
+
+Possible Duplicates
+1
+
+Reconciliation
+✓
+
+Subscriptions
+7
+
+Invoices
+3
+```
+
+Then your Finance Agent can generate the monthly summary.
+
+---
+
+# 45. Finance automations
+
+Useful automated flows:
+
+```text id="y8f3k5"
+Bank statement arrives
+→ detect account
+→ process document
+→ extract transactions
+→ reconcile
+→ update balance
+
+Investment statement arrives
+→ detect provider
+→ extract holdings
+→ update investment records
+
+Receipt arrives
+→ extract
+→ match transaction
+
+Invoice arrives
+→ create invoice
+→ track due date
+
+Payment arrives
+→ match invoice
+
+Subscription email arrives
+→ create/update subscription
+
+Payment date approaches
+→ reminder
+
+Invoice overdue
+→ notification
+```
+
+---
+
+# 46. Financial notifications
+
+The Notification Engine can receive events such as:
+
+```text id="n2b7v9"
+Statement received
+Large expense
+Unusual transaction
+Subscription due
+Payment failed
+Invoice due
+Invoice overdue
+Investment statement received
+Financial reconciliation failed
+Uncategorized transactions
+```
+
+Avoid notifying for routine transactions.
+
+---
+
+# 47. Finance security
+
+This module should have additional restrictions.
+
+```text id="c6q9m4"
+Highly Sensitive
+```
+
+Finance Agent:
+
+```text id="2x4v7n"
+Read → Allowed
+Analyze → Allowed
+Categorize → Allowed
+Create internal records → Allowed
+Modify financial records → Restricted
+Delete → Disabled
+External financial action → Disabled
+```
+
+And the general Assistant should only reveal detailed financial information when it has the appropriate permission.
+
+---
+
+# 48. Finance export
+
+Support:
+
+```text id="p8m3y6"
+CSV
+Excel
+JSON
+PDF Report
+```
+
+Export scopes:
+
+```text id="q4w7x9"
+Transactions
+Income
+Expenses
+Subscriptions
+Invoices
+Tax summary
+```
+
+Financial exports should require deliberate user action.
+
+---
+
+# 49. Important financial distinction
+
+Don't mix:
+
+```text id="f5k2m7"
+Transaction
+Invoice
+Receipt
+Subscription
+Statement
+Investment
+```
+
+They have different meanings.
+
+The relationships are:
+
+```text id="u8x3v1"
+Statement
+   ↓ contains
+Transactions
+
+Invoice
+   ↓ may be paid by
+Transaction
+
+Receipt
+   ↓ proves
+Transaction
+
+Subscription
+   ↓ generates
+Transactions
+
+Investment Statement
+   ↓ contains
+Investment records
+```
+
+---
+
+# 50. Final Finance architecture
+
+```text id="5n8q2w"
+                         FINANCE
+                            │
+          ┌─────────────────┼──────────────────┐
+          │                 │                  │
+      OVERVIEW         TRANSACTIONS       SUBSCRIPTIONS
+          │                 │                  │
+          │                 │                  │
+          └─────────────────┼──────────────────┘
+                            │
+                    INVOICES / RECEIPTS
+                            │
+                            ▼
+                     FINANCIAL RECORDS
+                            │
+       ┌────────────────────┼────────────────────┐
+       ▼                    ▼                    ▼
+    BANKING             INVESTMENTS          LIABILITIES
+       │                    │                    │
+       └────────────────────┼────────────────────┘
+                            │
+                       SOURCE DOCUMENTS
+                            │
+                         INBOX
+                            │
+                          EMAIL
+```
+
+The most important principle for your Finance module is:
+
+**Inbox discovers financial information → Documents preserve the source → Finance Agent extracts and validates → Finance stores structured records → Finance Overview calculates the current picture → Reminder/Notification systems handle future obligations.**
+
+That keeps your financial system auditable and prevents the same payment, receipt, statement, or invoice from becoming four separate pieces of conflicting data.
