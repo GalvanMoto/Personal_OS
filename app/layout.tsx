@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono, Inter } from "next/font/google"
+import Script from "next/script"
 
 import "./globals.css"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -31,6 +32,18 @@ export default function RootLayout({
         <meta name="theme-color" content="#4f46e5" />
       </head>
       <body>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-FSRQ8XNWYF"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-FSRQ8XNWYF');
+          `}
+        </Script>
         <ThemeProvider>
           <Toaster>
             <TooltipProvider>
