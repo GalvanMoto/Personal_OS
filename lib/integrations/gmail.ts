@@ -172,9 +172,19 @@ export async function fetchUserInfo(accessToken: string): Promise<{
 // ---------------------------------------------------------------------------
 
 type GmailHeader = { name: string; value: string }
-type GmailBody = { data?: string }
-type GmailPart = { mimeType?: string; body?: GmailBody; parts?: GmailPart[] }
-type GmailPayload = { headers?: GmailHeader[]; parts?: GmailPart[]; body?: GmailBody }
+type GmailBody = { data?: string; attachmentId?: string; size?: number }
+type GmailPart = {
+  mimeType?: string
+  filename?: string
+  body?: GmailBody
+  parts?: GmailPart[]
+}
+type GmailPayload = {
+  headers?: GmailHeader[]
+  filename?: string
+  parts?: GmailPart[]
+  body?: GmailBody
+}
 type GmailMessage = {
   id: string
   threadId: string
@@ -385,6 +395,98 @@ async function gmailList(
     messages: fetched.filter((m): m is NormalizedEmail => Boolean(m)),
     nextCursor: data.nextPageToken,
   }
+}
+
+// ---------------------------------------------------------------------------
+// Attachments
+// ---------------------------------------------------------------------------
+
+/**
+ * A file hanging off a Gmail message.
+ *
+ * Gmail never returns attachment bytes with the message — the payload carries
+ * only an `attachmentId` per part, redeemed separately. Listing is therefore
+ * cheap and downloading is explicit, which is what lets the statement pipeline
+ * decide whether a file is worth pulling before it pulls it.
+ */
+export type GmailAttachmentRef = {
+  attachmentId: string
+  filename: string
+  mimeType: string
+  sizeBytes: number
+}
+
+/// Walks the MIME tree for parts that are real files. A part is an attachment
+/// when it has both a filename and an attachment id; body alternatives have
+/// neither, and inline images have both — so they are collected here and left
+/// for the caller to filter on mime type or size.
+function collectAttachments(part: GmailPart | undefined, into: GmailAttachmentRef[]) {
+  if (!part) return
+
+  if (part.filename && part.body?.attachmentId) {
+    into.push({
+      attachmentId: part.body.attachmentId,
+      filename: part.filename,
+      mimeType: part.mimeType ?? "application/octet-stream",
+      sizeBytes: part.body.size ?? 0,
+    })
+  }
+
+  for (const child of part.parts ?? []) collectAttachments(child, into)
+}
+
+/// Pure transform, exported so attachment discovery can be tested without the
+/// network — same reasoning as `normalizeGmailMessage`.
+export function attachmentsOf(msg: {
+  payload?: GmailPayload
+}): GmailAttachmentRef[] {
+  const found: GmailAttachmentRef[] = []
+  collectAttachments(msg.payload, found)
+  return found
+}
+
+/// Fetches a message purely to read its MIME tree.
+export async function listGmailAttachments(
+  accessToken: string,
+  externalId: string
+): Promise<GmailAttachmentRef[]> {
+  const res = await fetch(
+    `${GMAIL_API}/messages/${encodeURIComponent(externalId)}?format=full`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  )
+  if (!res.ok) {
+    throw new Error(`Gmail get message failed: ${res.status}`)
+  }
+  return attachmentsOf((await res.json()) as GmailMessage)
+}
+
+/**
+ * Redeems one attachment id for its bytes.
+ *
+ * Gmail answers with base64url inside a JSON envelope rather than a binary
+ * stream, so the decoded file necessarily lands in memory in one piece. Callers
+ * check the advertised `sizeBytes` from the listing first, which makes skipping
+ * an oversized file free.
+ */
+export async function fetchGmailAttachment(
+  accessToken: string,
+  externalId: string,
+  attachmentId: string
+): Promise<Buffer> {
+  const res = await fetch(
+    `${GMAIL_API}/messages/${encodeURIComponent(externalId)}/attachments/${encodeURIComponent(attachmentId)}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  )
+  if (!res.ok) {
+    throw new Error(`Gmail attachment fetch failed: ${res.status}`)
+  }
+
+  const payload = (await res.json()) as { data?: string; size?: number }
+  if (!payload.data) {
+    throw new Error("Gmail returned an attachment with no data.")
+  }
+
+  return Buffer.from(payload.data, "base64url")
 }
 
 export const gmailProvider: EmailProvider = {

@@ -46,20 +46,12 @@ export function ActivityCenterDrawer() {
   const { status, runs, activeRuns, completedRuns, waitingApproval, activeCount } = useSystemActivity()
 
   const agentKeys = Object.keys(AGENT_REGISTRY) as AgentRole[]
+  const activeAgent = activeRuns[0]?.agentId
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger className="inline-flex h-8 items-center gap-2 rounded-md border bg-background/60 px-2.5 text-xs font-normal hover:bg-muted/80 transition-all cursor-pointer">
-        <LiveIndicator status={status} />
-        {activeCount > 0 ? (
-          <span className="font-mono text-[0.6875rem] text-cyan-400">
-            {activeCount} active
-          </span>
-        ) : (
-          <span className="font-mono text-[0.6875rem] text-muted-foreground hidden sm:inline">
-            Personal OS
-          </span>
-        )}
+        <LiveIndicator status={status} activeAgent={activeAgent} />
       </SheetTrigger>
 
       <SheetContent className="w-full sm:max-w-md p-0 flex flex-col">
