@@ -54,6 +54,8 @@ jobs:
             fi
             
             # Build Next.js application
+            pkill -f "next build" 2>/dev/null || true
+            sleep 1
             npm run build
             
             # Merge previously generated chunks so active client sessions don't 404
