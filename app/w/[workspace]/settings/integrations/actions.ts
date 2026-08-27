@@ -6,12 +6,14 @@ import { enqueue } from "@/lib/jobs/queue"
 export async function syncNow(workspace: string) {
   const { db, tenant } = await requireWorkspace(workspace)
 
-  const integration = await db.integration.findUnique({
-    where: { tenantId_provider: { tenantId: tenant.id, provider: "GMAIL" } },
+  const integrations = await db.integration.findMany({
+    where: { tenantId: tenant.id, provider: "GMAIL", status: "CONNECTED" },
   })
-  if (!integration) throw new Error("Gmail is not connected yet.")
+  if (integrations.length === 0) throw new Error("Gmail is not connected yet.")
 
-  await enqueue(db, "email.sync", { integrationId: integration.id })
+  for (const integration of integrations) {
+    await enqueue(db, "email.sync", { integrationId: integration.id })
+  }
 
   // No standing worker in the self-hosted single-user setup: run the queue now
   // so the user sees results immediately (PRD §34 — workers execute jobs).

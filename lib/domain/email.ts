@@ -258,6 +258,32 @@ export async function syncIntegrationEmails(
     integrationRow.syncCursor ?? undefined
   )
 
+  // AI-last: sort so the most actionable mail hits the extractor first within quota.
+  // Promos already dropped in gmailList cheap stage; remaining candidates are ranked
+  // without AI: known client domain > subject has task verbs > has attachment hint.
+  const orgRows = await db.organization.findMany({ where: { website: { not: null } }, select: { website: true } })
+  const knownDomains = new Set(
+    orgRows
+      .map((r: { website: string | null }) => {
+        try {
+          return new URL(r.website!).hostname.toLowerCase()
+        } catch {
+          return (r.website || "").toLowerCase()
+        }
+      })
+      .filter(Boolean) as string[]
+  )
+  const score = (m: NormalizedEmail) => {
+    let s = 0
+    const fromDomain = (m.fromEmail?.split("@")[1] ?? "").toLowerCase()
+    if (fromDomain && [...knownDomains].some((d) => fromDomain.includes(d) || d.includes(fromDomain))) s += 10
+    const subj = (m.subject ?? "").toLowerCase()
+    if (/(please|could you|need|deadline|due|urgent|task|reel|edit|review)/.test(subj)) s += 5
+    if (m.snippet && m.snippet.length > 40) s += 1
+    return s
+  }
+  messages.sort((a, b) => score(b) - score(a))
+
   let ingested = 0
   for (const message of messages) {
     const result = await ingestEmail(db, ctx, message)

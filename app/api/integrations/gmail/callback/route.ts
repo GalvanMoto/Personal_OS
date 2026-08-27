@@ -60,10 +60,12 @@ export async function GET(request: Request) {
     let accountRef: string | undefined
     try {
       const info = await fetchUserInfo(tokens.accessToken)
-      accountRef = info.email
+      accountRef = info.email?.toLowerCase()
     } catch {
       // Account label is best-effort; absence does not block the connection.
     }
+    // Ensure accountRef is always set so multi-Gmail uniqueness works (null would allow duplicates)
+    const resolvedAccountRef = accountRef || `gmail-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
     const secretCipher = encryptSecret(
       JSON.stringify({
@@ -80,14 +82,14 @@ export async function GET(request: Request) {
         provider: "GMAIL",
         status: "CONNECTED",
         secretCipher,
-        accountRef: accountRef ?? null,
+        accountRef: resolvedAccountRef,
         scopes: GMAIL_SCOPES,
         lastSyncAt: new Date(),
       } as never,
       update: {
         status: "CONNECTED",
         secretCipher,
-        accountRef: accountRef ?? null,
+        accountRef: resolvedAccountRef,
         scopes: GMAIL_SCOPES,
         lastSyncAt: new Date(),
       } as never,

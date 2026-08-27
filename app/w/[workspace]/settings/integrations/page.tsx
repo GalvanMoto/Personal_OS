@@ -15,27 +15,22 @@ export default async function IntegrationsPage({
   const { workspace } = await params
   const { db, tenant } = await requireWorkspace(workspace)
 
-  const [gmailInt, driveInt, calInt, emailTotal] = await Promise.all([
-    db.integration.findUnique({
-      where: { tenantId_provider: { tenantId: tenant.id, provider: "GMAIL" } },
-    }),
-    db.integration.findUnique({
-      where: { tenantId_provider: { tenantId: tenant.id, provider: "GOOGLE_DRIVE" } },
-    }),
-    db.integration.findUnique({
-      where: { tenantId_provider: { tenantId: tenant.id, provider: "GOOGLE_CALENDAR" } },
-    }),
+  const [gmailInts, driveInt, calInt, emailTotal] = await Promise.all([
+    db.integration.findMany({ where: { tenantId: tenant.id, provider: "GMAIL" } }),
+    db.integration.findFirst({ where: { tenantId: tenant.id, provider: "GOOGLE_DRIVE" } }),
+    db.integration.findFirst({ where: { tenantId: tenant.id, provider: "GOOGLE_CALENDAR" } }),
     db.emailMessage.count({ where: { tenantId: tenant.id } }),
   ])
+
+  const gmailConnected = gmailInts.filter((i) => i.status === "CONNECTED")
+  const isGmailConnected = gmailConnected.length > 0
+  const isDriveConnected = driveInt?.status === "CONNECTED"
+  const isCalConnected = calInt?.status === "CONNECTED"
 
   const sync = syncNow.bind(null, workspace)
   const disconnect = disconnectGmail.bind(null, workspace)
 
-  const isGmailConnected = gmailInt?.status === "CONNECTED"
-  const isDriveConnected = driveInt?.status === "CONNECTED"
-  const isCalConnected = calInt?.status === "CONNECTED"
-
-  const activeCount = (isGmailConnected ? 1 : 0) + (isDriveConnected ? 1 : 0) + (isCalConnected ? 1 : 0)
+  const activeCount = gmailConnected.length + (isDriveConnected ? 1 : 0) + (isCalConnected ? 1 : 0)
 
   const tiles = [
     {
@@ -120,40 +115,48 @@ export default async function IntegrationsPage({
               <span className="flex items-center gap-2">
                 <Mail className="size-4" />
                 Gmail
+                {gmailConnected.length > 1 ? <Badge variant="secondary" className="text-[0.625rem]">{gmailConnected.length} accounts</Badge> : null}
               </span>
               <Badge variant={isGmailConnected ? "secondary" : "outline"} className="text-[0.625rem]">
-                {gmailInt?.status ?? "DISCONNECTED"}
+                {isGmailConnected ? `CONNECTED${gmailConnected.length > 1 ? ` ×${gmailConnected.length}` : ""}` : "DISCONNECTED"}
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 text-xs">
-            <p className="text-muted-foreground">
-              {isGmailConnected
-                ? `Connected${gmailInt?.accountRef ? ` as ${gmailInt.accountRef}` : ""}. ${emailTotal} emails indexed.`
-                : "Read & ingest briefs from client emails."}
-            </p>
+            {isGmailConnected ? (
+              <div className="space-y-1.5">
+                {gmailConnected.map((g) => (
+                  <div key={g.id} className="flex items-center justify-between rounded border bg-muted/20 px-2 py-1 text-[0.625rem]">
+                    <span className="font-mono truncate">{g.accountRef ?? "Gmail"}</span>
+                    <Badge variant="outline" className="text-[0.625rem]">{g.status}</Badge>
+                  </div>
+                ))}
+                <p className="text-muted-foreground">{emailTotal} emails indexed across {gmailConnected.length} account{gmailConnected.length > 1 ? "s" : ""}.</p>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Read & ingest briefs from client emails. Connect as many Gmails as you need.</p>
+            )}
             <div className="flex flex-wrap gap-2 pt-2">
+              <a
+                href={`/api/integrations/gmail/connect?workspace=${workspace}`}
+                className="rounded bg-primary px-3 py-1.5 text-xs text-primary-foreground"
+              >
+                {isGmailConnected ? "Add another Gmail" : "Connect Gmail"}
+              </a>
               {isGmailConnected ? (
                 <>
                   <form action={sync}>
                     <button type="submit" className="rounded bg-primary px-3 py-1.5 text-xs text-primary-foreground">
-                      Sync now
+                      Sync all ({gmailConnected.length})
                     </button>
                   </form>
                   <form action={disconnect}>
                     <button type="submit" className="rounded border px-3 py-1.5 text-xs">
-                      Disconnect
+                      Disconnect all
                     </button>
                   </form>
                 </>
-              ) : (
-                <a
-                  href={`/api/integrations/gmail/connect?workspace=${workspace}`}
-                  className="rounded bg-primary px-3 py-1.5 text-xs text-primary-foreground"
-                >
-                  Connect Gmail
-                </a>
-              )}
+              ) : null}
               <Link href={`/w/${workspace}/email`} className="rounded border px-3 py-1.5 text-xs">
                 View emails
               </Link>
