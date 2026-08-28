@@ -29,7 +29,36 @@ export default function Page() {
           Located: <code>package.json: version</code> (currently <code>0.0.1</code> → will become <code>2.0.0</code> after docs launch).
         </p>
 
-        <h2 id="v20-personal-os-current">v2.0 — Personal OS (Current)</h2>
+        <h2 id="v21-daily-journals-tiptap">v2.1 — Daily Journals &amp; Tiptap Intelligence (Current)</h2>
+        <Callout title="Release Date: 2026-08-28">
+          Daily Journals with Smart AI Day Synthesis, interactive Calendar streaks, full-height Tiptap Document Editor with screen wrapping, Public Link Sharing, and private instance security lockdown.
+        </Callout>
+        <Accordion>
+          <AccordionItem value="v21-features" className="border-b">
+            <AccordionTrigger className="px-4 py-3 font-medium">Features</AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <ul className="list-disc pl-4 space-y-1">
+                <li><strong>Daily Journals (<code>/w/[workspace]/journal</code>)</strong>: Connected with AI Assistant, interactive calendar view, logged dates status dots, and consistency streak counter.</li>
+                <li><strong>Smart AI Day Synthesis</strong>: Synthesizes completed tasks, financial movements, calendar sessions, and authored notes while filtering out background noise.</li>
+                <li><strong>Interactive Tiptap Document Editor (<code>/w/[workspace]/documents/[id]</code>)</strong>: Dedicated full-viewport editing canvas with sticky toolbar, tables, headings, checklists, and screen word wrapping.</li>
+                <li><strong>Universal Public Share (<code>/share/[token]</code>)</strong>: Public viewer for shared tasks and documents supporting both share tokens and direct IDs with read-only formatting.</li>
+                <li><strong>Private Instance Lockdown</strong>: Disabled public signups, removed registration links, and added edge redirects from <code>/signup</code> to <code>/login</code>.</li>
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="v21-fixes" className="border-b">
+            <AccordionTrigger className="px-4 py-3 font-medium">Fixes &amp; Stability</AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <ul className="list-disc pl-4 space-y-1">
+                <li>Fixed Turbopack webpack bundler compiler races on Linux VPS via <code>next build --webpack</code>.</li>
+                <li>Fixed Edge authentication middleware redirect handling for expired sessions.</li>
+                <li>Aligned Prisma query field definitions across transactions and calendar events in domain extractors.</li>
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+
+        <h2 id="v20-personal-os-current">v2.0 — Personal OS</h2>
         <Callout title="Release Date: 2025-12-01">Major: docs system, PWA, tenancy, finance vault, Glass → Docs layout migration, integrations.</Callout>
         <Accordion>
           <AccordionItem value="v20-features" className="border-b">

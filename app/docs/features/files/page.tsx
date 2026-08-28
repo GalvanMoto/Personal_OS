@@ -179,6 +179,16 @@ No code change elsewhere — just adapter swap`}</code></pre>
           <div className="rounded-xl border border-dashed bg-fd-muted/40 p-3 flex items-center justify-center text-center text-sm text-fd-muted-foreground">Click logo → preview without leaving task</div>
         </div>
 
+        <h2 id="tiptap-document-editor-sharing">Tiptap Document Editor &amp; Public Sharing</h2>
+        <p>
+          Every Document has its own full-viewport editor page at <code>/w/[workspace]/documents/[id]</code> with an embedded <strong>Tiptap rich text canvas</strong>, live word wrapping, and fixed pinned controls:
+        </p>
+        <ul>
+          <li><strong>Rich Authoring:</strong> Tables, headings, checklists, links, bold/italic, and quotes.</li>
+          <li><strong>AI Summary &amp; Context:</strong> Author or update the AI semantic summary used across agent context packs.</li>
+          <li><strong>Public Link Sharing:</strong> Toggle public access and generate read-only sharing URLs (<code>/share/[token]</code> or <code>/share/[id]</code>) with downloadable source files.</li>
+        </ul>
+
         <h2 id="database-keywords">Database &amp; Keywords</h2>
         <div className="not-prose my-6 overflow-hidden rounded-2xl border bg-fd-card shadow-sm">
           <div className="divide-y divide-fd-border font-mono text-xs">

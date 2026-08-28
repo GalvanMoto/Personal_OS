@@ -233,6 +233,11 @@ export default function Page() {
             href="/docs/features/finance"
           />
           <Card
+            title="📖 Daily Journals & AI Reflection"
+            description="Daily synthesis, streak tracking, interactive calendar view, and Tiptap rich editing."
+            href="/docs/features/journal"
+          />
+          <Card
             title="⚙️ Automation & System"
             description="Agents, Automations, Jobs, Reminders, Notifications, Integrations, Audit log."
             href="/docs/features/automations"

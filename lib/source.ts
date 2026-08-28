@@ -62,6 +62,11 @@ export const pageTree: Root = {
         },
         {
           type: "page",
+          name: "Daily Journals",
+          url: "/docs/features/journal",
+        },
+        {
+          type: "page",
           name: "Files & Documents",
           url: "/docs/features/files",
         },
