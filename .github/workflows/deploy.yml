@@ -37,6 +37,7 @@ jobs:
             git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/GalvanMoto/Personal_OS.git"
             
             # Pull latest changes from main
+            rm -f .git/index.lock .git/refs/remotes/origin/main.lock 2>/dev/null || true
             git fetch origin main
             git reset --hard origin/main
             
