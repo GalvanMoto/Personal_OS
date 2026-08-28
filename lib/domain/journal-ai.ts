@@ -40,7 +40,7 @@ export async function getDayActivityData(
     db.transaction.findMany({
       where: {
         tenantId,
-        bookedAt: { gte: startOfDay, lte: endOfDay },
+        occurredAt: { gte: startOfDay, lte: endOfDay },
       },
       select: { id: true, description: true, amountMinor: true, direction: true, category: true },
       take: 30,
@@ -50,7 +50,7 @@ export async function getDayActivityData(
         tenantId,
         startsAt: { gte: startOfDay, lte: endOfDay },
       },
-      select: { id: true, title: true, startsAt: true, endsAt: true, isAllDay: true },
+      select: { id: true, title: true, startsAt: true, endsAt: true, allDay: true },
       take: 20,
     }),
     db.document.findMany({
@@ -85,7 +85,13 @@ export async function getDayActivityData(
       ...t,
       amountMinor: Number(t.amountMinor),
     })),
-    events,
+    events: events.map((e: any) => ({
+      id: e.id,
+      title: e.title,
+      startsAt: e.startsAt,
+      endsAt: e.endsAt,
+      isAllDay: Boolean(e.allDay),
+    })),
     documentsAuthored: documents,
     notesAuthored: notes,
   }
