@@ -13,6 +13,16 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  // Never intercept Next.js redirects or not-founds
+  if (
+    error.message === "NEXT_REDIRECT" ||
+    error.digest?.startsWith("NEXT_REDIRECT") ||
+    error.message === "NEXT_NOT_FOUND" ||
+    error.digest?.startsWith("NEXT_NOT_FOUND")
+  ) {
+    throw error
+  }
+
   React.useEffect(() => {
     console.error("[DLRS Error Boundary]", error)
   }, [error])
