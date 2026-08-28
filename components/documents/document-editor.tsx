@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { TiptapEditor } from "@/components/ui/tiptap-editor"
+import { TiptapEditorWithAI } from "@/components/ui/tiptap-editor-with-ai"
 import { ShareButton } from "@/components/share/share-button"
 import { updateDocumentAction } from "@/lib/actions/entities"
 import { cn } from "@/lib/utils"
@@ -155,14 +155,15 @@ export function DocumentEditor({
             </div>
           </div>
 
-          {/* Tiptap Editor Canvas: ONLY this area scrolls internally */}
+          {/* Tiptap Editor Canvas with AI Assistant sidebar */}
           <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-border/80 bg-card shadow-xs overflow-hidden">
-            <TiptapEditor
+            <TiptapEditorWithAI
+              workspace={workspace}
               value={content}
               onChange={(val) => setContent(val)}
               placeholder="Start authoring requirements, specifications, deliverables or paste client brief details…"
-              className="h-full border-none rounded-none"
-              editorClassName="h-full overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-8"
+              heightClass="min-h-[500px]"
+              shareToken={initialDoc.shareToken}
             />
           </div>
         </main>
