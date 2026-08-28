@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { CheckIcon, EyeIcon, PlayIcon, Trash2Icon, UndoIcon } from "lucide-react"
+import { CheckIcon, EyeIcon, PencilIcon, PlayIcon, Trash2Icon, UndoIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -135,7 +135,10 @@ export function TaskRow({
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
-          <Link href={`/w/${workspace}/tasks/${task.id}`} className="inline-flex items-center justify-center size-6 rounded hover:bg-muted text-muted-foreground hover:text-foreground" aria-label="View task">
+          <Link href={`/w/${workspace}/tasks/${task.id}/edit`} className="inline-flex items-center justify-center size-6 rounded hover:bg-muted text-muted-foreground hover:text-foreground" aria-label="Edit task" title="Edit task">
+            <PencilIcon className="size-3.5" />
+          </Link>
+          <Link href={`/w/${workspace}/tasks/${task.id}`} className="inline-flex items-center justify-center size-6 rounded hover:bg-muted text-muted-foreground hover:text-foreground" aria-label="View task" title="View task">
             <EyeIcon className="size-3.5" />
           </Link>
           <Button
