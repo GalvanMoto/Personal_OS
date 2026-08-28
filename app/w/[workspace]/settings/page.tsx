@@ -2,6 +2,8 @@ import { requireWorkspace } from "@/lib/auth/dal"
 import { SettingsCenter } from "@/components/settings/settings-center"
 import { Badge } from "@/components/ui/badge"
 import { Lock } from "lucide-react"
+import { getWorkspaceSettings } from "@/lib/domain/settings"
+import { listMemories } from "@/lib/domain/memory"
 
 export const metadata = { title: "Settings & Control Center · Personal OS" }
 
@@ -13,10 +15,21 @@ export default async function SettingsPage({
   const { workspace } = await params
   const { db, tenant, user } = await requireWorkspace(workspace)
 
-  const [gmailInts, driveInt, calInt] = await Promise.all([
+  const [gmailInts, driveInt, calInt, settings, memories] = await Promise.all([
     db.integration.findMany({ where: { tenantId: tenant.id, provider: "GMAIL" } }),
     db.integration.findFirst({ where: { tenantId: tenant.id, provider: "GOOGLE_DRIVE" } }),
     db.integration.findFirst({ where: { tenantId: tenant.id, provider: "GOOGLE_CALENDAR" } }),
+    getWorkspaceSettings(db, { name: user.name, timezone: user.timezone }),
+    listMemories(db).then((rows) =>
+      rows.slice(0, 20).map((r) => ({
+        id: r.id,
+        fact: r.value,
+        source: r.sourceType,
+        confidence: `${Math.round(r.confidence * 100)}%`,
+        pinned: r.pinned,
+        key: r.key,
+      }))
+    ),
   ])
 
   return (
@@ -58,6 +71,8 @@ export default async function SettingsPage({
           drive: driveInt?.status === "CONNECTED",
           calendar: calInt?.status === "CONNECTED",
         }}
+        initialSettings={settings}
+        initialMemories={memories}
       />
     </div>
   )

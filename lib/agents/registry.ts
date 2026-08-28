@@ -30,6 +30,8 @@ export type AgentScope =
   | "reminders.write"
   | "notifications.write"
   | "context.read"
+  | "settings.read"
+  | "settings.write"
 
 export type AgentDefinition = {
   id: string
@@ -49,7 +51,7 @@ export const AGENT_REGISTRY: Record<string, AgentDefinition> = {
     role: "Unstructured Data Normalizer",
     purpose: "Parses dropped text, screenshots, voice notes, PDFs, and URLs into entity graph nodes.",
     scopes: ["inbox.read", "inbox.write", "tasks.write", "projects.write", "context.read"],
-    allowedTools: ["create_task", "create_project", "search_tasks"],
+    allowedTools: ["create_task", "create_project", "search_tasks", "search_all", "search_documents", "create_organization", "ensure_commitment"],
     canRequireApproval: false,
     maxRiskLevel: "SAFE",
   },
@@ -68,8 +70,19 @@ export const AGENT_REGISTRY: Record<string, AgentDefinition> = {
     name: "Project & Initiative Agent",
     role: "Milestone & Progress Coordinator",
     purpose: "Tracks client projects, deliverables velocity, reference files, and calendar milestones.",
-    scopes: ["projects.read", "projects.write", "tasks.read", "context.read"],
-    allowedTools: ["create_project", "search_tasks", "get_project_context"],
+    scopes: ["projects.read", "projects.write", "tasks.read", "context.read", "finance.write"],
+    allowedTools: [
+      "create_project",
+      "search_tasks",
+      "get_project_context",
+      "create_organization",
+      "search_organizations",
+      "create_brand",
+      "search_brands",
+      "create_commitment",
+      "search_commitments",
+      "ensure_commitment",
+    ],
     canRequireApproval: false,
     maxRiskLevel: "SAFE",
   },
@@ -89,7 +102,7 @@ export const AGENT_REGISTRY: Record<string, AgentDefinition> = {
     role: "Cloud Knowledge Indexer",
     purpose: "Indexes connected Google Drive folders, vector logos, briefs, and brand reference assets.",
     scopes: ["drive.read", "drive.search", "context.read"],
-    allowedTools: ["search_drive", "get_drive_file", "search_document"],
+    allowedTools: ["search_drive", "get_drive_file", "search_document", "search_documents", "search_all"],
     canRequireApproval: false,
     maxRiskLevel: "SAFE",
   },
@@ -107,8 +120,8 @@ export const AGENT_REGISTRY: Record<string, AgentDefinition> = {
     id: "finance",
     name: "Financial Intelligence Agent",
     role: "Deterministic Statement & Ledger Engine",
-    purpose: "Parses bank PDF tables (SBI, HDFC, ICICI, Chase), detects subscriptions, and audits cash flow. Fully manages subscriptions as universal control plane.",
-    scopes: ["finance.read", "finance.categories.write", "reminders.write", "notifications.write"],
+    purpose: "Parses bank PDF tables (SBI, HDFC, ICICI, Chase), detects subscriptions, and audits cash flow. Fully manages subscriptions, invoices, and ledger as universal control plane.",
+    scopes: ["finance.read", "finance.write", "finance.categories.write", "reminders.write", "notifications.write"],
     allowedTools: [
       "spending_summary",
       "upcoming_payments",
@@ -118,6 +131,10 @@ export const AGENT_REGISTRY: Record<string, AgentDefinition> = {
       "update_subscription",
       "cancel_subscription",
       "pause_subscription",
+      "create_invoice",
+      "search_invoices",
+      "create_organization",
+      "search_organizations",
     ],
     canRequireApproval: false,
     maxRiskLevel: "SAFE",
@@ -137,8 +154,18 @@ export const AGENT_REGISTRY: Record<string, AgentDefinition> = {
     name: "Chief-of-Staff Planning Agent",
     role: "Multi-factor Agenda Scorer",
     purpose: "Answers 'What should I do now?' by evaluating deadlines, client importance, and blockers.",
-    scopes: ["tasks.read", "projects.read", "calendar.read", "context.read"],
-    allowedTools: ["recommend_next_action", "get_agenda", "get_context_pack", "explain_claim"],
+    scopes: ["tasks.read", "projects.read", "calendar.read", "context.read", "settings.read", "settings.write"],
+    allowedTools: [
+      "recommend_next_action",
+      "get_agenda",
+      "get_context_pack",
+      "explain_claim",
+      "search_all",
+      "search_tasks",
+      "search_calendar",
+      "get_settings",
+      "update_settings",
+    ],
     canRequireApproval: false,
     maxRiskLevel: "SAFE",
   },

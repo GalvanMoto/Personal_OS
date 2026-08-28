@@ -164,7 +164,8 @@ const DESPACED_TOKENS: Array<[Category, string[]]> = [
 
 export function categorize(
   description: string,
-  direction: "DEBIT" | "CREDIT" = "DEBIT"
+  direction: "DEBIT" | "CREDIT" = "DEBIT",
+  employerNames: string[] = []
 ): CategoryGuess {
   const cleaned = cleanDescription(description)
   const merchant = deriveMerchant(description) ?? ""
@@ -172,6 +173,27 @@ export function categorize(
   const haystack = `${text} ${merchant}`.trim()
 
   if (!text) return { category: "UNKNOWN", confidence: 0, matched: null }
+
+  // Generic employer → INCOME (no hardcoded company names). Aliases come from
+  // profile.employer.company filled by user in Settings → Work & Planning.
+  // Only CREDITs are salary; DEBITs containing employer name stay as-is.
+  if (direction === "CREDIT" && employerNames.length > 0) {
+    const hayCompact = haystack.toLowerCase().replace(/[^a-z0-9]/g, "")
+    for (const raw of employerNames) {
+      const name = raw.trim()
+      if (!name || name.length < 3) continue
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      // word-boundary: prevents "Up" matching "UPI" or "Tech" matching "TechBuddy"
+      const pattern = new RegExp(`\\b${escaped}\\b`, "i")
+      if (pattern.test(haystack)) {
+        return { category: "INCOME", confidence: 0.92, matched: raw.trim() }
+      }
+      const key = name.toLowerCase().replace(/[^a-z0-9]/g, "")
+      if (key.length >= 6 && hayCompact.includes(key) && name.split(/\s+/).every((w) => w.length >= 3)) {
+        return { category: "INCOME", confidence: 0.88, matched: raw.trim() }
+      }
+    }
+  }
 
   // Word-boundary rules first, but hold a bare "Transfers" rail match – it only
   // means the description named a payment rail, which nearly all do. A

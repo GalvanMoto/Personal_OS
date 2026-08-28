@@ -32,6 +32,8 @@ const dueAtSchema = z
 const createSchema = z.object({
   title: z.string().trim().min(1, "Give the task a title").max(300),
   description: z.string().trim().max(4000).optional(),
+  content: z.string().trim().max(20000).optional(), // JSON stringified Tiptap
+  linkUrls: z.string().trim().max(6000).optional(), // JSON array string
   projectId: z.string().trim().optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
   dueAt: dueAtSchema,
@@ -52,9 +54,22 @@ export async function createTaskAction(
     const parsed = createSchema.safeParse(Object.fromEntries(formData))
     if (!parsed.success) return fromZodError(parsed.error)
 
+    let content: unknown | null = null
+    let linkUrls: string[] | undefined
+    if (parsed.data.content) {
+      try { content = JSON.parse(parsed.data.content) } catch { content = null }
+    }
+    if (parsed.data.linkUrls) {
+      try {
+        const arr = JSON.parse(parsed.data.linkUrls)
+        if (Array.isArray(arr)) linkUrls = arr.map((s: unknown) => String(s)).filter(Boolean).slice(0,12)
+      } catch {}
+    }
     const task = await createTask(db, ctx, {
       title: parsed.data.title,
       description: parsed.data.description,
+      content,
+      linkUrls,
       projectId: parsed.data.projectId || undefined,
       priority: parsed.data.priority,
       dueAt: parsed.data.dueAt,
@@ -115,6 +130,8 @@ export async function setTaskStatusAction(
 const updateSchema = z.object({
   title: z.string().trim().min(1).max(300).optional(),
   description: z.string().trim().max(4000).nullable().optional(),
+  content: z.string().trim().max(20000).optional().nullable(),
+  linkUrls: z.string().trim().max(6000).optional().nullable(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
   dueAt: dueAtSchema,
   projectId: z.string().trim().nullable().optional(),
@@ -134,9 +151,21 @@ export async function updateTaskAction(
     const before = await db.task.findUnique({ where: { id: taskId } })
     if (!before) return fail("That task no longer exists.")
 
+    let content: unknown | null | undefined
+    let linkUrls: string[] | null | undefined
+    if (parsed.data.content !== undefined) {
+      if (parsed.data.content === null || parsed.data.content === "") content = null
+      else { try { content = JSON.parse(parsed.data.content) } catch { content = null } }
+    }
+    if (parsed.data.linkUrls !== undefined) {
+      if (parsed.data.linkUrls === null || parsed.data.linkUrls === "") linkUrls = null
+      else { try { const arr = JSON.parse(parsed.data.linkUrls!); linkUrls = Array.isArray(arr) ? arr.map((s: unknown)=>String(s)).filter(Boolean).slice(0,12) : null } catch { linkUrls = null } }
+    }
     await updateTask(db, ctx, taskId, {
       title: parsed.data.title,
       description: parsed.data.description,
+      content,
+      linkUrls,
       priority: parsed.data.priority,
       dueAt: parsed.data.dueAt,
       projectId: parsed.data.projectId || null,

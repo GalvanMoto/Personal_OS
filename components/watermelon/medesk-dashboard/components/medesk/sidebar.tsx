@@ -1,13 +1,13 @@
 "use client"
 
 import {
-  BookOpenIcon,
-  ChevronRight,
-  LogOutIcon,
-  MessageCircleIcon,
-  MoonIcon,
-  SunIcon,
-} from "lucide-react";
+  IconBook,
+  IconChevronRight,
+  IconLogout,
+  IconMessageCircle,
+  IconMoon,
+  IconSun,
+} from "@tabler/icons-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -159,7 +159,7 @@ export function DashboardSidebar() {
                 className="group/collapsible"
               >
                 <SidebarGroup className="gap-1 p-0">
-                  <SidebarGroupLabel className={sidebarGroupLabelClassName} render={<CollapsibleTrigger className="flex w-full items-center justify-between transition-colors hover:text-foreground" />}><span>{group.label}</span><ChevronRight className="ml-auto size-4 transition-transform group-data-[state=open]/collapsible:rotate-90" /></SidebarGroupLabel>
+                  <SidebarGroupLabel className={sidebarGroupLabelClassName} render={<CollapsibleTrigger className="flex w-full items-center justify-between transition-colors hover:text-foreground" />}><span>{group.label}</span><IconChevronRight className="ml-auto size-4 transition-transform group-data-[state=open]/collapsible:rotate-90" /></SidebarGroupLabel>
                   <CollapsibleContent>
                     <SidebarGroupContent>
                       <SidebarMenu className="gap-0">
@@ -246,11 +246,11 @@ export function DashboardSidebar() {
                     <DropdownMenuItem
                       onClick={() => setTheme(isDark ? "light" : "dark")}
                     >
-                      {isDark ? <SunIcon /> : <MoonIcon />}
+                      {isDark ? <IconSun /> : <IconMoon />}
                       <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem render={<a href="/privacy" />}><BookOpenIcon className="size-4" /><span>Privacy &amp; Security</span></DropdownMenuItem>
-                    <DropdownMenuItem render={<a href="/terms" />}><MessageCircleIcon className="size-4" /><span>Terms of Service</span></DropdownMenuItem>
+                    <DropdownMenuItem render={<a href="/privacy" />}><IconBook className="size-4" /><span>Privacy &amp; Security</span></DropdownMenuItem>
+                    <DropdownMenuItem render={<a href="/terms" />}><IconMessageCircle className="size-4" /><span>Terms of Service</span></DropdownMenuItem>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -259,7 +259,7 @@ export function DashboardSidebar() {
                       void signOut()
                     }}
                   >
-                    <LogOutIcon className="size-4" />
+                    <IconLogout className="size-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>

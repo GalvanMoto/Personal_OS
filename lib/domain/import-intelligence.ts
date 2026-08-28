@@ -596,7 +596,8 @@ export async function executeImportPlan(
       } as never,
     })
 
-    // Create individual deliverable tasks with rich requirements & source provenance
+    // Create individual deliverable tasks with rich requirements & source provenance (tiptap + links)
+    const sourceLinkUrls = plan.sourcesProcessed.map((s) => s.url).filter((u): u is string => Boolean(u))
     for (const t of del.tasks) {
       const existingTask = await db.task.findFirst({
         where: {
@@ -614,10 +615,27 @@ export async function executeImportPlan(
           `**Source:** ${plan.sourcesProcessed.map((s) => s.name).join(", ")}`,
         ].filter(Boolean).join("\n\n")
 
+        // Tiptap JSON: requirement + assets + source links as clickable
+        const tiptapContent: any = {
+          type: "doc",
+          content: [
+            ...(t.requirement ? [{ type: "paragraph", content: [{ type: "text", marks: [{ type: "bold" }], text: "Requirements: " }, { type: "text", text: t.requirement }] }] : []),
+            ...(t.assetsRequired && t.assetsRequired.length ? [{ type: "paragraph", content: [{ type: "text", marks: [{ type: "bold" }], text: "Assets Required: " }, { type: "text", text: t.assetsRequired.join(", ") }] }] : []),
+            { type: "paragraph", content: [{ type: "text", marks: [{ type: "bold" }], text: "Source: " }, { type: "text", text: plan.sourcesProcessed.map((s) => s.name).join(", ") }] },
+            ...(sourceLinkUrls.length ? [{ type: "paragraph", content: sourceLinkUrls.flatMap((u, i) => {
+              const parts: any[] = [{ type: "text", text: u, marks: [{ type: "link", attrs: { href: u, target: "_blank" } }] }]
+              if (i < sourceLinkUrls.length - 1) parts.push({ type: "text", text: " · " })
+              return parts
+            }) }] : []),
+          ],
+        }
+
         await db.task.create({
           data: {
             title: t.title,
             description: descriptionLines || null,
+            content: tiptapContent as never,
+            linkUrls: sourceLinkUrls.slice(0, 12),
             status: "TODO",
             priority: del.priority,
             dueAt: t.dueAt || null,
@@ -627,6 +645,10 @@ export async function executeImportPlan(
           } as never,
         })
         tasksCreated++
+        // Also create LinkResource rows for graph/search (generic, no hardcode)
+        for (const url of sourceLinkUrls.slice(0, 5)) {
+          await db.linkResource.create({ data: { url, title: t.title.slice(0, 80) } as never }).catch(()=>{})
+        }
       }
     }
   }

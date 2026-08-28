@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { TiptapEditorWithAI } from "@/components/ui/tiptap-editor-with-ai"
 import { createTaskAction } from "@/lib/actions/tasks"
 
 interface CreateTaskDrawerProps {
@@ -50,6 +51,8 @@ export function CreateTaskDrawer({
   const [activeSection, setActiveSection] = React.useState("basic")
   const [checklist, setChecklist] = React.useState<string[]>([])
   const [newChecklistItem, setNewChecklistItem] = React.useState("")
+  const [richContent, setRichContent] = React.useState<unknown>(null)
+  const [linkUrlsText, setLinkUrlsText] = React.useState("")
   const router = useRouter()
 
   const handleAddChecklist = (e: React.KeyboardEvent | React.MouseEvent) => {
@@ -72,6 +75,9 @@ export function CreateTaskDrawer({
     if (checklist.length > 0) {
       formData.set("checklist", JSON.stringify(checklist))
     }
+    if (richContent) formData.set("content", JSON.stringify(richContent))
+    const links = linkUrlsText.split(/[,\n]+/).map((s)=>s.trim()).filter(Boolean).slice(0,12)
+    if (links.length) formData.set("linkUrls", JSON.stringify(links))
 
     try {
       await createTaskAction(workspace, formData)
@@ -80,6 +86,8 @@ export function CreateTaskDrawer({
         setOpen(false)
         setSuccess(false)
         setChecklist([])
+        setRichContent(null)
+        setLinkUrlsText("")
         router.refresh()
       }, 600)
     } catch (err) {
@@ -235,13 +243,22 @@ export function CreateTaskDrawer({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-semibold text-foreground">Description &amp; Specifications</label>
+                  <label className="font-semibold text-foreground">Description &amp; Specifications (plain)</label>
                   <Textarea
                     name="description"
-                    rows={4}
-                    placeholder="Provide detailed instructions, client guidelines, deliverables requirements..."
+                    rows={3}
+                    placeholder="Short plain text for search…"
                     className="text-xs resize-none"
                   />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground flex items-center gap-1">Rich Notes (Tiptap) <span className="text-muted-foreground font-normal">— right chat reads/writes & tables</span></label>
+                  <TiptapEditorWithAI workspace={workspace} value={richContent} onChange={setRichContent} placeholder="Paste Sheet/Doc details… Use right chat: ‘create table’, ‘rewrite selection’." />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground flex items-center gap-1"><LinkIcon className="size-3" /> Linked Sheet / Doc URLs</label>
+                  <Input value={linkUrlsText} onChange={(e)=>setLinkUrlsText(e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/..., https://docs.google.com/document/d/..." className="h-8 text-xs font-mono" />
+                  <p className="text-[0.625rem] text-muted-foreground">Comma or newline separated — become clickable on detail page and are read by <code>organize_sources</code> agent.</p>
                 </div>
               </TabsContent>
 

@@ -7,6 +7,7 @@ import { minorToNumber, percentChange, sumMinor } from "@/lib/domain/money"
 import { logActivity } from "@/lib/events/activity"
 import { emit } from "@/lib/events/bus"
 import type { BillingCycle, TransactionDirection } from "@/lib/generated/prisma/enums"
+import { memoryKey } from "@/lib/domain/memory"
 
 /**
  * Financial intelligence (PRD §8, §9).
@@ -18,6 +19,111 @@ import type { BillingCycle, TransactionDirection } from "@/lib/generated/prisma/
  */
 
 const DAY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * Generic employer names from user-filled profile — no hardcoded company.
+ * Reads `profile.employer.company` AgentMemory + any Organization kind EMPLOYER,
+ * so user typing any company in Settings → Work & Planning immediately teaches
+ * categorization without code change.
+ */
+export async function getEmployerNames(db: TenantDb): Promise<string[]> {
+  const names = new Set<string>()
+  try {
+    // 1. From AgentMemory profile keys (primary source — user-filled form)
+    const mem = await db.agentMemory.findMany({
+      where: { key: { in: [memoryKey("profile.employer.company"), memoryKey("profile.employer.website")] } },
+      select: { key: true, value: true },
+    })
+    for (const r of mem) {
+      const v = String(r.value ?? "").trim()
+      if (v.length >= 2) {
+        if (r.key === memoryKey("profile.employer.company")) names.add(v)
+        if (r.key === memoryKey("profile.employer.website") && v.includes(".")) {
+          const host = v.replace(/^https?:\/\//, "").split("/")[0].split(".")[0]
+          if (host.length >= 3) names.add(host)
+        }
+      }
+    }
+    // 1b. Fallback: any memory whose key mentions employer/company (covers chat "I work at Techmero" → remember)
+    // Strict extraction to avoid sentence-as-alias noise (e.g. "Techmero is where I work" → "Techmero")
+    const extractCompany = (raw: string): string | null => {
+      let v = String(raw ?? "").trim()
+      if (!v) return null
+      // Prefer "work at X" capture
+      const m = v.match(/work\s+at\s+([A-Za-z0-9 &.\-]{3,40})/i)
+      if (m) v = m[1].trim()
+      else v = v.split(/[\n,;]/)[0].trim().slice(0, 40)
+      // Drop sentences containing verbs/prepositions that signal not a name
+      const low = v.toLowerCase()
+      if (/(^|\s)(is|where|my|i\s|work|joined|currently|running|left)\b/.test(low)) {
+        // try to keep only leading capitalized token before verb
+        const t = v.split(/\s+(is|where|my|work|joined)\b/i)[0].trim()
+        if (t.length >= 3 && t.length <= 30) v = t
+        else return null
+      }
+      // Company-like pattern: 3-30 chars, letters/digits/&.- and at most 3 words
+      if (!/^[A-Za-z0-9 &.\-]{3,30}$/.test(v)) return null
+      if (v.split(/\s+/).length > 3) return null
+      return v
+    }
+    if (names.size === 0) {
+      const fallback = await db.agentMemory.findMany({
+        where: { key: { contains: "employer", mode: "insensitive" } },
+        select: { value: true },
+        take: 10,
+      }).catch(() => [] as any[])
+      for (const r of fallback as any[]) {
+        const c = extractCompany(r.value)
+        if (c) names.add(c)
+      }
+      const fallback2 = await db.agentMemory.findMany({
+        where: { key: { contains: "company", mode: "insensitive" } },
+        select: { value: true },
+        take: 10,
+      }).catch(() => [] as any[])
+      for (const r of fallback2 as any[]) {
+        const c = extractCompany(r.value)
+        if (c) names.add(c)
+      }
+    }
+    // Dedupe case-insensitive
+    const lowerSeen = new Set<string>()
+    const deduped: string[] = []
+    for (const n of names) {
+      const l = n.toLowerCase()
+      if (lowerSeen.has(l)) continue
+      lowerSeen.add(l); deduped.push(n)
+    }
+    if (deduped.length !== names.size) { names.clear(); deduped.forEach((n)=>names.add(n)) }
+    // 2. Also any EMPLOYER organization names (kept in sync on save)
+    const orgs = await db.organization.findMany({
+      where: { kind: "EMPLOYER" as never },
+      select: { name: true },
+      take: 5,
+    })
+    for (const o of orgs) if (o.name?.trim()) names.add(o.name.trim())
+  } catch {}
+  return [...names]
+}
+
+async function resolveEmployerOrgId(db: TenantDb, description: string, employerNames: string[]): Promise<string | null> {
+  if (!employerNames.length) return null
+  const hay = String(description)
+  const matched = employerNames.find((n) => {
+    const t = n.trim()
+    if (t.length < 3) return false
+    const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    return new RegExp(`\\b${esc}\\b`, "i").test(hay)
+  })
+  if (!matched) return null
+  try {
+    const org = await db.organization.findFirst({
+      where: { kind: "EMPLOYER" as never, name: { contains: matched, mode: "insensitive" } },
+      select: { id: true },
+    })
+    return org?.id ?? null
+  } catch { return null }
+}
 
 export type RecordTransactionInput = {
   description: string
@@ -52,7 +158,7 @@ export async function recordTransaction(
     if (existing) return { transaction: existing, created: false }
   }
 
-  // 2. Deterministic fingerprint deduplication for overlapping statements (date + amount + direction + account + description)
+  // 2. Deterministic fingerprint deduplication for overlapping statements (date + amount + direction + account + description + currency)
   const existingFingerprint = await db.transaction.findFirst({
     where: {
       occurredAt: input.occurredAt,
@@ -60,15 +166,32 @@ export async function recordTransaction(
       direction: input.direction,
       description: input.description.trim(),
       accountId: input.accountId,
+      currency: input.currency ?? "INR",
     },
   })
   if (existingFingerprint) {
     return { transaction: existingFingerprint, created: false }
   }
 
+  // Dynamic employer → INCOME (no hardcoded names) — only for CREDIT
+  let employerNames: string[] = []
+  let resolvedOrgId = input.organizationId ?? null
+  if (!input.category) {
+    try { employerNames = await getEmployerNames(db) } catch {}
+    // If CREDIT and description matches employer, link org (avoids DEBIT false link)
+    if (!resolvedOrgId && employerNames.length && input.direction === "CREDIT") {
+      const hay = String(input.description)
+      const hasHit = employerNames.some((n) => {
+        if (n.trim().length < 3) return false
+        const esc = n.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+        return new RegExp(`\\b${esc}\\b`, "i").test(hay)
+      })
+      if (hasHit) resolvedOrgId = (await resolveEmployerOrgId(db, input.description, employerNames)) ?? null
+    }
+  }
   const guess = input.category
     ? { category: input.category, confidence: 1, matched: null }
-    : categorize(input.description, input.direction)
+    : categorize(input.description, input.direction, employerNames)
 
   const transaction = await db.transaction.create({
     data: {
@@ -78,17 +201,77 @@ export async function recordTransaction(
       currency: input.currency ?? "INR",
       occurredAt: input.occurredAt,
       accountId: input.accountId,
-      organizationId: input.organizationId,
+      organizationId: resolvedOrgId ?? undefined,
       category: guess.category,
       externalRef: input.externalRef,
     } as never,
   })
+
+  // Provenance: keep link between employer inference and source (human mind analogy)
+  if (!input.category && guess.category === "INCOME" && guess.matched && employerNames.includes(guess.matched)) {
+    try {
+      const { recordInference } = await import("@/lib/domain/provenance")
+      await recordInference(db, {
+        targetType: "TRANSACTION",
+        targetId: transaction.id,
+        field: "category",
+        value: { category: "INCOME", employer: guess.matched },
+        confidence: guess.confidence,
+        sourceType: "SYSTEM",
+        evidence: `Matched employer profile "${guess.matched}" from Settings → Work & Planning`,
+        agent: "finance.categorizer",
+      }).catch(() => {})
+    } catch {}
+  }
 
   await emit(db, ctx.tenantId, {
     type: "transaction.imported",
     payload: { transactionId: transaction.id, category: guess.category },
     actorType: ctx.actorType ?? "SYSTEM",
   })
+
+  // Auto-reconciliation: Transaction → Subscription (operational.txt §16-17)
+  // If this debit matches a known subscription (merchant + amount within 5%), link it.
+  if (input.direction === "DEBIT" && input.amountMinor > 0n) {
+    try {
+      const key = merchantKey(input.description)
+      if (key) {
+        const candidates = await db.subscription.findMany({
+          where: { active: true },
+          select: { id: true, name: true, vendor: true, amountMinor: true, currency: true },
+        })
+        for (const sub of candidates) {
+          const subKey = merchantKey(sub.vendor ?? sub.name)
+          if (!subKey || subKey !== key) continue
+          // Currency must match
+          if ((sub.currency ?? "INR") !== (input.currency ?? "INR")) continue
+          const subAmt = sub.amountMinor
+          if (subAmt === 0n) continue
+          const spread = Number(subAmt > input.amountMinor ? subAmt - input.amountMinor : input.amountMinor - subAmt) / Number(subAmt)
+          if (spread > 0.05) continue
+          // Create EntityLink TRANSACTION → SUBSCRIPTION
+          await db.entityLink
+            .create({
+              data: {
+                fromType: "TRANSACTION",
+                fromId: transaction.id,
+                toType: "SUBSCRIPTION",
+                toId: sub.id,
+                relation: "RELATED_TO",
+                createdBy: "SYSTEM",
+              } as never,
+            })
+            .catch(() => {})
+          await emit(db, ctx.tenantId, {
+            type: "subscription.detected",
+            payload: { subscriptionId: sub.id, transactionId: transaction.id, merchant: key, matched: true },
+            actorType: "SYSTEM",
+          }).catch(() => {})
+          break
+        }
+      }
+    } catch {}
+  }
 
   return { transaction, created: true }
 }
@@ -107,7 +290,43 @@ export async function importTransactions(
   let imported = 0
   let skipped = 0
 
-  for (const row of rows) {
+  // Fetch once for bulk — still generic, not hardcoded
+  let bulkEmployerNames: string[] = []
+  let bulkOrgMap = new Map<string, string>()
+  try {
+    bulkEmployerNames = await getEmployerNames(db)
+    if (bulkEmployerNames.length) {
+      const orgs = await db.organization.findMany({ where: { kind: "EMPLOYER" as never }, select: { id: true, name: true } }).catch(() => [] as any[])
+      for (const o of orgs as any[]) bulkOrgMap.set(String(o.name).toLowerCase(), String(o.id))
+    }
+  } catch {}
+
+  for (const raw of rows) {
+    // Pre-tag with employer INCOME + org linkage before single-row path (avoids N fetches)
+    let row = raw
+    if (!raw.category && !raw.organizationId && bulkEmployerNames.length && raw.direction === "CREDIT") {
+      const hay = String(raw.description)
+      // word-boundary match generic employer (no hardcoded)
+      const hit = bulkEmployerNames.find((n) => {
+        const name = n.trim()
+        if (name.length < 3) return false
+        const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+        return new RegExp(`\\b${esc}\\b`, "i").test(hay)
+      })
+      if (hit) {
+        const guess = categorize(raw.description, raw.direction, bulkEmployerNames)
+        if (guess.category === "INCOME") {
+          // contains-match org lookup (handles "Techmero Pvt" vs org "Techmero")
+          let orgId = bulkOrgMap.get(hit.toLowerCase()) ?? null
+          if (!orgId) {
+            for (const [k,v] of bulkOrgMap.entries()) {
+              if (hay.toLowerCase().includes(k) || k.includes(hit.toLowerCase())) { orgId = v; break }
+            }
+          }
+          row = { ...raw, category: guess.category as any, ...(orgId ? { organizationId: orgId } : {}) }
+        }
+      }
+    }
     const { created } = await recordTransaction(db, ctx, row)
     if (created) imported++
     else skipped++
@@ -183,6 +402,7 @@ export async function spendingSummary(
       occurredAt: { gte: new Date(from.getTime() - span), lt: from },
       direction: "DEBIT",
       currency,
+      category: { not: "TRANSFER" },
     },
     select: { amountMinor: true },
   })
@@ -327,8 +547,15 @@ export async function syncSubscriptions(
   let updated = 0
 
   for (const entry of detected) {
+    // Idempotent: match by vendor OR name case-insensitive using same key as manual orchestrator (operational.txt §24)
     const existing = await db.subscription.findFirst({
-      where: { name: entry.merchant },
+      where: {
+        OR: [
+          { vendor: { equals: entry.merchant, mode: "insensitive" } },
+          { name: { equals: entry.merchant, mode: "insensitive" } },
+          { vendor: { equals: entry.description.slice(0, 120), mode: "insensitive" } },
+        ],
+      },
     })
 
     if (existing) {

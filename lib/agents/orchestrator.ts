@@ -240,6 +240,112 @@ function tryParseSubscriptionQueryPlan(text: string): Plan | null {
   return null
 }
 
+function tryParseCommitmentPlan(text: string): Plan | null {
+  const lower = text.toLowerCase()
+  // "Karna Kreative sends me 3 reels every week" or "WOW Indian reels weekly"
+  // Pattern: Client sends ... 3 reels every week (optional brand)
+  const hasCommitSignal = /\b(reel|post|short|story|design|deliverable)s?\b/i.test(text) && /\b(every\s+(week|month|quarter)|weekly|monthly|quarterly|\d+\s*(reels?|posts?|shorts?)\b)/i.test(lower)
+  if (!hasCommitSignal) return null
+  // Don't treat plain task adds as commitments
+  if (/^add\s+(?:a\s+)?task\b/i.test(text)) return null
+
+  // Extract quantity
+  let quantity = 1
+  const qm = text.match(/(\d+)\s*(?:reels?|posts?|shorts?|stories?|designs?|deliverables?)/i)
+  if (qm) quantity = Math.min(100, Math.max(1, parseInt(qm[1], 10)))
+
+  // Deliverable type
+  let deliverable: string = "REEL"
+  if (/\bposts?\b/i.test(text)) deliverable = "POST"
+  else if (/\bshorts?\b/i.test(text)) deliverable = "SHORT"
+  else if (/\bstor(y|ies)\b/i.test(text)) deliverable = "STORY"
+  else if (/\bdesigns?\b/i.test(text)) deliverable = "DESIGN"
+
+  // Frequency
+  let frequency: "WEEKLY" | "BIWEEKLY" | "MONTHLY" | "QUARTERLY" = "WEEKLY"
+  if (/\bmonthly\b|every\s+month\b/i.test(lower)) frequency = "MONTHLY"
+  else if (/\bquarterly\b|every\s+quarter\b/i.test(lower)) frequency = "QUARTERLY"
+  else if (/\bbiweekly\b|every\s+two\s+weeks?\b/i.test(lower)) frequency = "BIWEEKLY"
+
+  // Client name: before "sends" or leading capitalized words
+  let clientName: string | undefined
+  let brandName: string | undefined
+  const sendsM = text.match(/^([A-Za-z][A-Za-z\s&.-]{2,40}?)\s+sends?\b/i)
+  if (sendsM) clientName = sendsM[1].trim()
+  else {
+    const capM = text.match(/\b([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)?)\b/)
+    if (capM && !/^(Add|Create|Track|I|What)$/i.test(capM[1])) clientName = capM[1].trim()
+  }
+  // Brand hint: "for WOW Indian" or "WOW Indian reels"
+  const brandM = text.match(/\bfor\s+([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)?)\b/i)
+  if (brandM) brandName = brandM[1].trim()
+  else {
+    const brandM2 = text.match(/\b(WOW\s+Indian|Karna\s+Kreative)\b/i)
+    if (brandM2) {
+      // If client was Karna Kreative, brand might be WOW Indian
+      if (clientName && brandM2[1].toLowerCase() !== clientName.toLowerCase()) brandName = brandM2[1].trim()
+    }
+  }
+
+  if (!clientName) return null
+  // Title fallback: reels/posts etc.
+  let title = `${deliverable.charAt(0) + deliverable.slice(1).toLowerCase()}s`
+  if (brandName) title = `${brandName} ${title}`
+
+  return {
+    kind: "tool",
+    tool: "ensure_commitment",
+    args: {
+      clientName: clientName.split(/\s+/).slice(0, 3).join(" "),
+      brandName,
+      title,
+      deliverableType: deliverable,
+      quantity,
+      frequency,
+    },
+  }
+}
+
+function tryParseSettingsPlan(text: string): Plan | null {
+  const lower = text.toLowerCase()
+  // "change timezone to Asia/Kolkata", "set currency to INR", "use dark theme", "change accent to emerald"
+  const tzMatch = text.match(/(?:timezone|time\s*zone)\s*(?:to\s*)?([A-Za-z\/_]+(?:\/[A-Za-z_]+)*)/i)
+  if (tzMatch && /(timezone|time\s*zone)/i.test(text)) {
+    return { kind: "tool", tool: "update_settings", args: { timezone: tzMatch[1].trim() } }
+  }
+  const curMatch = text.match(/currency\s*(?:to\s*)?([A-Z]{3}|INR|USD|EUR)/i)
+  if (curMatch) return { kind: "tool", tool: "update_settings", args: { currency: curMatch[1].toUpperCase().replace("INR", "INR (₹)") } }
+  if (/\b(dark|light|system)\s+theme\b/i.test(lower)) {
+    const theme = lower.includes("dark") ? "dark" : lower.includes("light") ? "light" : "system"
+    return { kind: "tool", tool: "update_settings", args: { theme } }
+  }
+  if (/\baccent\s*(?:to\s*)?(emerald|blue|violet|amber|rose)/i.test(lower)) {
+    const m = lower.match(/accent\s*(?:to\s*)?(emerald|blue|violet|amber|rose)/i)
+    if (m) return { kind: "tool", tool: "update_settings", args: { accent: m[1].toLowerCase() } }
+  }
+  if (/\b(compact|comfortable)\s*(?:density|mode)?\b/i.test(lower) && /(density|comfortable|compact)/i.test(lower)) {
+    const dens = lower.includes("compact") ? "compact" : "comfortable"
+    return { kind: "tool", tool: "update_settings", args: { density: dens } }
+  }
+  if (/quiet\s*hours/i.test(lower)) {
+    const enable = !/disable|off|mute/i.test(lower)
+    return { kind: "tool", tool: "update_settings", args: { quietHoursEnabled: enable } }
+  }
+  if (/\bsound\b.*(?:mute|disable|off)/i.test(lower)) return { kind: "tool", tool: "update_settings", args: { soundEnabled: false } }
+  if (/\bsound\b.*(?:enable|on)/i.test(lower)) return { kind: "tool", tool: "update_settings", args: { soundEnabled: true } }
+  if (/\bchange\s+.*model\b|\buse\s+(?:azure|claude|openai|gemini)\b/i.test(lower)) {
+    let model = "azure-openai-gpt-5-4-nano"
+    if (/claude/i.test(lower)) model = "anthropic-claude-3-5-sonnet"
+    else if (/openai.*4o|gpt-4o/i.test(lower)) model = "openai-gpt-4o"
+    else if (/gemini/i.test(lower)) model = "google-gemini-1-5-pro"
+    return { kind: "tool", tool: "update_settings", args: { selectedModel: model } }
+  }
+  if (/\bwhat.*settings\b|\bshow.*settings\b|\bget.*settings\b/i.test(lower)) {
+    return { kind: "tool", tool: "get_settings", args: {} }
+  }
+  return null
+}
+
 function plan(message: string): Plan {
   const text = message.trim()
   const lower = text.toLowerCase()
@@ -255,6 +361,14 @@ function plan(message: string): Plan {
       args: { message: text, apply: true },
     }
   }
+
+  // Settings — universal control plane (operational.txt §30)
+  const settingsPlan = tryParseSettingsPlan(text)
+  if (settingsPlan) return settingsPlan
+
+  // Commitments — Karna Kreative example (operational.txt §4)
+  const commitmentPlan = tryParseCommitmentPlan(text)
+  if (commitmentPlan) return commitmentPlan
 
   // Subscriptions — universal control plane (operational.txt §2)
   const subQuery = tryParseSubscriptionQueryPlan(text)
@@ -336,9 +450,16 @@ function plan(message: string): Plan {
     }
   }
 
+  // Universal resolver — "find everything related to X" → search_all (across all entities), otherwise tasks
   match = text.match(/^(?:show|find|search)\s+(?:me\s+)?(?:everything\s+)?(?:related to|about|for|tasks?(?:\s+for)?)\s+(.+)$/i)
   if (match) {
-    return { kind: "tool", tool: "search_tasks", args: { query: match[1].trim() } }
+    const raw = match[0].toLowerCase()
+    const isUniversal = /\beverything\b|\brelated to\b/.test(raw) && !/\btasks?\b/.test(raw)
+    return {
+      kind: "tool",
+      tool: isUniversal ? "search_all" : "search_tasks",
+      args: { query: match[1].trim() },
+    }
   }
 
   return { kind: "capture" }
@@ -371,22 +492,71 @@ function describeAgenda(result: Record<string, unknown>): string {
     .join(", ")
 }
 
+/**
+ * Multi-step planner (operational.txt §6, §29).
+ * One request can affect multiple modules: e.g. "Create project for Acme and organize these files"
+ * → [create_project, organize_sources]. We collect all intents in priority order and run sequentially.
+ * Now collects up to 3 distinct intents (commitment, subscription, organize) for compound utterances.
+ */
+function planAll(message: string): Plan[] {
+  const text = message.trim()
+  // Collect all distinct non-capture intents
+  const candidates: Plan[] = []
+  const settingsPlan = tryParseSettingsPlan(text)
+  if (settingsPlan) candidates.push(settingsPlan)
+  const commitment = tryParseCommitmentPlan(text)
+  if (commitment) candidates.push(commitment)
+  const subQuery = tryParseSubscriptionQueryPlan(text)
+  if (subQuery) candidates.push(subQuery)
+  else {
+    const subPlan = tryParseSubscriptionPlan(text)
+    if (subPlan) candidates.push(subPlan)
+  }
+  // Early return if we found multi-module candidates (e.g. both commitment and subscription)
+  if (candidates.length > 1) {
+    // Deduplicate by tool
+    const seen = new Set<string>()
+    const deduped: Plan[] = []
+    for (const c of candidates) {
+      const key = (c as any).tool
+      if (!seen.has(key)) {
+        seen.add(key)
+        deduped.push(c)
+      }
+    }
+    // If message also contains Sheet/Doc, append organize
+    if (/(?:docs\.google\.com|drive\.google\.com)/i.test(text)) {
+      deduped.push({ kind: "tool", tool: "organize_sources", args: { message: text, apply: true } })
+    }
+    return deduped.slice(0, 3)
+  }
+  const single = plan(message)
+  if (single.kind === "capture") return [single]
+  // Compound: primary + organize_sources if link present and not already organize
+  if (
+    (single as any).tool !== "organize_sources" &&
+    (/(?:docs\.google\.com|drive\.google\.com)/i.test(text) || /(?:organize|handle|process).*sheet|doc|tasks?/i.test(text.toLowerCase()))
+  ) {
+    return [single, { kind: "tool", tool: "organize_sources", args: { message: text, apply: true } }]
+  }
+  return [single]
+}
+
 export async function handle(
   message: string,
   { db, ctx }: { db: TenantDb; ctx: DomainContext }
 ): Promise<AssistantTurn> {
   const agentCtx: DomainContext = { ...ctx, actorType: "AGENT", agent: "assistant" }
-  const intent = plan(message)
+  const intents = planAll(message)
 
-  if (intent.kind === "capture") {
+  // If single capture, keep original capture flow
+  if (intents.length === 1 && intents[0].kind === "capture") {
     const item = await captureAndProcess(db, agentCtx, {
       rawText: message,
       kind: "TEXT",
     })
-
     const proposal = item.proposal as { tasks?: unknown[]; questions?: string[] } | null
     const count = proposal?.tasks?.length ?? 0
-
     return {
       reply:
         count > 0
@@ -397,45 +567,38 @@ export async function handle(
     }
   }
 
-  let args = intent.kind === "resolve_then" ? { ...intent.args } : intent.args
+  const calls: Array<{ tool: string; args: unknown; outcome: ToolOutcome }> = []
+  const replies: string[] = []
 
-  if (intent.kind === "resolve_then") {
-    const resolved = await resolveTask(db, intent.phrase)
-
-    if (resolved.kind === "none") {
-      return {
-        reply: `I couldn't find an open task matching "${intent.phrase}".`,
-        calls: [],
+  for (const intent of intents) {
+    let args = intent.kind === "resolve_then" ? { ...intent.args } : (intent as { kind: "tool"; tool: string; args: Record<string, unknown> }).args
+    if (intent.kind === "resolve_then") {
+      const resolved = await resolveTask(db, (intent as { kind: "resolve_then"; phrase: string; args: Record<string, unknown> }).phrase)
+      if (resolved.kind === "none") {
+        replies.push(`I couldn't find an open task matching "${(intent as any).phrase}".`)
+        continue
       }
-    }
-
-    if (resolved.kind === "many") {
-      return {
-        reply: `Which one did you mean? ${resolved.options
-          .map((task) => `"${task.title}"`)
-          .join(", ")}`,
-        calls: [],
+      if (resolved.kind === "many") {
+        replies.push(`Which one did you mean? ${resolved.options.map((t) => `"${t.title}"`).join(", ")}`)
+        continue
       }
+      args = { ...args, taskId: resolved.task.id }
     }
-
-    args = { ...args, taskId: resolved.task.id }
-  }
-
-  const outcome = await executeTool(intent.tool, args, { db, ctx: agentCtx })
-  const calls = [{ tool: intent.tool, args, outcome }]
-
-  if (outcome.status === "ERROR") {
-    return { reply: `That didn't work: ${outcome.error}`, calls }
-  }
-
-  if (outcome.status === "NEEDS_APPROVAL") {
-    return {
-      reply: `That needs your approval first: ${outcome.reason}`,
-      calls,
+    const outcome = await executeTool((intent as any).tool, args, { db, ctx: agentCtx })
+    calls.push({ tool: (intent as any).tool, args, outcome })
+    if (outcome.status === "ERROR") {
+      replies.push(`That didn't work for ${(intent as any).tool}: ${outcome.error}`)
+      // Stop on error to avoid partial inconsistent state
+      break
     }
+    if (outcome.status === "NEEDS_APPROVAL") {
+      replies.push(`That needs your approval first: ${outcome.reason}`)
+      break
+    }
+    replies.push(describe((intent as any).tool, outcome.result, args))
   }
 
-  return { reply: describe(intent.tool, outcome.result, args), calls }
+  return { reply: replies.join("\n\n"), calls }
 }
 
 function describe(tool: string, result: unknown, args: unknown): string {
@@ -458,6 +621,18 @@ function describe(tool: string, result: unknown, args: unknown): string {
         .slice(0, 5)
         .map((task) => `"${task.title}"`)
         .join(", ")}`
+    }
+
+    case "search_all": {
+      const hits = result as Array<{ title: string; entityType: string }>
+      if (!hits || hits.length === 0) return "Nothing related found."
+      const byType = new Map<string, number>()
+      for (const h of hits) byType.set(h.entityType, (byType.get(h.entityType) ?? 0) + 1)
+      const summary = [...byType.entries()].map(([t, c]) => `${c} ${t.toLowerCase()}`).join(", ")
+      return `${hits.length} related: ${hits
+        .slice(0, 5)
+        .map((h) => `"${h.title}" (${h.entityType})`)
+        .join(", ")} — ${summary}`
     }
 
     case "create_task": {
@@ -507,6 +682,54 @@ function describe(tool: string, result: unknown, args: unknown): string {
     case "pause_subscription": {
       const r = result as { name?: string; id: string }
       return tool === "cancel_subscription" || tool === "pause_subscription" ? "Subscription cancelled." : `Updated "${r.name ?? r.id}".`
+    }
+
+    case "ensure_commitment": {
+      const r = result as { organization: { name: string }; brand: { name: string } | null; commitment: { title: string; isNew: boolean } }
+      return r.commitment.isNew
+        ? `Created commitment "${r.commitment.title}" for ${r.organization.name}${r.brand ? ` → ${r.brand.name}` : ""} — weekly tasks + reminders configured.`
+        : `Already tracking "${r.commitment.title}" for ${r.organization.name}.`
+    }
+
+    case "create_commitment": {
+      const r = result as { title: string; isNew: boolean }
+      return r.isNew ? `Created commitment "${r.title}".` : `Updated commitment "${r.title}".`
+    }
+
+    case "create_organization":
+    case "search_organizations": {
+      const r = result as { name?: string; organizations?: Array<{ name: string }> }
+      if ((r as any).organizations) return `${(r as any).organizations.length} clients found.`
+      return `Added client "${(r as any).name ?? (r as any).title ?? "client"}".`
+    }
+
+    case "create_brand":
+      return `Added brand "${(result as any).name}".`
+    case "search_brands": {
+      const rows = result as Array<{ name: string }>
+      return rows.length ? `${rows.length} brands: ${rows.slice(0, 5).map((b) => `"${b.name}"`).join(", ")}` : "No brands found."
+    }
+    case "search_commitments": {
+      const rows = result as Array<{ title: string }>
+      return rows.length ? `${rows.length} commitments: ${rows.slice(0, 5).map((c) => `"${c.title}"`).join(", ")}` : "No commitments found."
+    }
+    case "create_invoice": {
+      const r = result as { id: string; amountMinor: number }
+      return `Created invoice ${r.id.slice(0, 8)} — ₹${(r.amountMinor / 100).toFixed(2)}.`
+    }
+    case "search_invoices": {
+      const rows = result as Array<{ title: string }>
+      return rows.length ? `${rows.length} invoices: ${rows.slice(0, 5).map((i) => `"${i.title}"`).join(", ")}` : "No invoices found."
+    }
+
+    case "update_settings": {
+      const r = result as { settings?: Record<string, unknown> }
+      if (r.settings) return `Updated settings: ${Object.entries(r.settings as Record<string, string>).slice(0, 3).map(([k, v]) => `${k}=${v}`).join(", ")}`
+      return "Settings updated."
+    }
+    case "get_settings": {
+      const s = result as Record<string, string>
+      return `Settings — timezone ${s.timezone}, currency ${s.currency}, theme ${s.theme}, density ${s.density}, model ${s.selectedModel}`
     }
 
     default:

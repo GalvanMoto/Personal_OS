@@ -188,6 +188,170 @@ export const createProjectDef = toolDefinition({
   outputSchema: z.object({ id: z.string(), name: z.string(), slug: z.string() }),
 })
 
+export const createOrganizationDef = toolDefinition({
+  name: "create_organization",
+  description: "Add a client, vendor or partner.",
+  inputSchema: z.object({
+    name: z.string().min(1).max(120),
+    kind: z.enum(["CLIENT", "VENDOR", "PARTNER", "EMPLOYER", "OTHER"]).default("CLIENT"),
+  }),
+  outputSchema: z.object({ id: z.string(), name: z.string(), slug: z.string() }),
+})
+
+export const searchOrganizationsDef = toolDefinition({
+  name: "search_organizations",
+  description: "Search clients/vendors by name.",
+  inputSchema: z.object({
+    query: z.string().optional(),
+    kind: z.enum(["CLIENT", "VENDOR", "PARTNER", "EMPLOYER", "OTHER"]).optional(),
+    limit: z.number().int().min(1).max(50).default(20),
+  }),
+  outputSchema: z.object({
+    organizations: z.array(z.object({ id: z.string(), name: z.string(), slug: z.string(), kind: z.string() })),
+  }),
+})
+
+export const createBrandDef = toolDefinition({
+  name: "create_brand",
+  description: "Create a brand/account under a client (e.g. WOW Indian under Karna Kreative).",
+  inputSchema: z.object({
+    organizationId: z.string().min(1),
+    name: z.string().min(1).max(120),
+    website: z.string().optional(),
+    industry: z.string().max(60).optional(),
+    color: z.string().max(20).optional(),
+    notes: z.string().max(1000).optional(),
+  }),
+  outputSchema: z.object({ id: z.string(), name: z.string(), slug: z.string(), organizationId: z.string() }),
+})
+
+export const searchBrandsDef = toolDefinition({
+  name: "search_brands",
+  description: "Search brands/accounts by name or organization.",
+  inputSchema: z.object({
+    query: z.string().optional(),
+    organizationId: z.string().optional(),
+    limit: z.number().int().min(1).max(50).default(20),
+  }),
+  outputSchema: z.object({
+    brands: z.array(z.object({ id: z.string(), name: z.string(), slug: z.string(), organizationId: z.string() }).passthrough()),
+  }),
+})
+
+export const createCommitmentDef = toolDefinition({
+  name: "create_commitment",
+  description: "Create a recurring commitment (e.g. 3 reels every week for WOW Indian). Auto-generates tasks.",
+  inputSchema: z.object({
+    organizationId: z.string().min(1),
+    brandId: z.string().optional(),
+    title: z.string().min(1).max(200),
+    deliverableType: z.enum(["REEL", "POST", "SHORT", "STORY", "REPORT", "DESIGN", "NEWSLETTER", "CUSTOM"]).default("REEL"),
+    quantity: z.number().int().min(1).max(100).default(1),
+    frequency: z.enum(["WEEKLY", "BIWEEKLY", "MONTHLY", "QUARTERLY"]).default("WEEKLY"),
+    dueDayOfWeek: z.number().int().min(0).max(6).default(5),
+    estimatedMinutes: z.number().int().min(5).max(480).default(45),
+    priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("HIGH"),
+    description: z.string().max(1000).optional(),
+  }),
+  outputSchema: z.object({ id: z.string(), title: z.string(), frequency: z.string(), quantity: z.number(), isNew: z.boolean() }),
+})
+
+export const searchCommitmentsDef = toolDefinition({
+  name: "search_commitments",
+  description: "Search recurring commitments by client/brand/title.",
+  inputSchema: z.object({
+    query: z.string().optional(),
+    organizationId: z.string().optional(),
+    limit: z.number().int().min(1).max(50).default(20),
+  }),
+  outputSchema: z.object({
+    commitments: z.array(z.object({ id: z.string(), title: z.string(), frequency: z.string(), quantity: z.number() }).passthrough()),
+  }),
+})
+
+export const ensureCommitmentDef = toolDefinition({
+  name: "ensure_commitment",
+  description: "Ensure Client → Brand → Recurring Commitment chain exists (idempotent). Use for 'Karna sends 3 reels every week for WOW Indian'.",
+  inputSchema: z.object({
+    clientName: z.string().min(1).max(120),
+    brandName: z.string().max(120).optional(),
+    title: z.string().min(1).max(200).default("Reels"),
+    deliverableType: z.enum(["REEL", "POST", "SHORT", "STORY", "REPORT", "DESIGN", "NEWSLETTER", "CUSTOM"]).default("REEL"),
+    quantity: z.number().int().min(1).max(100).default(1),
+    frequency: z.enum(["WEEKLY", "BIWEEKLY", "MONTHLY", "QUARTERLY"]).default("WEEKLY"),
+    dueDayOfWeek: z.number().int().min(0).max(6).default(5),
+  }),
+  outputSchema: z.object({
+    organization: z.object({ id: z.string(), name: z.string() }),
+    brand: z.object({ id: z.string(), name: z.string() }).nullable(),
+    commitment: z.object({ id: z.string(), title: z.string(), isNew: z.boolean() }),
+  }),
+})
+
+export const createInvoiceDef = toolDefinition({
+  name: "create_invoice",
+  description: "Create an invoice/financial obligation linked to a client.",
+  inputSchema: z.object({
+    organizationId: z.string().optional(),
+    clientName: z.string().max(120).optional(),
+    title: z.string().min(1).max(200),
+    amountMinor: z.number().int().min(0),
+    currency: z.string().max(10).default("INR"),
+    direction: z.enum(["DEBIT", "CREDIT"]).default("DEBIT"),
+    occurredAt: z.string().datetime(),
+    dueAt: z.string().datetime().optional(),
+    invoiceUrl: z.string().url().optional(),
+  }),
+  outputSchema: z.object({ id: z.string(), amountMinor: z.number(), currency: z.string() }),
+})
+
+export const searchInvoicesDef = toolDefinition({
+  name: "search_invoices",
+  description: "Search invoices/receipts (transactions). Use for 'what invoices are overdue?'",
+  inputSchema: z.object({
+    query: z.string().optional(),
+    direction: z.enum(["DEBIT", "CREDIT"]).optional(),
+    limit: z.number().int().min(1).max(50).default(20),
+  }),
+  outputSchema: z.object({
+    invoices: z.array(z.object({ id: z.string(), title: z.string(), amountMinor: z.number(), currency: z.string() }).passthrough()),
+  }),
+})
+
+export const updateSettingsDef = toolDefinition({
+  name: "update_settings",
+  description: "Update workspace settings (timezone, currency, theme, density, ai model, sound). Universal Settings control plane.",
+  inputSchema: z.object({
+    displayName: z.string().max(80).optional(),
+    timezone: z.string().max(80).optional(),
+    currency: z.string().max(20).optional(),
+    dateFormat: z.string().max(20).optional(),
+    landingPage: z.string().max(60).optional(),
+    accent: z.string().max(20).optional(),
+    density: z.enum(["comfortable", "compact"]).optional(),
+    theme: z.enum(["dark", "light", "system"]).optional(),
+    selectedModel: z.string().max(80).optional(),
+    soundEnabled: z.boolean().optional(),
+    quietHoursEnabled: z.boolean().optional(),
+  }),
+  outputSchema: z.object({ settings: z.unknown(), user: z.unknown().nullable().optional() }),
+})
+
+export const getSettingsDef = toolDefinition({
+  name: "get_settings",
+  description: "Read current workspace settings.",
+  inputSchema: z.object({}),
+  outputSchema: z.object({
+    timezone: z.string(),
+    currency: z.string(),
+    dateFormat: z.string(),
+    landingPage: z.string(),
+    accent: z.string(),
+    density: z.string(),
+    theme: z.string(),
+  }).passthrough(),
+})
+
 // ---------------------------------------------------------------------------
 // Finance — read-only, and pre-formatted so the model never does arithmetic
 // ---------------------------------------------------------------------------
@@ -365,6 +529,242 @@ export const updateTaskDef = toolDefinition({
     waitingOn: z.string().max(300).nullable().optional(),
   }),
   outputSchema: z.object({ id: z.string(), status: z.string() }),
+})
+
+export const completeTaskDef = toolDefinition({
+  name: "complete_task",
+  description: "Mark a task as done. Idempotent.",
+  inputSchema: z.object({ taskId: z.string().min(1) }),
+  outputSchema: z.object({ id: z.string(), status: z.string(), title: z.string() }),
+})
+
+export const deleteTaskDef = toolDefinition({
+  name: "delete_task",
+  description: "Delete a task and its checklist. Requires approval.",
+  inputSchema: z.object({ taskId: z.string().min(1) }),
+  outputSchema: z.object({ deleted: z.string(), title: z.string() }),
+  needsApproval: true,
+})
+
+export const getProjectContextDef = toolDefinition({
+  name: "get_project_context",
+  description: "Project context: milestone, deliverables velocity, progress, client, tasks.",
+  inputSchema: z.object({
+    projectId: z.string().optional(),
+    slug: z.string().optional(),
+    query: z.string().optional(),
+  }),
+  outputSchema: z.object({
+    id: z.string().optional(),
+    name: z.string().optional(),
+    slug: z.string().optional(),
+    status: z.string().optional(),
+    progress: z.number().optional(),
+  }).passthrough(),
+})
+
+// ---------------------------------------------------------------------------
+// Calendar — two-way sync
+// ---------------------------------------------------------------------------
+
+export const searchCalendarDef = toolDefinition({
+  name: "search_calendar",
+  description: "Search calendar events by text or time window.",
+  inputSchema: z.object({
+    query: z.string().optional(),
+    from: z.string().datetime().optional(),
+    to: z.string().datetime().optional(),
+    limit: z.number().int().min(1).max(50).default(20),
+  }),
+  outputSchema: z.object({
+    events: z.array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        location: z.string().nullable().optional(),
+        startsAt: z.string(),
+        endsAt: z.string(),
+        allDay: z.boolean(),
+      }),
+    ),
+  }),
+})
+
+export const createCalendarEventDef = toolDefinition({
+  name: "create_calendar_event",
+  description: "Create a calendar event / meeting, optionally linked to a project.",
+  inputSchema: z.object({
+    title: z.string().min(1).max(200),
+    description: z.string().max(2000).optional(),
+    location: z.string().max(500).optional(),
+    startsAt: z.string().datetime(),
+    endsAt: z.string().datetime(),
+    allDay: z.boolean().default(false),
+    projectId: z.string().optional(),
+  }),
+  outputSchema: z.object({ id: z.string(), title: z.string(), startsAt: z.string() }),
+})
+
+export const updateCalendarEventDef = toolDefinition({
+  name: "update_calendar_event",
+  description: "Update a calendar event's time, title, or location.",
+  inputSchema: z.object({
+    id: z.string().min(1),
+    title: z.string().max(200).optional(),
+    location: z.string().max(500).nullable().optional(),
+    startsAt: z.string().datetime().optional(),
+    endsAt: z.string().datetime().optional(),
+    allDay: z.boolean().optional(),
+  }),
+  outputSchema: z.object({ id: z.string(), title: z.string() }),
+})
+
+// ---------------------------------------------------------------------------
+// Drive / Files / Documents
+// ---------------------------------------------------------------------------
+
+export const searchDriveDef = toolDefinition({
+  name: "search_drive",
+  description: "Search Drive files and local FileObjects by name or mimeType.",
+  inputSchema: z.object({
+    query: z.string().optional(),
+    mimeType: z.string().optional(),
+    limit: z.number().int().min(1).max(50).default(20),
+  }),
+  outputSchema: z.object({
+    files: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        mimeType: z.string(),
+        sizeBytes: z.number().nullable().optional(),
+        createdAt: z.string(),
+        sourceType: z.string().optional(),
+      }),
+    ),
+  }),
+})
+
+export const getDriveFileDef = toolDefinition({
+  name: "get_drive_file",
+  description: "Get a single file's metadata and storage pointer.",
+  inputSchema: z.object({ fileId: z.string().min(1) }),
+  outputSchema: z.object({
+    id: z.string(),
+    name: z.string(),
+    mimeType: z.string(),
+    sizeBytes: z.number(),
+    storageKey: z.string(),
+    createdAt: z.string(),
+  }).passthrough(),
+})
+
+export const searchDocumentsDef = toolDefinition({
+  name: "search_documents",
+  description: "Search documents (parsed PDFs, briefs) by title or content.",
+  inputSchema: z.object({
+    query: z.string().optional(),
+    limit: z.number().int().min(1).max(50).default(20),
+  }),
+  outputSchema: z.object({
+    documents: z.array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        summary: z.string().nullable().optional(),
+        fileId: z.string().nullable().optional(),
+        createdAt: z.string().optional(),
+      }),
+    ),
+  }),
+})
+
+export const searchAllDef = toolDefinition({
+  name: "search_all",
+  description:
+    "Universal resolver: find everything related to a name across tasks, projects, clients, files, documents, subscriptions via SearchDocument index.",
+  inputSchema: z.object({
+    query: z.string().min(1).max(200),
+    limit: z.number().int().min(1).max(50).default(20),
+  }),
+  outputSchema: z.object({
+    hits: z.array(
+      z.object({
+        entityType: z.string(),
+        entityId: z.string(),
+        title: z.string(),
+        href: z.string().nullable(),
+        score: z.number(),
+      }),
+    ),
+  }),
+})
+
+export const createNotificationDef = toolDefinition({
+  name: "create_notification",
+  description: "Create a central notification via Notification Engine.",
+  inputSchema: z.object({
+    title: z.string().min(1).max(200),
+    body: z.string().max(2000).optional(),
+    level: z.enum(["INFO", "REMINDER", "IMPORTANT", "URGENT", "APPROVAL_REQUIRED"]).default("INFO"),
+    href: z.string().max(500).optional(),
+  }),
+  outputSchema: z.object({ id: z.string(), title: z.string() }),
+})
+
+// Planning aliases
+
+export const getContextPackDef = toolDefinition({
+  name: "get_context_pack",
+  description: "Alias for get_task_context — everything needed to do a task.",
+  inputSchema: z.object({ taskId: z.string().min(1) }),
+  outputSchema: z.object({ pack: z.unknown().nullable() }),
+})
+
+export const recommendNextActionDef = toolDefinition({
+  name: "recommend_next_action",
+  description: "Alias for next_best_action.",
+  inputSchema: z.object({}),
+  outputSchema: z
+    .object({
+      id: z.string(),
+      title: z.string(),
+      score: z.number(),
+      reasons: z.array(z.string()),
+    })
+    .nullable(),
+})
+
+export const explainClaimDef = toolDefinition({
+  name: "explain_claim",
+  description: "Alias for explain_value.",
+  inputSchema: z.object({
+    entityType: z.enum(["TASK", "PROJECT", "ORGANIZATION"]),
+    entityId: z.string().min(1),
+  }),
+  outputSchema: z.object({
+    records: z.array(
+      z.object({
+        field: z.string().nullable(),
+        kind: z.string(),
+        confidence: z.number().nullable(),
+        source: z.string(),
+        evidence: z.string().nullable(),
+      }),
+    ),
+  }),
+})
+
+export const searchDocumentDef = toolDefinition({
+  name: "search_document",
+  description: "Alias for search_documents.",
+  inputSchema: z.object({
+    query: z.string().optional(),
+    limit: z.number().int().min(1).max(50).default(20),
+  }),
+  outputSchema: z.object({
+    documents: z.array(z.object({ id: z.string(), title: z.string() }).passthrough()),
+  }),
 })
 
 // ---------------------------------------------------------------------------

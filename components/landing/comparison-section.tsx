@@ -1,91 +1,84 @@
 "use client"
 
-import * as React from "react"
-import { Check, X, Sparkles, Zap, Shield, ArrowRight } from "lucide-react"
+import { Check, X, Shield, Lock, Cpu, Server, Database } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
+
+const comparisonItems = [
+  {
+    feature: "Data Sovereignty & Privacy",
+    traditional: "Data stored in vendor cloud, mined for corporate telemetry, vendor lock-in.",
+    dlrs: "100% Open Source & Self-Hostable. Your PostgreSQL, your files, AES-256 encrypted vault.",
+  },
+  {
+    feature: "Universal Assistant Control",
+    traditional: "Siloed chatbots that only search text or suggest grammar. No action capability.",
+    dlrs: "Universal Control Plane: Assistant creates subscriptions, tasks, invoices, reminders across all modules.",
+  },
+  {
+    feature: "AI Model Choice",
+    traditional: "Forced vendor models with monthly recurring markups and telemetry.",
+    dlrs: "Bring your own LLM: Local Ollama / vLLM for offline privacy, or Azure / Anthropic / OpenAI.",
+  },
+  {
+    feature: "Input Overhead",
+    traditional: "Manual clicking, filling 10 fields, picking tags, setting dates by hand.",
+    dlrs: "Drop raw screenshots, voice memos, or forward emails. Multi-agent pipeline structures everything.",
+  },
+  {
+    feature: "Financial & Ledger Math",
+    traditional: "Disjointed third-party spreadsheets or SaaS with floating-point errors.",
+    dlrs: "In-memory bank statement decryption + paise/cents integer minor unit precision.",
+  },
+  {
+    feature: "Subscription Pricing",
+    traditional: "$20-$45/user/month forever. Costs balloon with team size.",
+    dlrs: "Free & Open Source under MIT. Run on your own VPS or local machine with 0 licensing fees.",
+  },
+]
 
 export function ComparisonSection() {
-  const comparisonItems = [
-    {
-      feature: "Task Creation Workflow",
-      traditional: "Manual clicking, typing descriptions, picking tags, setting dates in 10 fields",
-      dlrs: "Drop raw screenshot, forward email, or send voice note. Extracted in seconds."
-    },
-    {
-      feature: "Asset & File Discovery",
-      traditional: "Search through 100 Google Drive links, emails, and WhatsApp chats yourself",
-      dlrs: "Automatically links logos, drive folders, brand guidelines, and reference files."
-    },
-    {
-      feature: "Daily Prioritization",
-      traditional: "You must browse overdue lists and manually plan your morning",
-      dlrs: "Proactive morning standup with prioritized tasks and focus suggestions."
-    },
-    {
-      feature: "Execution Environment",
-      traditional: "Just a checkbox. You have to open 6 different apps and browser tabs to work",
-      dlrs: "1-Click Focus Cockpit bundling all instructions, assets, links, and sub-progress."
-    },
-    {
-      feature: "Financial & Receipt Tracking",
-      traditional: "Manual expense logging or disjointed spreadsheets",
-      dlrs: "Auto-reads statements, decrypts PDFs, and tracks subscription renewal radar."
-    },
-    {
-      feature: "Platform Friction",
-      traditional: "Heavy desktop web app that is annoying to update on mobile",
-      dlrs: "PWA + Telegram Bot integration for frictionless instant mobile dumps."
-    }
-  ]
-
   return (
-    <section id="comparison" className="py-20 md:py-32 relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-          <Badge variant="outline" className="px-3 py-1 text-xs font-semibold bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-            The Paradigm Shift
+    <section id="comparison" className="py-16 sm:py-24 border-b border-zinc-800 bg-[#09090b] text-[#f4f4f5] relative">
+      <div className="mx-auto max-w-[1831px] px-6 sm:px-10 lg:px-16">
+        <div className="max-w-3xl mx-auto text-center space-y-3 mb-12">
+          <Badge variant="outline" className="font-mono text-xs gap-1.5 px-3 py-1 border-[#6FFF00]/30 text-[#6FFF00] bg-[#6FFF00]/10">
+            <Server className="size-3.5" /> Open Source vs Closed Cloud
           </Badge>
-          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground">
-            Why traditional productivity apps fail you
+          <h2 className="font-grotesk text-3xl sm:text-4xl lg:text-5xl uppercase tracking-tight text-[#f4f4f5]">
+            Why Own Your Personal OS?
           </h2>
-          <p className="text-base sm:text-lg text-muted-foreground">
-            Other apps turn you into a data-entry clerk for your own life. DLRS removes the chore of task management completely.
+          <p className="text-zinc-400 text-sm sm:text-base font-mono leading-relaxed">
+            Closed-source SaaS turns you into a paying data-entry clerk. Personal OS gives you complete ownership and autonomous execution.
           </p>
         </div>
 
-        {/* Comparison Table */}
-        <div className="max-w-5xl mx-auto overflow-hidden rounded-2xl border border-border bg-card/90 shadow-xl backdrop-blur-md">
-          <div className="grid grid-cols-3 border-b border-border bg-muted/40 p-4 text-xs font-bold uppercase tracking-wider">
-            <div className="text-muted-foreground">Workflow</div>
-            <div className="text-rose-400 hidden md:block">Traditional Tools</div>
-            <div className="text-emerald-400 items-center gap-1.5 hidden md:flex">
-              <Sparkles className="size-3.5 text-emerald-400" />
-              <span>Personal OS</span>
-            </div>
+        <div className="max-w-5xl mx-auto overflow-hidden rounded-[32px] border border-zinc-800 liquid-glass-card shadow-2xl">
+          {/* Header */}
+          <div className="hidden md:grid grid-cols-[1.1fr_1fr_1.1fr] gap-4 px-7 py-5 border-b border-zinc-800 bg-zinc-950/70 text-xs font-grotesk tracking-wider uppercase">
+            <span className="text-zinc-400">Architectural Dimension</span>
+            <span className="text-zinc-400">Closed Cloud SaaS</span>
+            <span className="text-[#6FFF00] font-bold">Personal OS (Open Source)</span>
           </div>
 
-          <div className="divide-y divide-border/60">
-            {comparisonItems.map((item, idx) => (
-              <div key={idx} className="grid grid-cols-1 md:grid-cols-3 p-4 gap-3 items-start hover:bg-muted/30 transition-colors">
-                <div>
-                  <h4 className="font-bold text-sm text-foreground">{item.feature}</h4>
+          {/* Rows */}
+          <div className="divide-y divide-zinc-800/80">
+            {comparisonItems.map((item, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-1 md:grid-cols-[1.1fr_1fr_1.1fr] gap-3 md:gap-4 p-5 md:px-7 md:py-5 hover:bg-white/5 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-grotesk uppercase text-sm text-[#f4f4f5]">{item.feature}</span>
                 </div>
 
-                {/* Traditional */}
-                <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                  <div className="size-5 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0 mt-0.5">
-                    <X className="size-3" />
-                  </div>
+                <div className="flex items-start gap-2 text-xs font-mono text-zinc-400 bg-zinc-950/60 md:bg-transparent p-3 md:p-0 rounded-xl border md:border-0 border-zinc-800">
+                  <X className="size-4 text-red-400 shrink-0 mt-0.5" />
                   <span className="leading-relaxed">{item.traditional}</span>
                 </div>
 
-                {/* DLRS */}
-                <div className="flex items-start gap-2 text-xs text-foreground font-medium bg-emerald-500/5 md:bg-transparent p-2.5 md:p-0 rounded-lg">
-                  <div className="size-5 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 mt-0.5">
-                    <Check className="size-3" />
-                  </div>
-                  <span className="leading-relaxed text-emerald-600 dark:text-emerald-400">{item.dlrs}</span>
+                <div className="flex items-start gap-2 text-xs font-mono text-zinc-200 bg-[#6FFF00]/5 md:bg-transparent p-3 md:p-0 rounded-xl border md:border-0 border-[#6FFF00]/20">
+                  <Check className="size-4 text-[#6FFF00] shrink-0 mt-0.5" />
+                  <span className="font-medium leading-relaxed">{item.dlrs}</span>
                 </div>
               </div>
             ))}

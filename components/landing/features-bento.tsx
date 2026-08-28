@@ -1,184 +1,172 @@
 "use client"
 
-import * as React from "react"
 import {
   Inbox,
-  Sparkles,
-  Layers,
-  FolderSearch,
   Bot,
+  FolderGit2,
   Receipt,
-  Smartphone,
+  Mail,
   ShieldCheck,
   Zap,
-  ArrowUpRight,
+  Sparkles,
   Clock,
-  Compass,
-  FileCheck2,
-  Lock,
   Cpu,
-  Cloud,
-  Mail,
-  Volume2,
-  FolderGit2,
+  Terminal,
+  Lock,
+  GitBranch,
+  Database,
+  Repeat,
 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
 export function FeaturesBento() {
   return (
-    <section id="features" className="py-20 md:py-28 relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-14 space-y-4">
-          <Badge variant="outline" className="px-3 py-1 text-xs font-semibold bg-violet-500/10 text-violet-400 border-violet-500/30">
-            System Architecture
+    <section id="features" className="py-16 sm:py-24 border-b border-zinc-800 bg-[#09090b] text-[#f4f4f5] relative overflow-hidden">
+      <div className="mx-auto max-w-[1831px] px-6 sm:px-10 lg:px-16 relative">
+        <div className="max-w-3xl mx-auto text-center space-y-3 mb-12">
+          <Badge variant="outline" className="font-mono text-xs gap-1.5 px-3 py-1 border-[#6FFF00]/30 text-[#6FFF00] bg-[#6FFF00]/10">
+            <Cpu className="size-3.5" /> Open Source Multi-Agent Architecture
           </Badge>
-          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground">
-            An Operating System for Freelancers &amp; Studios
+          <h2 className="font-grotesk text-3xl sm:text-4xl lg:text-5xl uppercase tracking-tight text-[#f4f4f5]">
+            An Operating System, Not Another Siloed App
           </h2>
-          <p className="text-base sm:text-lg text-muted-foreground">
-            Traditional tools force you to manually type, tag, and organize databases. DLRS sits between you and raw work, doing the heavy cognitive orchestration.
+          <p className="text-zinc-400 text-sm sm:text-base font-mono leading-relaxed">
+            Every module is Assistant-manageable. The Assistant is the universal control layer for tasks, finance, files,
+            subscriptions, and notifications.
           </p>
         </div>
 
-        {/* Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-5">
-          {/* Card 1: Universal Ingest */}
-          <Card className="border-border/80 bg-card/80 backdrop-blur-md relative overflow-hidden group hover:border-indigo-500/50 transition-all">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
-            <CardHeader className="pb-2">
-              <div className="size-10 rounded-xl bg-indigo-600/15 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mb-2">
-                <Inbox className="size-5" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Card 1: Universal Control Plane */}
+          <div className="liquid-glass-card rounded-[28px] p-6 relative group overflow-hidden border border-zinc-800 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="size-11 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-200 flex items-center justify-center">
+                  <Bot className="size-5.5 text-[#6FFF00]" />
+                </div>
+                <Badge variant="outline" className="text-[10px] font-mono text-zinc-300 border-zinc-700 bg-zinc-800">
+                  Core
+                </Badge>
               </div>
-              <CardTitle className="text-lg font-bold">1. Universal Multimodal Ingest</CardTitle>
-              <CardDescription className="text-xs">
-                The single entry point for all messy inputs
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                Paste screenshots, drop client PDFs, record audio voice notes, forward emails, or paste links. DLRS parses the intent without manual form fields.
+              <h3 className="font-grotesk uppercase text-lg text-[#f4f4f5]">Universal Control Plane</h3>
+              <p className="text-xs text-zinc-400 font-mono leading-relaxed">
+                One sentence creates subscriptions, links billing URLs, schedules deterministic reminders, and notifies you before due dates.
               </p>
-              <div className="flex flex-wrap gap-1.5 text-[10px] font-mono">
-                <span className="px-2 py-0.5 rounded bg-muted text-foreground border border-border">WhatsApp Clips</span>
-                <span className="px-2 py-0.5 rounded bg-muted text-foreground border border-border">PDF Proposals</span>
-                <span className="px-2 py-0.5 rounded bg-muted text-foreground border border-border">Voice Memos</span>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="mt-4 p-3 rounded-xl bg-zinc-950/80 border border-zinc-800 text-[11px] font-mono space-y-1">
+              <div className="text-[#6FFF00] font-semibold">Assistant → Universal Resolver</div>
+              <div className="text-zinc-300">“Contabo on 8th” → Sub + Reminder + Ledger</div>
+            </div>
+          </div>
 
-          {/* Card 2: Google Drive Hierarchical Tree */}
-          <Card className="border-border/80 bg-card/80 backdrop-blur-md relative overflow-hidden group hover:border-emerald-500/50 transition-all">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all pointer-events-none" />
-            <CardHeader className="pb-2">
-              <div className="size-10 rounded-xl bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mb-2">
-                <FolderGit2 className="size-5" />
+          {/* Card 2: Local & Pluggable AI Runtime */}
+          <div className="liquid-glass-card rounded-[28px] p-6 relative group overflow-hidden border border-zinc-800 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="size-11 rounded-xl bg-zinc-800 border border-zinc-700 text-[#6FFF00] flex items-center justify-center">
+                  <Terminal className="size-5.5" />
+                </div>
+                <Badge variant="outline" className="text-[10px] font-mono text-[#6FFF00] border-[#6FFF00]/30 bg-[#6FFF00]/10">
+                  Local / Cloud
+                </Badge>
               </div>
-              <CardTitle className="text-lg font-bold">2. Google Drive Hierarchy</CardTitle>
-              <CardDescription className="text-xs">
-                Automated directory sorting in your Drive
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                Uploaded files land into an organized Google Drive tree (<code className="font-mono text-[10px] text-emerald-400">Personal_OS/Studio/Briefs, Finance, Media</code>) with 1-click web links.
+              <h3 className="font-grotesk uppercase text-lg text-[#f4f4f5]">Pluggable Model Runtime</h3>
+              <p className="text-xs text-zinc-400 font-mono leading-relaxed">
+                Connect your local Ollama or vLLM instance for 100% offline privacy, or switch to Azure OpenAI, Anthropic, or Gemini with one ENV flag.
               </p>
-              <div className="p-2 rounded-lg bg-muted/50 border border-border text-[10px] font-mono text-emerald-500 flex items-center justify-between">
-                <span>📁 Personal_OS/Studio/Invoices/</span>
-                <Badge variant="outline" className="text-[9px] text-emerald-400 border-emerald-500/30">Auto Sorted</Badge>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-1.5 pt-1">
+              <span className="px-2.5 py-1 rounded-md bg-zinc-800/80 border border-zinc-700 text-[10px] font-mono text-zinc-200">Ollama</span>
+              <span className="px-2.5 py-1 rounded-md bg-zinc-800/80 border border-zinc-700 text-[10px] font-mono text-zinc-200">vLLM</span>
+              <span className="px-2.5 py-1 rounded-md bg-zinc-800/80 border border-zinc-700 text-[10px] font-mono text-zinc-200">OpenAI</span>
+              <span className="px-2.5 py-1 rounded-md bg-zinc-800/80 border border-zinc-700 text-[10px] font-mono text-zinc-200">Anthropic</span>
+            </div>
+          </div>
 
-          {/* Card 3: AI Chief-of-Staff */}
-          <Card className="border-border/80 bg-card/80 backdrop-blur-md relative overflow-hidden group hover:border-cyan-500/50 transition-all">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl group-hover:bg-cyan-500/20 transition-all pointer-events-none" />
-            <CardHeader className="pb-2">
-              <div className="size-10 rounded-xl bg-cyan-600/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mb-2">
-                <Bot className="size-5" />
+          {/* Card 3: Encrypted Vault & Privacy */}
+          <div className="liquid-glass-card rounded-[28px] p-6 relative group overflow-hidden border border-zinc-800 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="size-11 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-200 flex items-center justify-center">
+                  <Lock className="size-5.5 text-[#6FFF00]" />
+                </div>
+                <Badge variant="outline" className="text-[10px] font-mono text-zinc-300 border-zinc-700 bg-zinc-800">
+                  AES-256-GCM
+                </Badge>
               </div>
-              <CardTitle className="text-lg font-bold">3. Proactive Chief-of-Staff</CardTitle>
-              <CardDescription className="text-xs">
-                Interactive streaming widgets &amp; safe tools
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                Powered by Azure OpenAI. Renders rich KPI metric cards, time-series charts, and interactive checklists. Destructive changes pause for user confirmation.
+              <h3 className="font-grotesk uppercase text-lg text-[#f4f4f5]">Zero-Knowledge Vault</h3>
+              <p className="text-xs text-zinc-400 font-mono leading-relaxed">
+                Store bank passwords (PAN, DOB, account suffix) securely. Statements decrypt in-memory; raw passwords are never logged or exported.
               </p>
-              <div className="flex items-center gap-2 text-xs text-cyan-400 font-medium">
-                <ShieldCheck className="size-3.5" />
-                <span>3-Tier safety policy boundary</span>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="mt-4 inline-flex items-center gap-1.5 text-xs text-zinc-300 font-mono">
+              <ShieldCheck className="size-4 text-[#6FFF00]" /> Tenant-scoped &amp; local-first
+            </div>
+          </div>
 
-          {/* Card 4: Financial Ledger Engine */}
-          <Card className="border-border/80 bg-card/80 backdrop-blur-md relative overflow-hidden group hover:border-violet-500/50 transition-all">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-violet-500/10 rounded-full blur-3xl group-hover:bg-violet-500/20 transition-all pointer-events-none" />
-            <CardHeader className="pb-2">
-              <div className="size-10 rounded-xl bg-violet-600/15 border border-violet-500/30 text-violet-400 flex items-center justify-center mb-2">
-                <Receipt className="size-5" />
+          {/* Card 4: Deterministic Integer Ledger */}
+          <div className="liquid-glass-card rounded-[28px] p-6 relative group overflow-hidden border border-zinc-800 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="size-11 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-200 flex items-center justify-center">
+                  <Receipt className="size-5.5 text-[#6FFF00]" />
+                </div>
+                <Badge variant="outline" className="text-[10px] font-mono text-zinc-300 border-zinc-700 bg-zinc-800">
+                  Exact Math
+                </Badge>
               </div>
-              <CardTitle className="text-lg font-bold">4. Bank Ledger &amp; Spend Engine</CardTitle>
-              <CardDescription className="text-xs">
-                Zero float rounding errors, 100% exact math
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                Instant CSV &amp; PDF statement ingestion (SBI, HDFC, Chase). Automatically detects recurring software subscriptions, category outflows, and inflow margins.
+              <h3 className="font-grotesk uppercase text-lg text-[#f4f4f5]">Integer Ledger Engine</h3>
+              <p className="text-xs text-zinc-400 font-mono leading-relaxed">
+                Minor-unit (cents/paise) precision. Automated multi-bank parsers (HDFC, SBI, ICICI, Chase, Jio) extract and reconcile ledgers automatically.
               </p>
-              <div className="text-[10px] text-violet-400 font-medium flex items-center gap-1 font-mono">
-                <Zap className="size-3" /> Exact integer minor-unit math (Paise/Cents)
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="mt-4 inline-flex items-center gap-1 text-[11px] font-mono text-zinc-300">
+              <Zap className="size-3 text-[#6FFF00]" /> Paise / cents minor-unit arithmetic
+            </div>
+          </div>
 
-          {/* Card 5: Email Intelligence */}
-          <Card className="border-border/80 bg-card/80 backdrop-blur-md relative overflow-hidden group hover:border-pink-500/50 transition-all">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-pink-500/10 rounded-full blur-3xl group-hover:bg-pink-500/20 transition-all pointer-events-none" />
-            <CardHeader className="pb-2">
-              <div className="size-10 rounded-xl bg-pink-600/15 border border-pink-500/30 text-pink-400 flex items-center justify-center mb-2">
-                <Mail className="size-5" />
+          {/* Card 5: Universal Storage & Drive Tree */}
+          <div className="liquid-glass-card rounded-[28px] p-6 relative group overflow-hidden border border-zinc-800 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="size-11 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-200 flex items-center justify-center">
+                  <FolderGit2 className="size-5.5 text-[#6FFF00]" />
+                </div>
+                <Badge variant="outline" className="text-[10px] font-mono text-zinc-300 border-zinc-700 bg-zinc-800">
+                  Auto-Sorted
+                </Badge>
               </div>
-              <CardTitle className="text-lg font-bold">5. Multi-Mailbox Email Triage</CardTitle>
-              <CardDescription className="text-xs">
-                Connect multiple Gmail accounts seamlessly
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                Synchronizes client communication and automatically sorts invoices, client tasks, and noise. Drafts context-aware replies ready for one-click review.
+              <h3 className="font-grotesk uppercase text-lg text-[#f4f4f5]">Asset &amp; Drive Hierarchy</h3>
+              <p className="text-xs text-zinc-400 font-mono leading-relaxed">
+                Connect Google Drive or local folders. Incoming briefs, logos, and invoices are automatically filed into deterministic folders with 1-click links.
               </p>
-              <div className="text-[10px] text-pink-400 font-medium flex items-center gap-1">
-                <Sparkles className="size-3" /> Multi-account unified thread stream
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="mt-4 p-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800 text-[10px] font-mono flex items-center justify-between">
+              <span className="text-zinc-300">📁 Personal_OS/Clients/Acme/</span>
+              <span className="text-[#6FFF00] font-semibold">Synced</span>
+            </div>
+          </div>
 
-          {/* Card 6: Morning Audio Briefing */}
-          <Card className="border-border/80 bg-card/80 backdrop-blur-md relative overflow-hidden group hover:border-amber-500/50 transition-all">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl group-hover:bg-amber-500/20 transition-all pointer-events-none" />
-            <CardHeader className="pb-2">
-              <div className="size-10 rounded-xl bg-amber-600/15 border border-amber-500/30 text-amber-400 flex items-center justify-center mb-2">
-                <Volume2 className="size-5" />
+          {/* Card 6: Central Event Automation */}
+          <div className="liquid-glass-card rounded-[28px] p-6 relative group overflow-hidden border border-zinc-800 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="size-11 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-200 flex items-center justify-center">
+                  <Repeat className="size-5.5 text-[#6FFF00]" />
+                </div>
+                <Badge variant="outline" className="text-[10px] font-mono text-zinc-300 border-zinc-700 bg-zinc-800">
+                  Cross-Module
+                </Badge>
               </div>
-              <CardTitle className="text-lg font-bold">6. Morning Audio Standup</CardTitle>
-              <CardDescription className="text-xs">
-                Audio preview &amp; daily agenda readout
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                Wake up to an automated summary of overdue items, client deliverables, and scheduled focus windows. Includes Web Audio harmonic synthesizer previews.
+              <h3 className="font-grotesk uppercase text-lg text-[#f4f4f5]">Central Event Automation</h3>
+              <p className="text-xs text-zinc-400 font-mono leading-relaxed">
+                Subscriptions, invoice deadlines, task schedules, and calendar events publish to a single automation engine. No duplicate notifications.
               </p>
-              <div className="text-[10px] text-amber-400 font-medium flex items-center gap-1">
-                <Clock className="size-3" /> 8:00 AM Standup • 6:00 PM Wrap-up
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="mt-4 inline-flex items-center gap-1 text-xs text-zinc-300 font-mono">
+              <Clock className="size-3.5 text-[#6FFF00]" /> Deterministic scheduler + cron engine
+            </div>
+          </div>
         </div>
       </div>
     </section>

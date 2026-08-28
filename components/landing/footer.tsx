@@ -1,67 +1,142 @@
 "use client"
 
-import * as React from "react"
 import Link from "next/link"
-import { Sparkles, Heart } from "lucide-react"
+import { Star, Terminal, BookOpen, ShieldCheck, Heart } from "lucide-react"
 
 export function Footer() {
   return (
-    <footer className="border-t border-border/60 bg-muted/20 py-12 text-xs text-muted-foreground">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+    <footer className="border-t bg-muted/15">
+      <div className="mx-auto max-w-[--fd-layout-width] px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-10">
           {/* Brand */}
-          <div className="space-y-3 md:col-span-1">
-            <div className="flex items-center gap-2">
-              <div className="size-7 rounded-lg bg-linear-to-tr from-indigo-600 via-violet-600 to-cyan-400 flex items-center justify-center text-white shadow-xs">
-                <Sparkles className="size-3.5" />
-              </div>
-              <span className="font-bold text-base text-foreground tracking-tight">DLRS</span>
-            </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              The autonomous personal operating system that turns chaos into clear, actionable, asset-linked execution.
+          <div className="space-y-4">
+            <Link href="/" className="inline-flex items-center gap-2.5">
+              <img
+                src="/logo.png"
+                alt="Personal OS"
+                width={32}
+                height={32}
+                className="size-8 rounded-xl border border-border/80 bg-card object-contain shadow-xs"
+                suppressHydrationWarning
+              />
+              <span className="font-bold tracking-tight text-base">DLRS Personal OS</span>
+            </Link>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-sm">
+              The autonomous, open-source Personal OS for operators, creators, and freelancers. Universal AI control plane with zero vendor lock-in.
             </p>
+            <div className="flex items-center gap-2 pt-1">
+              <a
+                href="https://github.com/GalvanMoto/Personal_OS"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-border bg-card text-xs font-medium hover:bg-muted transition-colors"
+              >
+                <Star className="size-3.5 text-amber-500" />
+                <span>GitHub Repo</span>
+              </a>
+              <span className="text-[11px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/60 border">
+                MIT License
+              </span>
+            </div>
           </div>
 
-          {/* Column 1: System */}
-          <div className="space-y-2">
-            <h4 className="font-semibold text-foreground text-xs uppercase tracking-wider">Capabilities</h4>
-            <ul className="space-y-1.5">
-              <li><a href="#inbox" className="hover:text-foreground transition-colors">Universal Ingestion</a></li>
-              <li><a href="#features" className="hover:text-foreground transition-colors">Asset Discovery Engine</a></li>
-              <li><a href="#assistant" className="hover:text-foreground transition-colors">Proactive Daily Copilot</a></li>
-              <li><a href="#features" className="hover:text-foreground transition-colors">Bank &amp; Expense Radar</a></li>
+          <div className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">Architecture</h4>
+            <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
+              <li>
+                <a href="#architecture" className="hover:text-foreground hover:underline underline-offset-4">
+                  Universal Control Plane
+                </a>
+              </li>
+              <li>
+                <a href="#features" className="hover:text-foreground hover:underline underline-offset-4">
+                  Multi-Agent Core
+                </a>
+              </li>
+              <li>
+                <a href="#demo" className="hover:text-foreground hover:underline underline-offset-4">
+                  Live Extraction Pipeline
+                </a>
+              </li>
+              <li>
+                <a href="#comparison" className="hover:text-foreground hover:underline underline-offset-4">
+                  Why Open Source
+                </a>
+              </li>
             </ul>
           </div>
 
-          {/* Column 2: Ecosystem */}
-          <div className="space-y-2">
-            <h4 className="font-semibold text-foreground text-xs uppercase tracking-wider">Ecosystem</h4>
-            <ul className="space-y-1.5">
-              <li><span className="hover:text-foreground transition-colors cursor-pointer">Progressive Web App (PWA)</span></li>
-              <li><span className="hover:text-foreground transition-colors cursor-pointer">Telegram Bot Bridge</span></li>
-              <li><span className="hover:text-foreground transition-colors cursor-pointer">Google Drive Integration</span></li>
-              <li><span className="hover:text-foreground transition-colors cursor-pointer">Chrome &amp; Safari Share Extension</span></li>
+          <div className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">Self-Hosting &amp; Docs</h4>
+            <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
+              <li>
+                <a href="#quickstart" className="hover:text-foreground hover:underline underline-offset-4">
+                  Docker Deployment
+                </a>
+              </li>
+              <li>
+                <Link href="/docs/quick-start" className="hover:text-foreground hover:underline underline-offset-4">
+                  Quickstart Guide
+                </Link>
+              </li>
+              <li>
+                <Link href="/docs/architecture" className="hover:text-foreground hover:underline underline-offset-4">
+                  System Design
+                </Link>
+              </li>
+              <li>
+                <Link href="/docs/security" className="hover:text-foreground hover:underline underline-offset-4">
+                  Vault &amp; Security
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Column 3: Security & Legal */}
-          <div className="space-y-2">
-            <h4 className="font-semibold text-foreground text-xs uppercase tracking-wider">Trust &amp; Privacy</h4>
-            <ul className="space-y-1.5">
-              <li><span className="hover:text-foreground transition-colors cursor-pointer">Zero-Knowledge Storage</span></li>
-              <li><span className="hover:text-foreground transition-colors cursor-pointer">Local Decryption Engine</span></li>
-              <li><Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link></li>
-              <li><Link href="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link></li>
+          <div className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">Community &amp; Code</h4>
+            <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
+              <li>
+                <a
+                  href="https://github.com/GalvanMoto/Personal_OS"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-foreground hover:underline underline-offset-4"
+                >
+                  GitHub Repository
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://github.com/GalvanMoto/Personal_OS/issues"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-foreground hover:underline underline-offset-4"
+                >
+                  Issue Tracker
+                </a>
+              </li>
+              <li>
+                <Link href="/privacy" className="hover:text-foreground hover:underline underline-offset-4">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="hover:text-foreground hover:underline underline-offset-4">
+                  Terms of Service
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
 
-        <div className="pt-8 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p suppressHydrationWarning>© {new Date().getFullYear()} DLRS OS. Built for independent creators, builders, and operators.</p>
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1">
-              Press <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border font-mono text-[10px]">d</kbd> to toggle theme
-            </span>
+        <div className="mt-12 pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span>© {new Date().getFullYear()} Personal OS. Open source software.</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-emerald-500">100% Data Sovereignty</span>
+            <span>•</span>
+            <span className="font-mono">AES-256 Vault</span>
           </div>
         </div>
       </div>

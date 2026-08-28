@@ -219,8 +219,11 @@ export async function recall(
 export async function memoryPrompt(db: TenantDb): Promise<string> {
   const memories = await recall(db, { limit: RECALL_LIMIT })
   if (memories.length === 0) return ""
+  // Filter out settings-backed keys — they are emitted via getSettingsForAssistant to avoid duplicate employer lines
+  const filtered = memories.filter((m) => !m.key.startsWith("profile-employer-") && !m.key.startsWith("settings-"))
 
-  const lines = memories.map((m) => `- (${m.kind.toLowerCase()}) ${m.value}`)
+  const lines = filtered.map((m) => `- (${m.kind.toLowerCase()}) ${m.value}`)
+  if (lines.length === 0) return ""
 
   return [
     "What you already know about this user, from earlier conversations:",

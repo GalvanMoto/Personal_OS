@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Condiment&display=swap');
+
+/* Sleek Dark Charcoal / Grey Theme */
+.font-grotesk {
+  font-family: 'Anton', sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.font-condiment {
+  font-family: 'Condiment', cursive;
+}
+
+/* Frosted Neutral Grey Liquid Glass UI */
+.liquid-glass {
+  background: rgba(18, 18, 22, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.liquid-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.08) 25%,
+    rgba(255,255,255,0) 45%, rgba(255,255,255,0) 55%,
+    rgba(255,255,255,0.08) 75%, rgba(255,255,255,0.3) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.liquid-glass-card {
+  background: rgba(18, 18, 22, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.18);
+  position: relative;
+  overflow: hidden;
+  transition: all 250ms ease;
+}
+
+.liquid-glass-card:hover {
+  border-color: rgba(111, 255, 0, 0.45);
+  box-shadow: 0 20px 50px -15px rgba(111, 255, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+.home-card {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(18, 18, 22, 0.85);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 16px 40px -15px rgba(0, 0, 0, 0.8);
+  transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+}
+
+.home-card:hover {
+  border-color: rgba(111, 255, 0, 0.4);
+  box-shadow: 0 16px 40px -15px rgba(111, 255, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.home-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.95rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(111, 255, 0, 0.35);
+  background: rgba(111, 255, 0, 0.08);
+  backdrop-filter: blur(16px);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #f4f4f5;
+  transition: all 150ms ease;
+}
+
+.home-badge:hover {
+  border-color: rgba(111, 255, 0, 0.7);
+  background: rgba(111, 255, 0, 0.16);
+}
+
+.terminal-window {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 15, 18, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -15px rgba(0, 0, 0, 0.9);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}

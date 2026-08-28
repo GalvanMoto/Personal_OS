@@ -5,30 +5,56 @@ import type { ToolExecutionContext } from "@tanstack/ai"
 import { executeTool } from "@/lib/agents/tools"
 import {
   cancelSubscriptionDef,
+  completeTaskDef,
+  createBrandDef,
+  createCalendarEventDef,
+  createCommitmentDef,
+  createInvoiceDef,
+  createNotificationDef,
+  createOrganizationDef,
   createProjectDef,
   createReminderDef,
   createSubscriptionDef,
   createTaskDef,
+  deleteTaskDef,
+  ensureCommitmentDef,
+  explainClaimDef,
   explainValueDef,
   getAgendaDef,
+  getContextPackDef,
+  getDriveFileDef,
+  getProjectContextDef,
+  getSettingsDef,
   getSubscriptionDef,
+  getTaskContextDef,
   importBankStatementDef,
   jioBankStatementExtractorDef,
-  getTaskContextDef,
   nextBestActionDef,
   organizeSourcesDef,
   pauseSubscriptionDef,
   recallDef,
+  recommendNextActionDef,
   rememberDef,
+  searchAllDef,
+  searchBrandsDef,
+  searchCalendarDef,
+  searchCommitmentsDef,
+  searchDocumentDef,
+  searchDocumentsDef,
+  searchDriveDef,
   searchEmailsDef,
+  searchInvoicesDef,
+  searchOrganizationsDef,
   searchSubscriptionsDef,
   syncEmailsDef,
   searchTasksDef,
   sendEmailDef,
   spendingSummaryDef,
-  upcomingPaymentsDef,
+  updateCalendarEventDef,
+  updateSettingsDef,
   updateSubscriptionDef,
   updateTaskDef,
+  upcomingPaymentsDef,
 } from "@/lib/ai/agent/definitions"
 import type { AgentRuntimeContext } from "@/lib/ai/agent/runtime"
 import type { importStatementsFromEmail } from "@/lib/domain/statement-import"
@@ -346,6 +372,209 @@ export const pauseSubscription = pauseSubscriptionDef.server<AgentRuntimeContext
     (await run("pause_subscription", args, context)) as { id: string; active: boolean }
 )
 
+// --- Tasks — complete/delete + project context --------------------------------
+
+export const completeTask = completeTaskDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("complete_task", args, context)) as { id: string; status: string; title: string }
+)
+
+export const deleteTask = deleteTaskDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("delete_task", args, context, { preApproved: true })) as { deleted: string; title: string }
+)
+
+export const getProjectContext = getProjectContextDef.server<AgentRuntimeContext>(
+  async (args, context) => (await run("get_project_context", args, context)) as any
+)
+
+// --- Organizations / Brands / Commitments / Invoices ---------------------------
+
+export const createOrganization = createOrganizationDef.server<AgentRuntimeContext>(
+  async (args, context) => (await run("create_organization", args, context)) as { id: string; name: string; slug: string }
+)
+
+export const searchOrganizations = searchOrganizationsDef.server<AgentRuntimeContext>(
+  async (args, context) => ({
+    organizations: (await run("search_organizations", args, context)) as Array<{ id: string; name: string; slug: string; kind: string }>,
+  })
+)
+
+export const createBrand = createBrandDef.server<AgentRuntimeContext>(
+  async (args, context) => (await run("create_brand", args, context)) as { id: string; name: string; slug: string; organizationId: string }
+)
+
+export const searchBrands = searchBrandsDef.server<AgentRuntimeContext>(
+  async (args, context) => ({
+    brands: (await run("search_brands", args, context)) as Array<{ id: string; name: string; slug: string; organizationId: string }>,
+  })
+)
+
+export const createCommitment = createCommitmentDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("create_commitment", args, context)) as { id: string; title: string; frequency: string; quantity: number; isNew: boolean }
+)
+
+export const searchCommitments = searchCommitmentsDef.server<AgentRuntimeContext>(
+  async (args, context) => ({
+    commitments: (await run("search_commitments", args, context)) as Array<{ id: string; title: string; frequency: string; quantity: number }>,
+  })
+)
+
+export const ensureCommitment = ensureCommitmentDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("ensure_commitment", args, context)) as {
+      organization: { id: string; name: string }
+      brand: { id: string; name: string } | null
+      commitment: { id: string; title: string; isNew: boolean }
+    }
+)
+
+export const createInvoice = createInvoiceDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("create_invoice", args, context)) as { id: string; amountMinor: number; currency: string }
+)
+
+export const searchInvoices = searchInvoicesDef.server<AgentRuntimeContext>(
+  async (args, context) => ({
+    invoices: (await run("search_invoices", args, context)) as Array<{ id: string; title: string; amountMinor: number; currency: string }>,
+  })
+)
+
+export const updateSettings = updateSettingsDef.server<AgentRuntimeContext>(
+  async (args, context) => (await run("update_settings", args, context)) as { settings: unknown; user: unknown }
+)
+
+export const getSettings = getSettingsDef.server<AgentRuntimeContext>(
+  async (_args, context) =>
+    (await run("get_settings", {}, context)) as unknown as {
+      timezone: string
+      currency: string
+      dateFormat: string
+      landingPage: string
+      accent: string
+      density: string
+      theme: string
+      [key: string]: unknown
+    }
+)
+
+// --- Calendar ----------------------------------------------------------------
+
+export const searchCalendar = searchCalendarDef.server<AgentRuntimeContext>(
+  async (args, context) => ({
+    events: (await run("search_calendar", args, context)) as Array<{
+      id: string
+      title: string
+      location: string | null
+      startsAt: string
+      endsAt: string
+      allDay: boolean
+    }>,
+  })
+)
+
+export const createCalendarEvent = createCalendarEventDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("create_calendar_event", args, context)) as { id: string; title: string; startsAt: string }
+)
+
+export const updateCalendarEvent = updateCalendarEventDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("update_calendar_event", args, context)) as { id: string; title: string }
+)
+
+// --- Drive / Files / Documents -----------------------------------------------
+
+export const searchDrive = searchDriveDef.server<AgentRuntimeContext>(
+  async (args, context) => ({
+    files: (await run("search_drive", args, context)) as Array<{
+      id: string
+      name: string
+      mimeType: string
+      sizeBytes: number | null
+      createdAt: string
+      sourceType?: string
+    }>,
+  })
+)
+
+export const getDriveFile = getDriveFileDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("get_drive_file", args, context)) as {
+      id: string
+      name: string
+      mimeType: string
+      sizeBytes: number
+      storageKey: string
+      createdAt: string
+    }
+)
+
+export const searchDocuments = searchDocumentsDef.server<AgentRuntimeContext>(
+  async (args, context) => ({
+    documents: (await run("search_documents", args, context)) as Array<{
+      id: string
+      title: string
+      summary: string | null
+      fileId: string | null
+    }>,
+  })
+)
+
+export const searchAll = searchAllDef.server<AgentRuntimeContext>(
+  async (args, context) => ({
+    hits: (await run("search_all", args, context)) as Array<{
+      entityType: string
+      entityId: string
+      title: string
+      href: string | null
+      score: number
+    }>,
+  })
+)
+
+export const createNotification = createNotificationDef.server<AgentRuntimeContext>(
+  async (args, context) =>
+    (await run("create_notification", args, context)) as { id: string; title: string }
+)
+
+// Planning aliases
+
+export const getContextPack = getContextPackDef.server<AgentRuntimeContext>(
+  async (args, context) => ({
+    pack: (await run("get_context_pack", args, context)) as unknown,
+  })
+)
+
+export const recommendNextAction = recommendNextActionDef.server<AgentRuntimeContext>(
+  async (_args, context) =>
+    (await run("recommend_next_action", {}, context)) as {
+      id: string
+      title: string
+      score: number
+      reasons: string[]
+    } | null
+)
+
+export const explainClaim = explainClaimDef.server<AgentRuntimeContext>(
+  async (args, context) => ({
+    records: (await run("explain_claim", args, context)) as Array<{
+      field: string | null
+      kind: string
+      confidence: number | null
+      source: string
+      evidence: string | null
+    }>,
+  })
+)
+
+export const searchDocument = searchDocumentDef.server<AgentRuntimeContext>(
+  async (args, context) => ({
+    documents: (await run("search_document", args, context)) as Array<{ id: string; title: string }>,
+  })
+)
+
 // --- Editing ---------------------------------------------------------------
 
 export const updateTask = updateTaskDef.server<AgentRuntimeContext>(
@@ -421,14 +650,39 @@ export const sendEmail = sendEmailDef.server<AgentRuntimeContext>(
 export const serverTools = [
   getAgenda,
   nextBestAction,
+  recommendNextAction,
   searchTasks,
   searchEmails,
   syncEmails,
   getTaskContext,
+  getContextPack,
   explainValue,
+  explainClaim,
   createTask,
+  completeTask,
+  deleteTask,
+  updateTask,
   createProject,
+  getProjectContext,
+  createOrganization,
+  searchOrganizations,
+  createBrand,
+  searchBrands,
+  createCommitment,
+  searchCommitments,
+  ensureCommitment,
+  createInvoice,
+  searchInvoices,
   createReminder,
+  createNotification,
+  searchCalendar,
+  createCalendarEvent,
+  updateCalendarEvent,
+  searchDrive,
+  getDriveFile,
+  searchDocuments,
+  searchDocument,
+  searchAll,
   spendingSummary,
   upcomingPayments,
   createSubscription,
@@ -437,7 +691,8 @@ export const serverTools = [
   updateSubscription,
   cancelSubscription,
   pauseSubscription,
-  updateTask,
+  updateSettings,
+  getSettings,
   remember,
   recall,
   importBankStatement,

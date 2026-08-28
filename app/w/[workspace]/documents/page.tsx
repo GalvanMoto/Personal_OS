@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ShareButton } from "@/components/share/share-button"
 
 export const metadata = { title: "Document Intelligence & Knowledge · Personal OS" }
 
@@ -186,6 +187,7 @@ export default async function DocumentsPage({
                           </p>
                         </div>
 
+                        <div className="flex items-center gap-2">
                         {doc.file ? (
                           <a
                             href={`/api/files/${doc.file.id}`}
@@ -197,6 +199,8 @@ export default async function DocumentsPage({
                             <span>Source File ({doc.file.name})</span>
                           </a>
                         ) : null}
+                        <ShareButton workspace={workspace} documentId={doc.id} initialToken={(doc as any).shareToken} initialPublic={(doc as any).isPublic} />
+                        </div>
                       </div>
 
                       {doc.summary ? (

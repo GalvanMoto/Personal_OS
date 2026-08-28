@@ -8,6 +8,8 @@ import { Separator } from "@/components/ui/separator"
 import { requireWorkspace } from "@/lib/auth/dal"
 import { buildContextPack } from "@/lib/domain/context"
 import { TaskDetailActions, ChecklistToggle } from "@/components/dashboard/task-detail-actions"
+import { TiptapEditor } from "@/components/ui/tiptap-editor"
+import { ShareButton } from "@/components/share/share-button"
 
 export default async function TaskDetailPage({
   params,
@@ -95,17 +97,22 @@ export default async function TaskDetailPage({
           </div>
         </div>
 
-        <TaskDetailActions
-          workspace={workspace}
-          task={{
-            id: task.id,
-            title: task.title,
-            description: task.description,
-            status: task.status,
-            priority: task.priority,
-            dueAt: task.dueAt ? new Date(task.dueAt).toISOString() : null,
-          }}
-        />
+        <div className="flex flex-col gap-2 items-end">
+          <TaskDetailActions
+            workspace={workspace}
+            task={{
+              id: task.id,
+              title: task.title,
+              description: task.description,
+              content: (task as any).content ?? null,
+              linkUrls: (task as any).linkUrls ?? [],
+              status: task.status,
+              priority: task.priority,
+              dueAt: task.dueAt ? new Date(task.dueAt).toISOString() : null,
+            }}
+          />
+          <ShareButton workspace={workspace} taskId={task.id} initialToken={(task as any).shareToken} initialPublic={(task as any).isPublic} />
+        </div>
       </div>
 
       {/* KPI Tiles */}
@@ -131,6 +138,36 @@ export default async function TaskDetailPage({
           )
         })}
       </div>
+
+      {/* Rich Notes + Links (Tiptap) — attached Sheet/Doc survives here */}
+      {(task as any).content || (task as any).linkUrls?.length ? (
+        <div className="grid gap-3 lg:grid-cols-[1.6fr_1fr]">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <FileText className="size-4 text-primary" /> Rich Notes (Tiptap) — links, lists, brief
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(task as any).content ? <TiptapEditor value={(task as any).content} editable={false} className="min-h-[80px]" /> : <p className="text-xs text-muted-foreground">No rich notes.</p>}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <ArrowUpRight className="size-4" /> Linked Sheet / Doc URLs
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-xs">
+              {(task as any).linkUrls?.length ? (task as any).linkUrls.map((u: string) => (
+                <a key={u} href={u} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded border p-2 hover:bg-muted/40 break-all">
+                  <FileText className="size-3.5 shrink-0 text-primary" /><span className="truncate">{u}</span> <ArrowUpRight className="size-3 shrink-0" />
+                </a>
+              )) : <p className="text-muted-foreground">No links attached. Paste a Google Sheet/Doc link in Edit → it becomes clickable here and is used by <code>organize_sources</code>.</p>}
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
 
       {/* Main Grid: Context Pack Execution Engine */}
       <div className="grid gap-3 lg:grid-cols-[1.6fr_1fr]">

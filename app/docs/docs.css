@@ -1,0 +1,147 @@
+/* DLRS docs overrides — Docs layout with shadcn theming
+   Uses fumadocs-ui/css/shadcn.css + preset.css from globals.css.
+   This file is the required docs.css (imported in layout.tsx).
+*/
+
+:root {
+  --fd-layout-width: 1400px;
+  --fd-sidebar-width: 268px;
+  --fd-toc-width: 240px;
+}
+
+.dark {
+  --color-fd-card: oklch(0.205 0 0);
+}
+
+/* Anchor offset for sticky header */
+.prose :where(h2, h3) {
+  scroll-margin-top: 88px;
+}
+
+/* ───────── Code blocks ─────────
+   Fixes thin per-line separators seen in screenshots.
+   Raw <pre><code> blocks were getting fumadocs/shiki line borders;
+   we reset and apply a clean card style. */
+.prose pre {
+  background: var(--card) !important;
+  background-color: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+  padding: 0.75rem 1rem !important;
+  margin: 0.75rem 0 !important;
+  overflow-x: auto !important;
+  max-width: 100%;
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  line-height: 1.6 !important;
+}
+
+.prose pre code {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace !important;
+  font-size: 0.8rem !important;
+  font-weight: 400 !important;
+  line-height: 1.6 !important;
+  color: var(--foreground) !important;
+  display: block;
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  max-width: 100%;
+}
+
+/* Remove shiki per-line borders / separators */
+.prose pre span,
+.prose pre code span,
+.prose pre div,
+.prose pre * {
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+/* Inline code (not in pre) — pill style */
+.prose :not(pre) > code {
+  background: var(--muted) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px !important;
+  padding: 0.15em 0.4em !important;
+  font-family: var(--font-mono), ui-monospace, monospace !important;
+  font-size: 0.875em !important;
+  font-weight: 500 !important;
+  color: var(--foreground) !important;
+  white-space: nowrap;
+}
+
+/* Dark mode: slightly richer code block */
+.dark .prose pre {
+  background: oklch(0.18 0 0) !important;
+  background-color: oklch(0.18 0 0) !important;
+  border-color: oklch(1 0 0 / 10%) !important;
+}
+
+/* Table polish inside docs — avoid double borders */
+.prose table {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Limit article width for readability */
+article {
+  max-width: 100%;
+  padding-top: 0.25rem;
+}
+
+/* Compact vertical rhythm — reduce large ptop gaps */
+.prose h2 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.prose h2 + * {
+  margin-top: 0.5rem !important;
+}
+.prose h3 {
+  margin-top: 1rem;
+  margin-bottom: 0.4rem;
+}
+.prose p {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.prose ul,
+.prose ol {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.prose .not-prose {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Accordion inner code — extra compact */
+.prose [data-slot="accordion-content"] pre {
+  margin: 0.35rem 0 !important;
+  padding: 0.6rem 0.9rem !important;
+  font-size: 0.78rem !important;
+  line-height: 1.55 !important;
+}
+.prose [data-slot="accordion-content"] p {
+  margin-top: 0.25rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+/* Scrollbar inside code blocks — subtle */
+.prose pre::-webkit-scrollbar {
+  height: 6px;
+}
+.prose pre::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}

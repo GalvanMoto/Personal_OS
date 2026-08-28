@@ -17,6 +17,9 @@ import type {
 export type CreateTaskInput = {
   title: string
   description?: string
+  /// Tiptap JSON (rich notes, links, lists) — stored as Json, plain text indexed
+  content?: unknown | null
+  linkUrls?: string[]
   projectId?: string
   parentId?: string
   priority?: TaskPriority
@@ -37,15 +40,46 @@ export type CreateTaskInput = {
   }
 }
 
+function sanitizeLinks(urls: unknown): string[] {
+  if (!Array.isArray(urls)) return []
+  const out: string[] = []
+  for (const u of urls) {
+    const s = String(u ?? "").trim()
+    if (!s) continue
+    // allow http(s) or drive/docs/sheets links only, deduped
+    if (/^https?:\/\//i.test(s) && s.length <= 500) {
+      if (!out.includes(s)) out.push(s)
+    }
+  }
+  return out.slice(0, 12)
+}
+
+function plainFromContent(c: unknown): string {
+  try {
+    const j: any = c
+    if (!j) return ""
+    const walk = (n: any): string => {
+      if (!n) return ""
+      if (n.type === "text") return n.text ?? ""
+      if (Array.isArray(n.content)) return n.content.map(walk).join(n.type === "paragraph" ? "\n\n" : " ")
+      return ""
+    }
+    return walk(j).trim().slice(0, 4000)
+  } catch { return "" }
+}
+
 export async function createTask(
   db: TenantDb,
   ctx: DomainContext,
   input: CreateTaskInput
 ) {
+  const links = sanitizeLinks(input.linkUrls)
   const task = await db.task.create({
     data: {
       title: input.title.trim(),
       description: input.description?.trim() || null,
+      content: (input.content as never) ?? undefined,
+      linkUrls: links.length ? links : undefined,
       projectId: input.projectId,
       parentId: input.parentId,
       priority: input.priority ?? "MEDIUM",
@@ -82,11 +116,12 @@ export async function createTask(
     })
   }
 
+  const bodyForIndex = [task.description ?? "", plainFromContent((task as any).content), ((task as any).linkUrls as string[] | undefined)?.join(" ") ?? ""].filter(Boolean).join("\n\n")
   await indexEntity(db, {
     entityType: "TASK",
     entityId: task.id,
     title: task.title,
-    body: task.description ?? "",
+    body: bodyForIndex,
     href: `/tasks/${task.id}`,
   })
 
@@ -116,6 +151,8 @@ export async function createTask(
 export type UpdateTaskInput = Partial<{
   title: string
   description: string | null
+  content: unknown | null
+  linkUrls: string[] | null
   status: TaskStatus
   priority: TaskPriority
   projectId: string | null
@@ -144,14 +181,21 @@ export async function updateTask(
     data.completedAt = patch.status === "DONE" ? new Date() : null
   }
 
+  // sanitize links if present
+  if (patch.linkUrls !== undefined && patch.linkUrls !== null) {
+    data.linkUrls = sanitizeLinks(patch.linkUrls) as never
+  }
+  if (patch.content !== undefined) data.content = patch.content as never
+
   const task = await db.task.update({ where: { id: taskId }, data: data as never })
 
-  if (patch.title !== undefined || patch.description !== undefined) {
+  if (patch.title !== undefined || patch.description !== undefined || patch.content !== undefined || patch.linkUrls !== undefined) {
+    const body = [task.description ?? "", plainFromContent((task as any).content), ((task as any).linkUrls as string[] | undefined)?.join(" ") ?? ""].filter(Boolean).join("\n\n")
     await indexEntity(db, {
       entityType: "TASK",
       entityId: task.id,
       title: task.title,
-      body: task.description ?? "",
+      body,
       href: `/tasks/${task.id}`,
     })
   }

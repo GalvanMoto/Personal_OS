@@ -58,6 +58,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 
+import type { WorkspaceSettings } from "@/lib/domain/settings"
+
 interface SettingsCenterProps {
   workspace: string
   user: {
@@ -71,6 +73,8 @@ interface SettingsCenterProps {
     drive: boolean
     calendar: boolean
   }
+  initialSettings?: WorkspaceSettings
+  initialMemories?: Array<{ id: string; fact: string; source: string; confidence: string; pinned?: boolean; key?: string }>
 }
 
 type TabKey =
@@ -135,43 +139,75 @@ function downloadFile(content: string, filename: string, mimeType: string) {
   URL.revokeObjectURL(url)
 }
 
-export function SettingsCenter({ workspace, user, integrations }: SettingsCenterProps) {
+export function SettingsCenter({ workspace, user, integrations, initialSettings, initialMemories }: SettingsCenterProps) {
   const [activeTab, setActiveTab] = React.useState<TabKey>("general")
   const [savedMessage, setSavedMessage] = React.useState<string | null>(null)
   const [emergencyLock, setEmergencyLock] = React.useState(false)
+  const [isSaving, setIsSaving] = React.useState(false)
 
   // Real theme synchronization with next-themes
   const { theme, setTheme } = useTheme()
-  const [selectedAccent, setSelectedAccent] = React.useState("emerald")
-  const [uiDensity, setUiDensity] = React.useState("comfortable")
+  const [selectedAccent, setSelectedAccent] = React.useState(initialSettings?.accent ?? "emerald")
+  const [uiDensity, setUiDensity] = React.useState(initialSettings?.density ?? "comfortable")
 
-  // Profile editable fields
-  const [displayName, setDisplayName] = React.useState(user.name)
-  const [timezone, setTimezone] = React.useState(user.timezone || "Asia/Kolkata (IST +5:30)")
-  const [currency, setCurrency] = React.useState("INR (₹)")
-  const [dateFormat, setDateFormat] = React.useState("DD/MM/YYYY")
-  const [landingPage, setLandingPage] = React.useState("Today Executive Dashboard")
+  // Profile editable fields — hydrated from persisted WorkspaceSettings (AgentMemory + User)
+  const [displayName, setDisplayName] = React.useState(initialSettings?.displayName ?? user.name)
+  const [timezone, setTimezone] = React.useState(initialSettings?.timezone ?? user.timezone ?? "Asia/Kolkata")
+  const [currency, setCurrency] = React.useState(initialSettings?.currency ?? "INR (₹)")
+  const [dateFormat, setDateFormat] = React.useState(initialSettings?.dateFormat ?? "DD/MM/YYYY")
+  const [landingPage, setLandingPage] = React.useState(initialSettings?.landingPage ?? "Today Executive Dashboard")
 
-  // AI Configuration state
-  const [selectedModel, setSelectedModel] = React.useState("azure-openai-gpt-5-4-nano")
+  // AI Configuration state — persisted via settings
+  const [selectedModel, setSelectedModel] = React.useState(initialSettings?.selectedModel ?? "azure-openai-gpt-5-4-nano")
   const [azureKey, setAzureKey] = React.useState("••••••••••••••••••••••••••••••••")
-  const [azureEndpoint, setAzureEndpoint] = React.useState("https://mmuru-mc0in4xe-eastus2.cognitiveservices.azure.com/")
-  const [azureDeployment, setAzureDeployment] = React.useState("gpt-5.4-nano")
-  const [azureApiVersion, setAzureApiVersion] = React.useState("2024-12-01-preview")
+  const [azureEndpoint, setAzureEndpoint] = React.useState(initialSettings?.azureEndpoint ?? "https://mmuru-mc0in4xe-eastus2.cognitiveservices.azure.com/")
+  const [azureDeployment, setAzureDeployment] = React.useState(initialSettings?.azureDeployment ?? "gpt-5.4-nano")
+  const [azureApiVersion, setAzureApiVersion] = React.useState(initialSettings?.azureApiVersion ?? "2024-12-01-preview")
   const [aiTestStatus, setAiTestStatus] = React.useState<"idle" | "testing" | "success" | "error">("idle")
 
-  // Notification & Audio state
-  const [soundEnabled, setSoundEnabled] = React.useState(true)
-  const [quietHoursEnabled, setQuietHoursEnabled] = React.useState(true)
+  // Notification & Audio state — persisted
+  const [soundEnabled, setSoundEnabled] = React.useState(initialSettings?.soundEnabled ?? true)
+  const [quietHoursEnabled, setQuietHoursEnabled] = React.useState(initialSettings?.quietHoursEnabled ?? true)
 
-  // Memory store
-  const [memories, setMemories] = React.useState([
-    { id: "1", fact: "Prefers client deliverable reviews by 4:00 PM", source: "Assistant Turn #12", confidence: "98%" },
-    { id: "2", fact: "GB Banquet main point of contact is Sarah Jenkins", source: "Gmail Brief Ingestion", confidence: "95%" },
-    { id: "3", fact: "Monthly software budget threshold is ₹15,000", source: "Finance Overview Interaction", confidence: "92%" },
-    { id: "4", fact: "Primary timezone is Asia/Kolkata (IST)", source: "Workspace Profile", confidence: "100%" },
-  ])
+  // Employment / CV — generic, no hardcoded company (user fills where they work)
+  const [employerCompany, setEmployerCompany] = React.useState(initialSettings?.employerCompany ?? "")
+  const [employerRole, setEmployerRole] = React.useState(initialSettings?.employerRole ?? "")
+  const [employerJoinedAt, setEmployerJoinedAt] = React.useState(initialSettings?.employerJoinedAt ?? "")
+  const [employerStatus, setEmployerStatus] = React.useState(initialSettings?.employerStatus ?? "running")
+  const [employerLeftAt, setEmployerLeftAt] = React.useState(initialSettings?.employerLeftAt ?? "")
+  const [employerType, setEmployerType] = React.useState(initialSettings?.employerType ?? "full_time")
+  const [employerWebsite, setEmployerWebsite] = React.useState(initialSettings?.employerWebsite ?? "")
+
+  // Memory store — hydrated from AgentMemory, mutations via server actions
+  const [memories, setMemories] = React.useState(
+    initialMemories && initialMemories.length > 0
+      ? initialMemories
+      : [
+          { id: "1", fact: "Prefers client deliverable reviews by 4:00 PM", source: "Assistant Turn #12", confidence: "98%" },
+          { id: "2", fact: "GB Banquet main point of contact is Sarah Jenkins", source: "Gmail Brief Ingestion", confidence: "95%" },
+          { id: "3", fact: "Monthly software budget threshold is ₹15,000", source: "Finance Overview Interaction", confidence: "92%" },
+          { id: "4", fact: "Primary timezone is Asia/Kolkata (IST)", source: "Workspace Profile", confidence: "100%" },
+        ]
+  )
   const [newMemoryText, setNewMemoryText] = React.useState("")
+
+  // Helper: persist settings patch via server action (tenant-isolated, audited via AgentMemory)
+  const persistSettings = React.useCallback(
+    async (patch: Record<string, unknown>) => {
+      setIsSaving(true)
+      try {
+        const { updateSettingsAction } = await import("@/lib/actions/settings")
+        const res = await updateSettingsAction(workspace, patch)
+        if ((res as any)?.ok) showSaved("Settings saved")
+        else showSaved((res as any)?.error ?? "Failed to save")
+      } catch (e) {
+        showSaved(e instanceof Error ? e.message : "Failed to save")
+      } finally {
+        setIsSaving(false)
+      }
+    },
+    [workspace]
+  )
 
   // Developer API Keys
   const [apiKeys, setApiKeys] = React.useState([
@@ -188,23 +224,38 @@ export function SettingsCenter({ workspace, user, integrations }: SettingsCenter
     setTimeout(() => setSavedMessage(null), 3000)
   }
 
-  const handleDeleteMemory = (id: string) => {
+  const handleDeleteMemory = async (id: string) => {
+    // Optimistic
     setMemories((prev) => prev.filter((m) => m.id !== id))
-    showSaved("Memory item removed")
+    try {
+      const { deleteMemoryAction } = await import("@/lib/actions/settings")
+      const res = await deleteMemoryAction(workspace, id)
+      if ((res as any)?.ok) showSaved("Memory item removed")
+      else showSaved((res as any)?.error ?? "Failed to remove")
+    } catch (e) {
+      showSaved(e instanceof Error ? e.message : "Failed to remove")
+    }
   }
 
-  const handleAddMemory = (e: React.FormEvent) => {
+  const handleAddMemory = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newMemoryText.trim()) return
-    const newEntry = {
-      id: String(Date.now()),
-      fact: newMemoryText.trim(),
-      source: "Manual Preference Entry",
-      confidence: "100%",
-    }
-    setMemories((prev) => [newEntry, ...prev])
+    const text = newMemoryText.trim()
     setNewMemoryText("")
-    showSaved("New memory item recorded")
+    try {
+      const { addMemoryAction } = await import("@/lib/actions/settings")
+      const res = await addMemoryAction(workspace, text)
+      if ((res as any)?.ok) {
+        const data = (res as any).data as { id: string; key: string }
+        setMemories((prev) => [{ id: data.id, fact: text, source: "Manual Preference Entry", confidence: "100%", key: data.key }, ...prev])
+        showSaved("New memory item recorded")
+      } else showSaved((res as any)?.error ?? "Failed to add")
+    } catch (err) {
+      // Fallback optimistic
+      const newEntry = { id: String(Date.now()), fact: text, source: "Manual Preference Entry", confidence: "100%" }
+      setMemories((prev) => [newEntry, ...prev])
+      showSaved(err instanceof Error ? err.message : "New memory item recorded")
+    }
   }
 
   const handleGenerateKey = () => {
@@ -421,9 +472,9 @@ export function SettingsCenter({ workspace, user, integrations }: SettingsCenter
                     return (
                       <div
                         key={page}
-                        onClick={() => {
+                        onClick={async () => {
                           setLandingPage(page)
-                          showSaved(`Startup page set to ${page}`)
+                          await persistSettings({ landingPage: page })
                         }}
                         className={`flex items-center justify-between rounded-lg border p-2.5 cursor-pointer transition-all ${
                           isSelected ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted/40"
@@ -438,8 +489,15 @@ export function SettingsCenter({ workspace, user, integrations }: SettingsCenter
               </div>
 
               <div className="flex justify-end pt-2">
-                <Button size="sm" onClick={() => showSaved("General settings saved")} className="text-xs">
-                  Save General Settings
+                <Button
+                  size="sm"
+                  disabled={isSaving}
+                  onClick={async () => {
+                    await persistSettings({ displayName, timezone, currency, dateFormat, landingPage })
+                  }}
+                  className="text-xs"
+                >
+                  {isSaving ? "Saving..." : "Save General Settings"}
                 </Button>
               </div>
             </CardContent>
@@ -471,9 +529,9 @@ export function SettingsCenter({ workspace, user, integrations }: SettingsCenter
                     return (
                       <div
                         key={t.id}
-                        onClick={() => {
+                        onClick={async () => {
                           setTheme(t.id)
-                          showSaved(`Theme set to ${t.label}`)
+                          await persistSettings({ theme: t.id })
                         }}
                         className={`flex items-center justify-between rounded-lg border p-3 cursor-pointer transition-all ${
                           isSelected ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted/40"
@@ -504,9 +562,9 @@ export function SettingsCenter({ workspace, user, integrations }: SettingsCenter
                   ].map((accent) => (
                     <button
                       key={accent.id}
-                      onClick={() => {
+                      onClick={async () => {
                         setSelectedAccent(accent.id)
-                        showSaved(`Accent changed to ${accent.label}`)
+                        await persistSettings({ accent: accent.id })
                       }}
                       className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors ${
                         selectedAccent === accent.id ? "border-primary bg-primary/10 font-medium" : "hover:bg-muted"
@@ -526,13 +584,13 @@ export function SettingsCenter({ workspace, user, integrations }: SettingsCenter
                 <div className="grid gap-2 sm:grid-cols-2">
                   {[
                     { id: "comfortable", label: "Comfortable (Standard spacing & padding)" },
-                    { id: "compact", label: "Compact (Dense tables & rows for power users)" },
+                    { id: "compact", label: "Dense tables & rows for power users" },
                   ].map((density) => (
                     <div
                       key={density.id}
-                      onClick={() => {
+                      onClick={async () => {
                         setUiDensity(density.id)
-                        showSaved(`Density set to ${density.id}`)
+                        await persistSettings({ density: density.id })
                       }}
                       className={`flex items-center justify-between rounded-lg border p-3 cursor-pointer transition-all ${
                         uiDensity === density.id ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted/40"
@@ -752,9 +810,9 @@ export function SettingsCenter({ workspace, user, integrations }: SettingsCenter
                   ].map((model) => (
                     <div
                       key={model.id}
-                      onClick={() => {
+                      onClick={async () => {
                         setSelectedModel(model.id)
-                        showSaved(`Primary AI provider switched to ${model.name}`)
+                        await persistSettings({ selectedModel: model.id })
                       }}
                       className={`flex flex-col justify-between rounded-lg border p-3 cursor-pointer transition-colors ${
                         selectedModel === model.id ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted/40"
@@ -841,8 +899,15 @@ export function SettingsCenter({ workspace, user, integrations }: SettingsCenter
                     {aiTestStatus === "testing" ? "Pinging Endpoint..." : "Test Connection & Ping"}
                   </Button>
 
-                  <Button size="sm" onClick={() => showSaved("Azure OpenAI configuration saved")} className="h-7 text-xs">
-                    Save AI Settings
+                  <Button
+                    size="sm"
+                    disabled={isSaving}
+                    onClick={async () => {
+                      await persistSettings({ azureEndpoint, azureDeployment, azureApiVersion, selectedModel })
+                    }}
+                    className="h-7 text-xs"
+                  >
+                    {isSaving ? "Saving..." : "Save AI Settings"}
                   </Button>
                 </div>
               </div>
@@ -1071,9 +1136,10 @@ export function SettingsCenter({ workspace, user, integrations }: SettingsCenter
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        setSoundEnabled(!soundEnabled)
-                        showSaved(soundEnabled ? "Audio chimes muted" : "Audio chimes enabled")
+                      onClick={async () => {
+                        const next = !soundEnabled
+                        setSoundEnabled(next)
+                        await persistSettings({ soundEnabled: next })
                       }}
                       className="h-7 text-xs"
                     >
@@ -1092,9 +1158,10 @@ export function SettingsCenter({ workspace, user, integrations }: SettingsCenter
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      setQuietHoursEnabled(!quietHoursEnabled)
-                      showSaved(quietHoursEnabled ? "Quiet hours disabled" : "Quiet hours enabled")
+                    onClick={async () => {
+                      const next = !quietHoursEnabled
+                      setQuietHoursEnabled(next)
+                      await persistSettings({ quietHoursEnabled: next })
                     }}
                     className="h-7 text-xs"
                   >
@@ -1142,8 +1209,9 @@ export function SettingsCenter({ workspace, user, integrations }: SettingsCenter
           </Card>
         ) : null}
 
-        {/* 11. WORK & PLANNING */}
+        {/* 11. WORK & PLANNING - includes generic Employment / CV */}
         {activeTab === "planning" ? (
+          <div className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -1171,6 +1239,84 @@ export function SettingsCenter({ workspace, user, integrations }: SettingsCenter
               </div>
             </CardContent>
           </Card>
+
+          {/* Employment / CV — generic, user fills where they work */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users2 className="size-4 text-primary" /> Employment &amp; CV — Where you work
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Tell the OS who you work for so it can link salary credits, org context &amp; memory. No hardcoding — this is your source of truth. Agents read it via memory &amp; linked Organization (kind EMPLOYER).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-xs">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="font-medium text-foreground">Company / Employer *</label>
+                  <Input value={employerCompany} onChange={(e) => setEmployerCompany(e.target.value)} placeholder="e.g. Acme Corp" className="h-8 text-xs" />
+                  <p className="text-[0.625rem] text-muted-foreground">Used to auto-tag CREDITs containing this name as INCOME</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-medium text-foreground">Role / Title</label>
+                  <Input value={employerRole} onChange={(e) => setEmployerRole(e.target.value)} placeholder="e.g. Product Designer" className="h-8 text-xs" />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-medium text-foreground">Joined date</label>
+                  <Input type="date" value={employerJoinedAt} onChange={(e) => setEmployerJoinedAt(e.target.value)} className="h-8 text-xs" />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-medium text-foreground">Employment type</label>
+                  <select value={employerType} onChange={(e) => setEmployerType(e.target.value)} className="h-8 w-full rounded-md border bg-background px-2 text-xs">
+                    <option value="full_time">Full-time</option>
+                    <option value="part_time">Part-time</option>
+                    <option value="contract">Contract</option>
+                    <option value="intern">Intern</option>
+                    <option value="freelance">Freelance</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-medium text-foreground">Status</label>
+                  <select value={employerStatus} onChange={(e) => setEmployerStatus(e.target.value)} className="h-8 w-full rounded-md border bg-background px-2 text-xs">
+                    <option value="running">Running — currently working</option>
+                    <option value="left">Left — no longer there</option>
+                    <option value="on_leave">On leave</option>
+                  </select>
+                </div>
+                {employerStatus === "left" ? (
+                  <div className="space-y-1">
+                    <label className="font-medium text-foreground">Left date</label>
+                    <Input type="date" value={employerLeftAt} onChange={(e) => setEmployerLeftAt(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                ) : null}
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="font-medium text-foreground">Company website (optional)</label>
+                  <Input value={employerWebsite} onChange={(e) => setEmployerWebsite(e.target.value)} placeholder="https://..." className="h-8 text-xs font-mono" />
+                </div>
+              </div>
+              {employerCompany ? (
+                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5 text-[0.6875rem] leading-relaxed space-y-1">
+                  <div><span className="font-medium text-emerald-600">Connected logic:</span> <span className="text-muted-foreground">CREDITs with “{employerCompany}” → INCOME · Org <span className="font-mono">{employerCompany}</span> (EMPLOYER) linked for Finance/Agents · Memory injected for Assistant. Change the name here and all logic follows — no code change.</span></div>
+                  <div className="text-[0.625rem] font-mono text-muted-foreground break-all">Preview: “UPI/CR/…/{employerCompany.toUpperCase()} PVT - SALARY” → <span className="text-emerald-600">INCOME</span> {employerStatus === "left" ? "· (status Left: only past CREDITs retro-tagged)" : ""}</div>
+                  {employerStatus === "left" && employerJoinedAt && employerLeftAt && new Date(employerLeftAt) < new Date(employerJoinedAt) ? (
+                    <div className="text-destructive">Left date cannot be before joined date.</div>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed p-2.5 text-[0.6875rem] text-muted-foreground">No employer set — CREDIT transactions won’t be auto-tagged as salary. Fill company name to enable.</div>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <Button size="sm" variant="outline" onClick={() => { setEmployerCompany(""); setEmployerRole(""); setEmployerJoinedAt(""); setEmployerStatus("running"); setEmployerLeftAt(""); setEmployerType("full_time"); setEmployerWebsite(""); showSaved("Cleared locally — save to persist") }} className="text-xs">Clear</Button>
+                <Button size="sm" disabled={isSaving} onClick={async () => {
+                  if (employerCompany && employerCompany.trim().length > 0 && employerCompany.trim().length < 2) { showSaved("Company name too short"); return }
+                  if (employerStatus === "left" && !employerLeftAt) { showSaved("Left date required when status is Left"); return }
+                  if (employerJoinedAt && employerLeftAt && new Date(employerLeftAt) < new Date(employerJoinedAt)) { showSaved("Left date cannot be before joined date"); return }
+                  await persistSettings({ employerCompany, employerRole, employerJoinedAt, employerStatus, employerLeftAt: employerStatus === "left" ? employerLeftAt : "", employerType, employerWebsite })
+                }} className="text-xs">{isSaving ? "Saving..." : "Save Employment"}</Button>
+              </div>
+            </CardContent>
+          </Card>
+          </div>
         ) : null}
 
         {/* 12. TASKS & WORKFLOW RULES */}

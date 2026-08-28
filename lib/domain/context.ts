@@ -17,9 +17,13 @@ export type ContextPackPayload = {
     id: string
     title: string
     description: string | null
+    content: unknown | null
+    linkUrls: string[]
     status: string
     priority: string
     dueAt: string | null
+    shareToken: string | null
+    isPublic: boolean
   }
   project: { id: string; name: string; slug: string } | null
   organization: { id: string; name: string; slug: string } | null
@@ -117,9 +121,13 @@ export async function buildContextPack(
       id: task.id,
       title: task.title,
       description: task.description,
+      content: (task as any).content ?? null,
+      linkUrls: ((task as any).linkUrls as string[]) ?? [],
       status: task.status,
       priority: task.priority,
       dueAt: task.dueAt ? (task.dueAt instanceof Date ? task.dueAt.toISOString() : String(task.dueAt)) : null,
+      shareToken: (task as any).shareToken ?? null,
+      isPublic: Boolean((task as any).isPublic),
     },
     project: task.project
       ? { id: task.project.id, name: task.project.name, slug: task.project.slug }

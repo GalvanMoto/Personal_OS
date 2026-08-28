@@ -419,6 +419,13 @@ model Task {
   position               Int          @default(0)
   /// Cached output of the planning agent's scoring pass (PRD §22).
   score                  Float?
+  /// Tiptap rich content (JSON) — links, notes,formatted brief; description kept for search compat
+  content                Json?
+  /// Attached URLs (sheet/doc/link) — deduped, tenant-scoped
+  linkUrls               String[]     @default([])
+  /// Public sharing — when isPublic true, anyone with shareToken can view via /share/:token
+  shareToken             String?      @unique
+  isPublic               Boolean      @default(false)
   createdBy              ActorType    @default(USER)
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
@@ -541,6 +548,8 @@ model Document {
   content   String?
   summary   String?
   fileId    String?
+  shareToken String?  @unique
+  isPublic   Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
