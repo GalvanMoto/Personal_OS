@@ -69,7 +69,7 @@ export default async function DashboardPage({
 
   const [briefing, plan, throughput, workload, spark, actors, payments, approvals] =
     await Promise.all([
-      buildBriefing(db, user.name, now),
+      buildBriefing(db, user.name || user.email?.split("@")[0] || "there", now),
       agenda(db, now),
       weeklyThroughput(db, 4, now),
       workloadByClient(db),

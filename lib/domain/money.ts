@@ -13,7 +13,9 @@ export type Money = {
 }
 
 export function money(minor: bigint | number, currency = "INR"): Money {
-  return { minor: BigInt(minor), currency }
+  const safeMinor =
+    typeof minor === "bigint" ? minor : BigInt(Math.round(Number(minor) || 0))
+  return { minor: safeMinor, currency }
 }
 
 /// Parses "1,234.56" or "1234" into minor units without ever touching a float.
