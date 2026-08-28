@@ -9,6 +9,7 @@ import {
   createBrandDef,
   createCalendarEventDef,
   createCommitmentDef,
+  createDailyJournalDef,
   createInvoiceDef,
   createNotificationDef,
   createOrganizationDef,
@@ -22,6 +23,7 @@ import {
   explainValueDef,
   getAgendaDef,
   getContextPackDef,
+  getDailyJournalDef,
   getDriveFileDef,
   getProjectContextDef,
   getSettingsDef,
@@ -635,6 +637,86 @@ export const jioBankStatementExtractor = jioBankStatementExtractorDef.server<Age
   }
 )
 
+// --- Daily Journal & Reflection --------------------------------------------
+
+export const getDailyJournal = getDailyJournalDef.server<AgentRuntimeContext>(
+  async (args, context) => {
+    const { db, ctx } = requireContext(context)
+    const titlePrefix = `Daily Journal — ${args.date}`
+    const doc = await db.document.findFirst({
+      where: {
+        tenantId: ctx.tenantId,
+        title: { startsWith: titlePrefix },
+      },
+    })
+    if (!doc) return { date: args.date, found: false }
+    return {
+      date: args.date,
+      found: true,
+      title: doc.title,
+      summary: doc.summary ?? undefined,
+      content: doc.content ?? undefined,
+    }
+  }
+)
+
+export const createDailyJournal = createDailyJournalDef.server<AgentRuntimeContext>(
+  async (args, context) => {
+    const { db, ctx } = requireContext(context)
+    const { getDayActivityData, synthesizeDailyJournal } = await import("@/lib/domain/journal-ai")
+    const { indexEntity } = await import("@/lib/search")
+    const targetDate = new Date(`${args.date}T00:00:00`)
+    const activity = await getDayActivityData(db, ctx.tenantId, targetDate)
+    const synthesis = await synthesizeDailyJournal(activity)
+
+    const titlePrefix = `Daily Journal — ${args.date}`
+    const finalSummary = args.summary || synthesis.summary
+    const contentStr = JSON.stringify(synthesis.tiptapContent)
+
+    const existing = await db.document.findFirst({
+      where: {
+        tenantId: ctx.tenantId,
+        title: { startsWith: titlePrefix },
+      },
+    })
+
+    let doc
+    if (existing) {
+      doc = await db.document.update({
+        where: { id: existing.id },
+        data: {
+          title: titlePrefix,
+          content: contentStr,
+          summary: finalSummary,
+        },
+      })
+    } else {
+      doc = await db.document.create({
+        data: {
+          tenantId: ctx.tenantId,
+          title: titlePrefix,
+          content: contentStr,
+          summary: finalSummary,
+        } as never,
+      })
+    }
+
+    await indexEntity(db, {
+      entityType: "DOCUMENT",
+      entityId: doc.id,
+      title: doc.title,
+      body: doc.content || doc.summary || "",
+    })
+
+    return {
+      success: true,
+      journalId: doc.id,
+      date: args.date,
+      summary: finalSummary,
+    }
+  }
+)
+
 // --- Approval-gated --------------------------------------------------------
 
 export const sendEmail = sendEmailDef.server<AgentRuntimeContext>(
@@ -695,6 +777,8 @@ export const serverTools = [
   getSettings,
   remember,
   recall,
+  getDailyJournal,
+  createDailyJournal,
   importBankStatement,
   jioBankStatementExtractor,
   organizeSources,

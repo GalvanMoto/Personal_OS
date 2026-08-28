@@ -997,6 +997,39 @@ export const organizeSourcesDef = toolDefinition({
   }),
 })
 
+export const getDailyJournalDef = toolDefinition({
+  name: "get_daily_journal",
+  description:
+    "Read the Daily Journal / reflection entry for a specific date (format YYYY-MM-DD, e.g. 2026-08-28).",
+  inputSchema: z.object({
+    date: z.string().describe("The date to fetch the journal for (YYYY-MM-DD)"),
+  }),
+  outputSchema: z.object({
+    date: z.string(),
+    found: z.boolean(),
+    title: z.string().optional(),
+    summary: z.string().optional(),
+    content: z.string().optional(),
+  }),
+})
+
+export const createDailyJournalDef = toolDefinition({
+  name: "create_daily_journal",
+  description:
+    "Generate or log a structured Daily Journal reflection for a specific date (YYYY-MM-DD). If content is omitted, automatically synthesizes completed tasks, transactions, and events.",
+  inputSchema: z.object({
+    date: z.string().describe("The date for the journal entry (YYYY-MM-DD)"),
+    summary: z.string().optional().describe("Short executive reflection / takeaway"),
+    notes: z.string().optional().describe("Personal thoughts or notes to include"),
+  }),
+  outputSchema: z.object({
+    success: z.boolean(),
+    journalId: z.string().optional(),
+    date: z.string(),
+    summary: z.string(),
+  }),
+})
+
 // ---------------------------------------------------------------------------
 // Client-side tools — these run in the browser, not on the server
 // ---------------------------------------------------------------------------

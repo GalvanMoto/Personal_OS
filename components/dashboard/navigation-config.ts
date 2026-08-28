@@ -26,7 +26,10 @@ export function buildNavigation(workspace: string): AppNavigationGroup[] {
     {
       label: "Overview",
       collapsible: false,
-      items: [{ name: "Today", href: at("/today"), icon: Icons.HomeIcon }],
+      items: [
+        { name: "Today", href: at("/today"), icon: Icons.HomeIcon },
+        { name: "Daily Journal", href: at("/journal"), icon: Icons.NoteIcon },
+      ],
     },
     {
       label: "Work",
