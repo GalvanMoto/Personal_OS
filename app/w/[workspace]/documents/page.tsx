@@ -24,7 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ShareButton } from "@/components/share/share-button"
-import { tiptapToPlainText } from "@/components/ui/tiptap-editor"
+import { tiptapToPlainText } from "@/lib/utils/tiptap-text"
 
 export const metadata = { title: "Document Intelligence & Knowledge · Personal OS" }
 

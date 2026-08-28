@@ -327,18 +327,4 @@ export function TiptapEditor({
   )
 }
 
-export function tiptapToPlainText(json: unknown): string {
-  try {
-    const j: any = typeof json === "string" ? JSON.parse(json as string) : json
-    const walk = (n: any): string => {
-      if (!n) return ""
-      if (n.type === "text") return n.text ?? ""
-      if (Array.isArray(n.content))
-        return n.content.map(walk).join(n.type === "paragraph" ? "\n\n" : " ")
-      return ""
-    }
-    return walk(j).trim().slice(0, 4000)
-  } catch {
-    return typeof json === "string" ? (json as string).slice(0, 4000) : ""
-  }
-}
+export { tiptapToPlainText } from "@/lib/utils/tiptap-text"
