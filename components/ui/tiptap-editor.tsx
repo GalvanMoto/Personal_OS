@@ -21,6 +21,9 @@ import {
   Heading1,
   Heading2,
   Heading3,
+  Trash2,
+  Plus,
+  Minus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -220,12 +223,13 @@ export function TiptapEditor({
           >
             <Link2 className="size-3.5" />
           </Button>
+
           <Button
             type="button"
-            variant="ghost"
+            variant={editor.isActive("table") ? "secondary" : "ghost"}
             size="icon"
             className="size-7"
-            title="Insert Table"
+            title="Insert Table (3x3)"
             onClick={() =>
               editor
                 .chain()
@@ -236,6 +240,20 @@ export function TiptapEditor({
           >
             <TableIcon className="size-3.5" />
           </Button>
+
+          {editor.isActive("table") ? (
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="h-7 px-2 text-[11px] gap-1 bg-destructive/15 hover:bg-destructive text-destructive hover:text-destructive-foreground border border-destructive/30"
+              title="Delete Entire Table"
+              onClick={() => editor.chain().focus().deleteTable().run()}
+            >
+              <Trash2 className="size-3" />
+              <span>Delete Table</span>
+            </Button>
+          ) : null}
 
           <div className="mx-1 h-3.5 w-px bg-border/60" />
 
@@ -260,6 +278,79 @@ export function TiptapEditor({
             title="Redo"
           >
             <Redo2 className="size-3.5" />
+          </Button>
+        </div>
+      ) : null}
+
+      {/* Contextual Table Editing Toolbar (Visible when cursor is in a table) */}
+      {can && editor.isActive("table") ? (
+        <div className="flex flex-wrap items-center gap-1.5 px-3 py-1.5 border-b bg-muted/40 text-xs">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mr-1 flex items-center gap-1">
+            <TableIcon className="size-3 text-primary" /> Table:
+          </span>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-6 text-[11px] px-2 gap-1 rounded bg-background"
+            onClick={() => editor.chain().focus().addRowAfter().run()}
+            title="Add Row Below"
+          >
+            <Plus className="size-3 text-emerald-500" />
+            <span>Row</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-6 text-[11px] px-2 gap-1 rounded bg-background"
+            onClick={() => editor.chain().focus().deleteRow().run()}
+            title="Delete Current Row"
+          >
+            <Minus className="size-3 text-amber-500" />
+            <span>Row</span>
+          </Button>
+
+          <div className="h-3 w-px bg-border/80 mx-0.5" />
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-6 text-[11px] px-2 gap-1 rounded bg-background"
+            onClick={() => editor.chain().focus().addColumnAfter().run()}
+            title="Add Column to Right"
+          >
+            <Plus className="size-3 text-emerald-500" />
+            <span>Col</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-6 text-[11px] px-2 gap-1 rounded bg-background"
+            onClick={() => editor.chain().focus().deleteColumn().run()}
+            title="Delete Current Column"
+          >
+            <Minus className="size-3 text-amber-500" />
+            <span>Col</span>
+          </Button>
+
+          <div className="h-3 w-px bg-border/80 mx-0.5" />
+
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="h-6 text-[11px] px-2 gap-1 rounded ml-auto bg-destructive/10 hover:bg-destructive text-destructive hover:text-destructive-foreground border border-destructive/30"
+            onClick={() => editor.chain().focus().deleteTable().run()}
+            title="Delete Entire Table"
+          >
+            <Trash2 className="size-3" />
+            <span>Delete Table</span>
           </Button>
         </div>
       ) : null}
