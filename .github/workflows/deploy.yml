@@ -47,20 +47,9 @@ jobs:
             # Apply any pending database migrations
             npx prisma migrate deploy
             
-            # Preserve previous static chunks to prevent 404 ChunkLoadErrors for active tabs
-            mkdir -p /var/www/personal-os/.chunk-cache/chunks
-            if [ -d /var/www/personal-os/.next/static/chunks ]; then
-              cp -n /var/www/personal-os/.next/static/chunks/* /var/www/personal-os/.chunk-cache/chunks/ 2>/dev/null || true
-            fi
-            
-            # Remove any stale Next.js build lock
-            rm -rf /var/www/personal-os/.next/lock /var/www/personal-os/.next/trace 2>/dev/null || true
+            # Remove stale Next.js build artifacts & build cleanly
+            rm -rf /var/www/personal-os/.next /var/www/personal-os/.chunk-cache 2>/dev/null || true
             npm run build
-            
-            # Merge previously generated chunks so active client sessions don't 404
-            if [ -d /var/www/personal-os/.chunk-cache/chunks ]; then
-              cp -n /var/www/personal-os/.chunk-cache/chunks/* /var/www/personal-os/.next/static/chunks/ 2>/dev/null || true
-            fi
             
             # Restart PM2 processes with updated environment & fresh build memory
             pm2 restart personal-os --update-env || pm2 start npm --name "personal-os" -- run start -- -p 3004
