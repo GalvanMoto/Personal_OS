@@ -36,33 +36,7 @@ export async function signUp(
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const parsed = signUpSchema.safeParse(Object.fromEntries(formData))
-  if (!parsed.success) return fieldErrors(parsed.error)
-
-  const { name, email, password, workspace } = parsed.data
-
-  if (await prisma.user.findUnique({ where: { email } })) {
-    return { fieldErrors: { email: "That email is already registered" } }
-  }
-
-  const slug = await uniqueSlug(workspace, async (candidate) =>
-    Boolean(await prisma.tenant.findUnique({ where: { slug: candidate } }))
-  )
-
-  // One transaction so a half-created account can never exist.
-  const { user, tenant } = await prisma.$transaction(async (tx) => {
-    const user = await tx.user.create({
-      data: { name, email, passwordHash: await hashPassword(password) },
-    })
-    const tenant = await tx.tenant.create({ data: { name: workspace, slug } })
-    await tx.membership.create({
-      data: { userId: user.id, tenantId: tenant.id, role: "OWNER" },
-    })
-    return { user, tenant }
-  })
-
-  await createSession(user.id, tenant.id)
-  redirect(`/w/${tenant.slug}/today`)
+  return { error: "Registration is disabled on this private instance." }
 }
 
 export async function signIn(

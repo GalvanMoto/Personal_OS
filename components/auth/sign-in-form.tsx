@@ -57,12 +57,5 @@ export function SignInForm() {
 }
 
 export function SignInFooter() {
-  return (
-    <>
-      New here?{" "}
-      <Link href="/signup" className="text-foreground underline underline-offset-4">
-        Create an account
-      </Link>
-    </>
-  )
+  return null
 }

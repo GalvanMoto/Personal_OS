@@ -23,7 +23,11 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // 2. Auth routes: redirect to /dashboard if already logged in
+  // 2. Auth routes: redirect /signup to /login (registration closed), and /login to /dashboard if logged in
+  if (pathname === "/signup") {
+    return NextResponse.redirect(new URL("/login", request.url))
+  }
+
   if (pathname === "/login" && hasSession) {
     return NextResponse.redirect(new URL("/dashboard", request.url))
   }
