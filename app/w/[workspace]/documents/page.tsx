@@ -24,6 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ShareButton } from "@/components/share/share-button"
+import { tiptapToPlainText } from "@/components/ui/tiptap-editor"
 
 export const metadata = { title: "Document Intelligence & Knowledge · Personal OS" }
 
@@ -221,9 +222,9 @@ export default async function DocumentsPage({
                       {doc.content ? (
                         <Link
                           href={`/w/${workspace}/documents/${doc.id}`}
-                          className="block font-mono text-[0.6875rem] text-muted-foreground line-clamp-3 bg-muted/20 hover:bg-muted/40 rounded p-2 border transition-colors cursor-pointer"
+                          className="block text-xs leading-relaxed text-muted-foreground line-clamp-3 bg-muted/20 hover:bg-muted/40 rounded-lg p-3 border transition-colors cursor-pointer"
                         >
-                          {doc.content}
+                          {tiptapToPlainText(doc.content)}
                         </Link>
                       ) : null}
                     </div>
@@ -255,8 +256,15 @@ export default async function DocumentsPage({
                 <div className="divide-y text-xs">
                   {briefs.map((doc) => (
                     <div key={doc.id} className="p-4 space-y-1.5 hover:bg-muted/30">
-                      <span className="font-semibold text-foreground">{doc.title}</span>
-                      <p className="text-[0.6875rem] text-muted-foreground">{doc.summary || doc.content}</p>
+                      <Link
+                        href={`/w/${workspace}/documents/${doc.id}`}
+                        className="font-semibold text-foreground hover:underline"
+                      >
+                        {doc.title}
+                      </Link>
+                      <p className="text-[0.6875rem] text-muted-foreground line-clamp-2">
+                        {doc.summary || tiptapToPlainText(doc.content)}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -286,8 +294,15 @@ export default async function DocumentsPage({
                 <div className="divide-y text-xs">
                   {contracts.map((doc) => (
                     <div key={doc.id} className="p-4 space-y-1.5 hover:bg-muted/30">
-                      <span className="font-semibold text-foreground">{doc.title}</span>
-                      <p className="text-[0.6875rem] text-muted-foreground">{doc.summary || doc.content}</p>
+                      <Link
+                        href={`/w/${workspace}/documents/${doc.id}`}
+                        className="font-semibold text-foreground hover:underline"
+                      >
+                        {doc.title}
+                      </Link>
+                      <p className="text-[0.6875rem] text-muted-foreground line-clamp-2">
+                        {doc.summary || tiptapToPlainText(doc.content)}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -317,8 +332,15 @@ export default async function DocumentsPage({
                 <div className="divide-y text-xs">
                   {specs.map((doc) => (
                     <div key={doc.id} className="p-4 space-y-1.5 hover:bg-muted/30">
-                      <span className="font-semibold text-foreground">{doc.title}</span>
-                      <p className="text-[0.6875rem] text-muted-foreground">{doc.summary || doc.content}</p>
+                      <Link
+                        href={`/w/${workspace}/documents/${doc.id}`}
+                        className="font-semibold text-foreground hover:underline"
+                      >
+                        {doc.title}
+                      </Link>
+                      <p className="text-[0.6875rem] text-muted-foreground line-clamp-2">
+                        {doc.summary || tiptapToPlainText(doc.content)}
+                      </p>
                     </div>
                   ))}
                 </div>
