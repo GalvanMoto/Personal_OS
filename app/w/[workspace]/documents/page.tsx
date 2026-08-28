@@ -176,7 +176,13 @@ export default async function DocumentsPage({
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-foreground text-sm truncate">{doc.title}</span>
+                            <Link
+                              href={`/w/${workspace}/documents/${doc.id}`}
+                              className="font-semibold text-foreground text-sm truncate hover:underline hover:text-primary transition-colors flex items-center gap-1.5"
+                            >
+                              <span>{doc.title}</span>
+                              <ArrowUpRight className="size-3.5 text-muted-foreground opacity-60" />
+                            </Link>
                             <Badge variant="secondary" className="text-[0.625rem]">
                               Document
                             </Badge>
@@ -190,7 +196,7 @@ export default async function DocumentsPage({
                         <div className="flex items-center gap-2">
                         {doc.file ? (
                           <a
-                            href={`/api/files/${doc.file.id}`}
+                            href={`/api/files/${workspace}/${doc.file.id}`}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-mono"
@@ -213,9 +219,12 @@ export default async function DocumentsPage({
                       ) : null}
 
                       {doc.content ? (
-                        <div className="font-mono text-[0.6875rem] text-muted-foreground line-clamp-3 bg-muted/20 rounded p-2 border">
+                        <Link
+                          href={`/w/${workspace}/documents/${doc.id}`}
+                          className="block font-mono text-[0.6875rem] text-muted-foreground line-clamp-3 bg-muted/20 hover:bg-muted/40 rounded p-2 border transition-colors cursor-pointer"
+                        >
                           {doc.content}
-                        </div>
+                        </Link>
                       ) : null}
                     </div>
                   ))}

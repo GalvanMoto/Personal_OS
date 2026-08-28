@@ -172,6 +172,52 @@ export async function createDocumentAction(workspace: string, formData: FormData
   }
 }
 
+const updateDocumentSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1, "Document title is required"),
+  content: z.string().optional(),
+  summary: z.string().optional(),
+})
+
+export async function updateDocumentAction(workspace: string, formData: FormData) {
+  const { db } = await requireWorkspace(workspace)
+  const raw = {
+    id: String(formData.get("id") || ""),
+    title: String(formData.get("title") || ""),
+    content: formData.get("content") ? String(formData.get("content")) : undefined,
+    summary: formData.get("summary") ? String(formData.get("summary")) : undefined,
+  }
+
+  const parsed = updateDocumentSchema.safeParse(raw)
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message || "Validation failed" }
+  }
+
+  try {
+    const doc = await db.document.update({
+      where: { id: parsed.data.id },
+      data: {
+        title: parsed.data.title,
+        content: parsed.data.content ?? null,
+        summary: parsed.data.summary ?? null,
+      },
+    })
+
+    await indexEntity(db, {
+      entityType: "DOCUMENT",
+      entityId: doc.id,
+      title: doc.title,
+      body: doc.content || doc.summary || "",
+    })
+
+    revalidatePath(`/w/${workspace}/documents`)
+    revalidatePath(`/w/${workspace}/documents/${doc.id}`)
+    return { ok: true, document: { id: doc.id } }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Failed to update document" }
+  }
+}
+
 const createTransactionSchema = z.object({
   description: z.string().min(1, "Description is required"),
   amount: z.string().min(1, "Amount is required"),
