@@ -64,9 +64,49 @@ export const requireWorkspace = cache(
       include: { tenant: true },
     })
 
-    // A workspace the user is not a member of is indistinguishable from one
-    // that does not exist, so slugs cannot be probed for existence.
-    if (!membership) notFound()
+    if (!membership) {
+      // 1. If user has other valid workspaces, route them to their primary workspace
+      const userWorkspaces = await prisma.membership.findMany({
+        where: { userId: user.id },
+        include: { tenant: true },
+        orderBy: { createdAt: "asc" },
+      })
+      if (userWorkspaces.length > 0) {
+        redirect(`/w/${userWorkspaces[0].tenant.slug}/today`)
+      }
+
+      // 2. If user has NO workspaces at all, auto-provision their initial workspace
+      const safeSlug =
+        slug && slug !== "null" && slug !== "undefined"
+          ? slug
+          : user.email
+            ? user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9_-]/g, "")
+            : "my-workspace"
+
+      const tenant = await prisma.tenant.create({
+        data: {
+          slug: safeSlug,
+          name: user.name || "My Workspace",
+          memberships: {
+            create: {
+              userId: user.id,
+              role: "OWNER",
+            },
+          },
+        },
+      })
+
+      return {
+        user,
+        tenant: {
+          id: tenant.id,
+          slug: tenant.slug,
+          name: tenant.name,
+        },
+        role: "OWNER",
+        db: tenantDb(tenant.id),
+      }
+    }
 
     return {
       user,
